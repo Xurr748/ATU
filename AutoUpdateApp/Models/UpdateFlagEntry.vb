@@ -4,15 +4,15 @@ Option Explicit On
 Namespace Models
 
     ''' <summary>
-    ''' Represents a single entry from updateflag.txt.
-    ''' Maps: ComputerName, UpdateFlag
+    ''' ข้อมูล Flag การอัปเดต 1 แถว จากไฟล์ updateflag.txt
+    ''' คอลัมน์: ComputerName, UpdateFlag
     ''' </summary>
     Public Class UpdateFlagEntry
 
-        ''' <summary>Machine name (e.g. PC001)</summary>
+        ''' <summary>ชื่อเครื่อง (เช่น PC001)</summary>
         Public Property ComputerName As String
 
-        ''' <summary>True if update is pending after restart</summary>
+        ''' <summary>True = มีการอัปเดตค้างอยู่หลังรีสตาร์ท</summary>
         Public Property UpdateFlag As Boolean
 
     End Class

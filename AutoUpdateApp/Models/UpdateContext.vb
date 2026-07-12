@@ -4,25 +4,25 @@ Option Explicit On
 Namespace Models
 
     ''' <summary>
-    ''' Aggregates all data needed for a single update cycle.
-    ''' Passed to strategies for decision-making.
+    ''' รวบรวมข้อมูลทั้งหมดที่จำเป็นสำหรับรอบการอัปเดตหนึ่งครั้ง
+    ''' ส่งต่อให้ Strategy เพื่อตัดสินใจว่าจะทำอะไร
     ''' </summary>
     Public Class UpdateContext
 
-        ''' <summary>Tester configuration from TesterType.csv</summary>
+        ''' <summary>ข้อมูลเครื่องทดสอบจาก TesterType.csv</summary>
         Public Property Tester As TesterInfo
 
-        ''' <summary>Current installed version (from registry)</summary>
+        ''' <summary>เวอร์ชันที่ติดตั้งอยู่ปัจจุบัน (จาก Registry)</summary>
         Public Property CurrentVersion As String
 
-        ''' <summary>Latest available version (from version.txt)</summary>
+        ''' <summary>เวอร์ชันล่าสุดที่มี (จาก version.txt)</summary>
         Public Property LatestVersion As String
 
-        ''' <summary>True if updateflag.txt has a pending restart flag</summary>
+        ''' <summary>True = มี Flag ค้างอยู่ใน updateflag.txt ว่ารอรีสตาร์ท</summary>
         Public Property HasPendingRestartFlag As Boolean
 
         ''' <summary>
-        ''' Computed: True when versions differ and both are non-empty.
+        ''' คำนวณอัตโนมัติ: True เมื่อเวอร์ชันไม่ตรงกันและทั้งสองค่าไม่ว่าง
         ''' </summary>
         Public ReadOnly Property NeedsUpdate As Boolean
             Get

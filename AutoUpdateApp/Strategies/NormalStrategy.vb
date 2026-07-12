@@ -6,11 +6,11 @@ Imports System.Windows.Forms
 Namespace Strategies
 
     ''' <summary>
-    ''' Normal mode: Prompts the user with three choices:
-    ''' - Update Now → runs installer immediately
-    ''' - Update After Restart → sets flag in updateflag.txt
-    ''' - Remind Me Later → defers to next cycle
-    ''' Uses Control.Invoke to show the dialog on the UI thread
+    ''' โหมด Normal: แสดงหน้าต่างให้ผู้ใช้เลือก 3 ตัวเลือก:
+    ''' - อัปเดตตอนนี้ → รัน Installer ทันที
+    ''' - อัปเดตหลังรีสตาร์ท → ตั้ง Flag ใน updateflag.txt
+    ''' - เตือนฉันทีหลัง → เลื่อนไปรอบถัดไป
+    ''' ใช้ Control.Invoke เพื่อแสดงหน้าต่างบน UI Thread
     ''' when called from a BackgroundWorker.
     ''' </summary>
     Public Class NormalStrategy
@@ -19,7 +19,7 @@ Namespace Strategies
         Private ReadOnly _invokeControl As Control
 
         ''' <summary>
-        ''' Creates a NormalStrategy that can invoke UI on the given control's thread.
+        ''' สร้าง NormalStrategy พร้อม Control สำหรับเรียก UI Thread
         ''' </summary>
         ''' <param name="invokeControl">A control (e.g. MainForm) for thread marshaling.</param>
         Public Sub New(invokeControl As Control)
@@ -30,7 +30,7 @@ Namespace Strategies
             Dim choice As Forms.UpdatePromptResult = Forms.UpdatePromptResult.RemindLater
 
             Try
-                ' Show the prompt on the UI thread
+                ' แสดงหน้าต่างบน UI Thread
                 If _invokeControl IsNot Nothing AndAlso _invokeControl.InvokeRequired Then
                     _invokeControl.Invoke(New MethodInvoker(Sub()
                         choice = ShowPrompt(context)
@@ -43,7 +43,7 @@ Namespace Strategies
                 Return UpdateResult.[Error]
             End Try
 
-            ' Act on user's choice
+            ' ดำเนินการตามที่ผู้ใช้เลือก
             Select Case choice
                 Case Forms.UpdatePromptResult.UpdateNow
                     Managers.LogManager.Info("User chose: Update Now")

@@ -6,7 +6,7 @@ Imports System.Windows.Forms
 Namespace Forms
 
     ''' <summary>
-    ''' Result of the user's choice on the update prompt dialog.
+    ''' ผลลัพธ์จากการเลือกของผู้ใช้บนหน้าต่างแจ้งเตือนอัปเดต
     ''' </summary>
     Public Enum UpdatePromptResult
         UpdateNow = 0
@@ -15,9 +15,9 @@ Namespace Forms
     End Enum
 
     ''' <summary>
-    ''' Prompt dialog for Normal mode.
-    ''' Shows current vs latest version and three action buttons.
-    ''' You can customize the UI layout in the Designer file.
+    ''' หน้าต่างแจ้งเตือนสำหรับโหมด Normal
+    ''' แสดงเวอร์ชันปัจจุบัน vs ล่าสุด และปุ่มเลือก 3 ปุ่ม
+    ''' ปรับแต่ง UI ได้ตามต้องการ
     ''' </summary>
     Public Class UpdatePromptForm
         Inherits Form
@@ -31,7 +31,7 @@ Namespace Forms
         Private btnRemindLater As Button
 
         ''' <summary>
-        ''' Gets the user's selected action.
+        ''' ดึงค่าที่ผู้ใช้เลือก
         ''' </summary>
         Public ReadOnly Property UserChoice As UpdatePromptResult
             Get

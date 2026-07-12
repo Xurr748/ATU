@@ -7,7 +7,7 @@ Imports System.Windows.Forms
 Namespace Workers
 
     ''' <summary>
-    ''' Event args for the UpdateCompleted event.
+    ''' Event Args สำหรับ Event UpdateCompleted
     ''' </summary>
     Public Class UpdateCompletedEventArgs
         Inherits EventArgs
@@ -22,7 +22,7 @@ Namespace Workers
     End Class
 
     ''' <summary>
-    ''' BackgroundWorker wrapper that orchestrates the full update check flow:
+    ''' ตัวจัดการ BackgroundWorker ที่ดำเนินการตรวจสอบอัปเดตทั้งขั้นตอน:
     ''' 1. Get ComputerName
     ''' 2. Find in TesterType.csv
     ''' 3. Check scheduled time
@@ -30,8 +30,8 @@ Namespace Workers
     ''' 5. Check updateflag.txt for pending restart
     ''' 6. Execute mode-specific strategy
     ''' 
-    ''' All heavy work runs on a background thread.
-    ''' NormalStrategy uses Control.Invoke for UI prompts.
+    ''' งานหนักทั้งหมดทำงานบน Background Thread
+    ''' NormalStrategy ใช้ Control.Invoke สำหรับแสดงหน้าต่าง
     ''' </summary>
     Public Class UpdateWorker
         Implements IDisposable
@@ -40,7 +40,7 @@ Namespace Workers
         Private ReadOnly _invokeControl As Control
         Private _disposed As Boolean
 
-        ''' <summary>Raised when the update check completes (on UI thread).</summary>
+        ''' <summary>เกิดขึ้นเมื่อการตรวจสอบอัปเดตเสร็จ (บน UI Thread)</summary>
         Public Event UpdateCompleted As EventHandler(Of UpdateCompletedEventArgs)
 
         ''' <summary>
@@ -55,7 +55,7 @@ Namespace Workers
             AddHandler _worker.RunWorkerCompleted, AddressOf WorkCompleted
         End Sub
 
-        ''' <summary>True if an update check is currently in progress.</summary>
+        ''' <summary>True หากกำลังตรวจสอบอัปเดตอยู่</summary>
         Public ReadOnly Property IsBusy As Boolean
             Get
                 Return _worker.IsBusy
@@ -63,7 +63,7 @@ Namespace Workers
         End Property
 
         ''' <summary>
-        ''' Starts an asynchronous update check. No-op if already running.
+        ''' เริ่มตรวจสอบอัปเดตแบบ Async ไม่ทำอะไรหากกำลังทำงานอยู่
         ''' </summary>
         Public Sub RunAsync()
             If _worker.IsBusy Then
@@ -73,7 +73,7 @@ Namespace Workers
             _worker.RunWorkerAsync()
         End Sub
 
-        ''' <summary>Requests cancellation of the current update check.</summary>
+        ''' <summary>ร้องขอยกเลิกการตรวจสอบอัปเดต</summary>
         Public Sub Cancel()
             If _worker.IsBusy Then
                 _worker.CancelAsync()
@@ -84,17 +84,17 @@ Namespace Workers
             Try
                 Managers.LogManager.Info("═══ Update check started ═══")
 
-                ' Check for cancellation
+                ' ตรวจสอบว่าถูกยกเลิกหรือไม่
                 If _worker.CancellationPending Then
                     e.Cancel = True
                     Return
                 End If
 
-                ' ── Step 1: Get computer name ──
+                ' ── ขั้นตอนที่ 1: ดึงชื่อเครื่อง ──
                 Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
                 Managers.LogManager.Info("Computer: " & computerName)
 
-                ' ── Step 2: Find in TesterType.csv ──
+                ' ── ขั้นตอนที่ 2: ค้นหาใน TesterType.csv ──
                 Dim tester As Models.TesterInfo = Managers.ConfigManager.GetTesterByName(computerName)
                 If tester Is Nothing Then
                     Managers.LogManager.Warn("Computer '" & computerName & "' not found in tester config. Skipping.")
@@ -105,7 +105,7 @@ Namespace Workers
                 Managers.LogManager.Info("Type: " & tester.TesterType & ", Mode: " & tester.Mode & _
                                         ", ScheduledTime: " & tester.ScheduledTime.ToString())
 
-                ' ── Step 3: Check scheduled time ──
+                ' ── ขั้นตอนที่ 3: ตรวจสอบเวลาที่กำหนด ──
                 Dim now As TimeSpan = DateTime.Now.TimeOfDay
                 If now < tester.ScheduledTime Then
                     Managers.LogManager.Info("Scheduled time not reached (" & _
@@ -115,22 +115,22 @@ Namespace Workers
                     Return
                 End If
 
-                ' ── Step 4 & 5: Read versions ──
+                ' ── ขั้นตอนที่ 4 และ 5: อ่านเวอร์ชัน ──
                 Dim currentVersion As String = Managers.VersionManager.ReadRegistryVersion()
                 Dim latestVersion As String = Managers.VersionManager.ReadLatestVersion()
                 Managers.LogManager.Info("Versions — Current: " & currentVersion & ", Latest: " & latestVersion)
 
-                ' ── Build context ──
+                ' ── สร้าง Context ──
                 Dim context As New Models.UpdateContext()
                 context.Tester = tester
                 context.CurrentVersion = currentVersion
                 context.LatestVersion = latestVersion
 
-                ' ── Step 6: Check update flag first (per spec) ──
+                ' ── ขั้นตอนที่ 6: ตรวจสอบ updateflag.txt ก่อน (ตาม Spec) ──
                 Dim flag As Boolean? = Managers.UpdateFlagManager.GetFlag(computerName)
                 context.HasPendingRestartFlag = (flag.HasValue AndAlso flag.Value)
 
-                ' Handle pending restart flag (takes priority)
+                ' จัดการ Flag รีสตาร์ทค้าง (มีความสำคัญสูงสุด)
                 If context.HasPendingRestartFlag AndAlso context.NeedsUpdate Then
                     Managers.LogManager.Info("Pending restart update detected. Running installer.")
                     Dim success As Boolean = Managers.InstallerManager.RunInstaller(tester.TesterType)
@@ -145,14 +145,14 @@ Namespace Workers
                     Return
                 End If
 
-                ' ── Step 7: Check if update needed ──
+                ' ── ขั้นตอนที่ 7: ตรวจสอบว่าต้องอัปเดตหรือไม่ ──
                 If Not context.NeedsUpdate Then
                     Managers.LogManager.Info("Application is up to date.")
                     e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.NoAction, "Up to date")
                     Return
                 End If
 
-                ' ── Step 8: Select and execute strategy ──
+                ' ── ขั้นตอนที่ 8: เลือกและดำเนินการ Strategy ──
                 Dim strategy As Strategies.IUpdateStrategy = _
                     Strategies.StrategyFactory.Create(tester.Mode, _invokeControl)
                 Dim result As Strategies.UpdateResult = strategy.Execute(context)

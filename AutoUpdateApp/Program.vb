@@ -5,13 +5,13 @@ Imports System.Threading
 Imports System.Windows.Forms
 
 ''' <summary>
-''' Application entry point.
+''' จุดเริ่มต้นของแอปพลิเคชัน
 ''' 
-''' Startup flow:
-''' 1. Single-instance check via Mutex
-''' 2. Check updateflag.txt for pending restart update
-''' 3. If flag is True AND versions differ → run installer → clear flag
-''' 4. Launch MainForm (system tray app with scheduler)
+''' ขั้นตอนเริ่มต้น:
+''' 1. ตรวจสอบว่าเปิดโปรแกรมซ้ำหรือไม่ ด้วย Mutex
+''' 2. ตรวจสอบ updateflag.txt ว่ามีอัปเดตค้างรอรีสตาร์ทหรือไม่
+''' 3. ถ้า Flag เป็น True และเวอร์ชันไม่ตรง → รัน Installer → ล้าง Flag
+''' 4. เปิด MainForm (System Tray)
 ''' </summary>
 Module Program
 
@@ -19,11 +19,11 @@ Module Program
 
     Sub Main()
         Try
-            ' ── Single-instance check ──
+            ' ── ตรวจสอบว่ามีโปรแกรมเปิดอยู่แล้วหรือไม่ ──
             Dim createdNew As Boolean
             Using mutex As New Mutex(True, MutexName, createdNew)
                 If Not createdNew Then
-                    ' Another instance is already running
+                    ' มีโปรแกรมเปิดอยู่แล้ว ไม่เปิดซ้ำ
                     Return
                 End If
 
@@ -34,10 +34,10 @@ Module Program
                 Managers.LogManager.Info("Application starting.")
                 Managers.LogManager.Info("═══════════════════════════════════════")
 
-                ' ── Startup: Check for pending restart update ──
+                ' ── ตรวจสอบการอัปเดตที่ค้างรอรีสตาร์ทตอนเริ่มโปรแกรม ──
                 CheckPendingRestartUpdate()
 
-                ' ── Launch main form ──
+                ' ── เปิดหน้าจอหลัก ──
                 Application.Run(New Forms.MainForm())
 
                 Managers.LogManager.Info("Application shut down normally.")
@@ -53,7 +53,7 @@ Module Program
     End Sub
 
     ''' <summary>
-    ''' Checks updateflag.txt at startup.
+    ''' ตรวจสอบ updateflag.txt ตอนเริ่มโปรแกรม
     ''' If the current computer has a pending restart flag AND versions differ,
     ''' runs the installer and clears the flag.
     ''' </summary>
@@ -62,21 +62,21 @@ Module Program
             Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
             Managers.LogManager.Info("Startup restart check for: " & computerName)
 
-            ' Look up tester config
+            ' ค้นหาข้อมูลเครื่องทดสอบ
             Dim tester As Models.TesterInfo = Managers.ConfigManager.GetTesterByName(computerName)
             If tester Is Nothing Then
                 Managers.LogManager.Info("Computer not in tester config. Skipping restart check.")
                 Return
             End If
 
-            ' Check the flag
+            ' ตรวจสอบ Flag
             Dim flag As Boolean? = Managers.UpdateFlagManager.GetFlag(computerName)
             If Not flag.HasValue OrElse Not flag.Value Then
                 Managers.LogManager.Info("No pending restart update.")
                 Return
             End If
 
-            ' Verify versions still differ
+            ' ตรวจสอบว่าเวอร์ชันยังไม่ตรงกัน
             Dim currentVersion As String = Managers.VersionManager.ReadRegistryVersion()
             Dim latestVersion As String = Managers.VersionManager.ReadLatestVersion()
 
@@ -86,13 +86,13 @@ Module Program
             End If
 
             If String.Equals(currentVersion, latestVersion, StringComparison.OrdinalIgnoreCase) Then
-                ' Already updated — clear the flag
+                ' อัปเดตแล้ว — ล้าง Flag เก่าทิ้ง
                 Managers.LogManager.Info("Versions match. Clearing stale restart flag.")
                 Managers.UpdateFlagManager.SetFlag(computerName, False)
                 Return
             End If
 
-            ' Run the installer
+            ' เรียกใช้ Installer
             Managers.LogManager.Info("Running pending restart update. " & _
                                      currentVersion & " → " & latestVersion)
 

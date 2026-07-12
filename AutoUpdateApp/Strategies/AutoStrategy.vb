@@ -4,8 +4,8 @@ Option Explicit On
 Namespace Strategies
 
     ''' <summary>
-    ''' Auto mode: Automatically runs the installer when the scheduled time
-    ''' is reached and versions differ. No user interaction.
+    ''' โหมด Auto: รัน Installer อัตโนมัติเมื่อถึงเวลาที่กำหนดและเวอร์ชันไม่ตรงกัน
+    ''' ไม่ต้องมีการโต้ตอบกับผู้ใช้
     ''' </summary>
     Public Class AutoStrategy
         Implements IUpdateStrategy

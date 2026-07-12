@@ -7,20 +7,20 @@ Imports System.Threading
 Namespace Utilities
 
     ''' <summary>
-    ''' Provides safe file I/O operations with retry logic,
-    ''' designed for reliability over network paths.
+    ''' จัดการอ่าน/เขียนไฟล์อย่างปลอดภัย พร้อมระบบลองใหม่อัตโนมัติ (Retry)
+    ''' ออกแบบมาเพื่อรองรับ Network Path ที่อาจเชื่อมต่อไม่เสถียร
     ''' </summary>
     Public NotInheritable Class FileHelper
 
         Private Const RetryDelayMs As Integer = 150
 
         Private Sub New()
-            ' Static-only class
+            ' คลาสแบบ Static เท่านั้น ไม่ต้องสร้าง Instance
         End Sub
 
         ''' <summary>
-        ''' Reads all lines from a file with retry logic.
-        ''' Returns Nothing on failure after all retries.
+        ''' อ่านไฟล์ทุกบรรทัด พร้อมลองใหม่อัตโนมัติหากเกิดข้อผิดพลาด
+        ''' คืนค่า Nothing หากอ่านไม่สำเร็จหลังลองครบทุกรอบ
         ''' </summary>
         Public Shared Function ReadAllLinesSafe(filePath As String, Optional maxRetries As Integer = 3) As String()
             For attempt As Integer = 1 To maxRetries
@@ -36,8 +36,8 @@ Namespace Utilities
         End Function
 
         ''' <summary>
-        ''' Reads all text from a file with retry logic.
-        ''' Returns Nothing on failure after all retries.
+        ''' อ่านเนื้อหาไฟล์ทั้งหมดเป็น String พร้อมลองใหม่อัตโนมัติ
+        ''' คืนค่า Nothing หากอ่านไม่สำเร็จหลังลองครบทุกรอบ
         ''' </summary>
         Public Shared Function ReadAllTextSafe(filePath As String, Optional maxRetries As Integer = 3) As String
             For attempt As Integer = 1 To maxRetries
@@ -53,8 +53,8 @@ Namespace Utilities
         End Function
 
         ''' <summary>
-        ''' Writes text to a file with retry logic.
-        ''' Creates parent directories if they don't exist.
+        ''' เขียนข้อมูลลงไฟล์พร้อมลองใหม่อัตโนมัติ
+        ''' สร้างโฟลเดอร์ให้อัตโนมัติหากยังไม่มี
         ''' </summary>
         Public Shared Sub WriteAllTextSafe(filePath As String, content As String, Optional maxRetries As Integer = 3)
             Dim dir As String = Path.GetDirectoryName(filePath)
@@ -73,7 +73,7 @@ Namespace Utilities
         End Sub
 
         ''' <summary>
-        ''' Checks if a file exists without throwing.
+        ''' ตรวจสอบว่าไฟล์มีอยู่จริงหรือไม่ โดยไม่โยน Exception
         ''' </summary>
         Public Shared Function FileExistsSafe(filePath As String) As Boolean
             Try
@@ -84,8 +84,8 @@ Namespace Utilities
         End Function
 
         ''' <summary>
-        ''' Gets the last write time (UTC) of a file without throwing.
-        ''' Returns DateTime.MinValue on failure.
+        ''' ดึงเวลาแก้ไขล่าสุดของไฟล์ (UTC) โดยไม่โยน Exception
+        ''' คืนค่า DateTime.MinValue หากอ่านไม่ได้
         ''' </summary>
         Public Shared Function GetLastWriteTimeSafe(filePath As String) As DateTime
             Try

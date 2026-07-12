@@ -6,17 +6,17 @@ Imports System.Diagnostics
 Namespace Managers
 
     ''' <summary>
-    ''' Launches the appropriate installer based on tester type (HE/LLE).
-    ''' Installer path and arguments are fully configurable via app.config.
+    ''' เรียกใช้ตัวติดตั้ง (Installer) ตามประเภทเครื่องทดสอบ (HE/LLE)
+    ''' เส้นทางและอาร์กิวเมนต์ตั้งค่าได้ทั้งหมดผ่าน app.config
     ''' </summary>
     Public NotInheritable Class InstallerManager
 
         Private Sub New()
-            ' Static-only class
+            ' คลาสแบบ Static เท่านั้น ไม่ต้องสร้าง Instance
         End Sub
 
         ''' <summary>
-        ''' Returns the installer path for the given tester type.
+        ''' คืนค่าเส้นทาง Installer สำหรับประเภทเครื่องที่ระบุ
         ''' </summary>
         Public Shared Function GetInstallerPath(testerType As String) As String
             Select Case testerType.ToUpperInvariant()
@@ -31,9 +31,9 @@ Namespace Managers
         End Function
 
         ''' <summary>
-        ''' Runs the installer for the given tester type.
-        ''' Returns True if the installer exited with code 0, False otherwise.
-        ''' Blocks until the installer process completes.
+        ''' เรียกใช้ Installer สำหรับประเภทเครื่องที่ระบุ
+        ''' คืนค่า True หาก Installer ปิดตัวด้วยรหัส 0 มิฉะนั้นคืนค่า False
+        ''' รอจนกว่า Installer จะทำงานเสร็จ
         ''' </summary>
         Public Shared Function RunInstaller(testerType As String) As Boolean
             Dim installerPath As String = GetInstallerPath(testerType)
@@ -67,7 +67,7 @@ Namespace Managers
                     End If
                 End Using
 
-                LogManager.[Error]("Failed to start installer process.")
+                LogManager.[Error]("ไม่สามารถเริ่ม Process ของ Installer ได้")
                 Return False
 
             Catch ex As Exception

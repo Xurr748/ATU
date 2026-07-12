@@ -4,18 +4,18 @@ Option Explicit On
 Namespace Utilities
 
     ''' <summary>
-    ''' Lightweight CSV parser for simple fixed-column CSV files.
-    ''' No external dependencies required.
+    ''' ตัวแยกวิเคราะห์ไฟล์ CSV แบบเบา สำหรับไฟล์ CSV คอลัมน์คงที่
+    ''' ไม่ต้องใช้ไลบรารีภายนอก ใช้ FileHelper ในการอ่านไฟล์
     ''' </summary>
     Public NotInheritable Class CsvParser
 
         Private Sub New()
-            ' Static-only class
+            ' คลาสแบบ Static เท่านั้น ไม่ต้องสร้าง Instance
         End Sub
 
         ''' <summary>
-        ''' Parses a CSV file and returns data rows as a list of string arrays.
-        ''' Skips empty lines and the header row when hasHeader is True.
+        ''' อ่านไฟล์ CSV แล้วแปลงแต่ละแถวเป็น Array ของ String
+        ''' ข้ามบรรทัดว่างและหัวตาราง (Header) เมื่อ hasHeader เป็น True
         ''' </summary>
         Public Shared Function ParseFile(filePath As String, Optional hasHeader As Boolean = True) As List(Of String())
             Dim rows As New List(Of String())
@@ -38,7 +38,7 @@ Namespace Utilities
         End Function
 
         ''' <summary>
-        ''' Splits a single CSV line into trimmed fields.
+        ''' แยกบรรทัด CSV หนึ่งบรรทัดเป็น Array ของ String พร้อมตัดช่องว่างหัวท้าย
         ''' </summary>
         Public Shared Function ParseLine(line As String) As String()
             If String.IsNullOrEmpty(line) Then

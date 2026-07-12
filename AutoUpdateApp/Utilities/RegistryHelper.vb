@@ -6,21 +6,21 @@ Imports Microsoft.Win32
 Namespace Utilities
 
     ''' <summary>
-    ''' Provides safe registry read operations.
-    ''' Returns Nothing on failure — callers handle logging.
+    ''' อ่านค่าจาก Windows Registry อย่างปลอดภัย
+    ''' คืนค่า Nothing หากอ่านไม่ได้ — ผู้เรียกใช้เป็นคนจัดการ Log เอง
     ''' </summary>
     Public NotInheritable Class RegistryHelper
 
         Private Sub New()
-            ' Static-only class
+            ' คลาสแบบ Static เท่านั้น ไม่ต้องสร้าง Instance
         End Sub
 
         ''' <summary>
-        ''' Reads a string value from the registry.
-        ''' Returns Nothing if the key/value is not found or access is denied.
+        ''' อ่านค่า String จาก Registry ตาม Key Path และ Value Name ที่ระบุ
+        ''' คืนค่า Nothing หากไม่พบ Key/Value หรือสิทธิ์ไม่เพียงพอ
         ''' </summary>
-        ''' <param name="keyPath">Full registry key path (e.g. HKEY_LOCAL_MACHINE\SOFTWARE\MyApp)</param>
-        ''' <param name="valueName">Name of the value to read</param>
+        ''' <param name="keyPath">เส้นทาง Registry เต็ม (เช่น HKEY_LOCAL_MACHINE\SOFTWARE\MyApp)</param>
+        ''' <param name="valueName">ชื่อของ Value ที่ต้องการอ่าน</param>
         Public Shared Function ReadValue(keyPath As String, valueName As String) As String
             Try
                 Dim value As Object = Registry.GetValue(keyPath, valueName, Nothing)
@@ -28,9 +28,9 @@ Namespace Utilities
                     Return value.ToString()
                 End If
             Catch ex As Security.SecurityException
-                ' Insufficient permissions — caller should log
+                ' สิทธิ์ไม่เพียงพอ — ผู้เรียกใช้จัดการ Log เอง
             Catch ex As Exception
-                ' Key not found or other error — caller should log
+                ' ไม่พบ Key หรือเกิดข้อผิดพลาดอื่น — ผู้เรียกใช้จัดการ Log เอง
             End Try
             Return Nothing
         End Function

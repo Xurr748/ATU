@@ -4,29 +4,29 @@ Option Explicit On
 Namespace Strategies
 
     ''' <summary>
-    ''' Result of an update strategy execution.
+    ''' ผลลัพธ์ของการทำงานของ Strategy การอัปเดต
     ''' </summary>
     Public Enum UpdateResult
-        ''' <summary>No action was taken (up to date, standby, or time not reached).</summary>
+        ''' <summary>ไม่มีการดำเนินการ (เวอร์ชันตรงกัน, โหมด Standby, หรือยังไม่ถึงเวลา)</summary>
         NoAction = 0
-        ''' <summary>Update was installed successfully.</summary>
+        ''' <summary>ติดตั้งอัปเดตสำเร็จ</summary>
         UpdateCompleted = 1
-        ''' <summary>User chose "Remind Me Later" — will retry next cycle.</summary>
+        ''' <summary>ผู้ใช้เลือก "เตือนฉันทีหลัง" — จะลองใหม่รอบหน้า</summary>
         UpdateDeferred = 2
-        ''' <summary>User chose "Update After Restart" — flag was set.</summary>
+        ''' <summary>ผู้ใช้เลือก "อัปเดตหลังรีสตาร์ท" — ตั้ง Flag ไว้แล้ว</summary>
         UpdateScheduledForRestart = 3
-        ''' <summary>An error occurred during the update process.</summary>
+        ''' <summary>เกิดข้อผิดพลาดระหว่างกระบวนการอัปเดต</summary>
         [Error] = 4
     End Enum
 
     ''' <summary>
-    ''' Strategy interface for mode-specific update behavior.
+    ''' Interface สำหรับ Strategy การอัปเดตตามโหมด
     ''' Implementations: EvaStrategy, NormalStrategy, AutoStrategy.
     ''' </summary>
     Public Interface IUpdateStrategy
 
         ''' <summary>
-        ''' Executes the update logic for the given context.
+        ''' ดำเนินการตรรกะการอัปเดตสำหรับ Context ที่ให้มา
         ''' </summary>
         ''' <param name="context">All data needed for the update decision.</param>
         ''' <returns>The result of the update attempt.</returns>

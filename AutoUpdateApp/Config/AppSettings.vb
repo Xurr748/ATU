@@ -7,14 +7,14 @@ Imports System.IO
 Namespace Config
 
     ''' <summary>
-    ''' Central access point for all app.config settings.
-    ''' All paths are configurable — no hardcoded values.
-    ''' Relative paths resolve against ConfigRoot.
+    ''' ศูนย์กลางการอ่านค่าตั้งต่าง (Settings) จาก App.config
+    ''' ทุกเส้นทาง (Path) ตั้งค่าได้ — ไม่มี Hardcode ในโค้ด
+    ''' เส้นทางสัมพัทธ์จะถูกรวมกับ ConfigRoot อัตโนมัติ
     ''' </summary>
     Public NotInheritable Class AppSettings
 
         Private Sub New()
-            ' Static-only class
+            ' คลาสแบบ Static เท่านั้น ไม่ต้องสร้าง Instance
         End Sub
 
         Private Shared Function GetSetting(key As String, Optional defaultValue As String = "") As String
@@ -35,46 +35,53 @@ Namespace Config
             Return IO.Path.Combine(configRoot, path)
         End Function
 
-        ' ───────────────────── Root Paths ─────────────────────
+        ' ───────────────────── เส้นทางหลัก ─────────────────────
 
+        ''' <summary>โฟลเดอร์หลักสำหรับไฟล์ Config</summary>
         Public Shared ReadOnly Property ConfigRoot As String
             Get
                 Return GetSetting("ConfigRoot", "")
             End Get
         End Property
 
+        ''' <summary>เส้นทางไฟล์ TesterType.csv (รวมกับ ConfigRoot อัตโนมัติ)</summary>
         Public Shared ReadOnly Property TesterTypePath As String
             Get
                 Return ResolvePath(ConfigRoot, GetSetting("TesterTypePath", "TesterType.csv"))
             End Get
         End Property
 
+        ''' <summary>เส้นทางไฟล์ version.txt (รวมกับ ConfigRoot อัตโนมัติ)</summary>
         Public Shared ReadOnly Property VersionFilePath As String
             Get
                 Return ResolvePath(ConfigRoot, GetSetting("VersionFilePath", "version.txt"))
             End Get
         End Property
 
+        ''' <summary>เส้นทางไฟล์ updateflag.txt (รวมกับ ConfigRoot อัตโนมัติ)</summary>
         Public Shared ReadOnly Property UpdateFlagPath As String
             Get
                 Return ResolvePath(ConfigRoot, GetSetting("UpdateFlagPath", "updateflag.txt"))
             End Get
         End Property
 
-        ' ───────────────────── Installer Paths ─────────────────────
+        ' ───────────────────── เส้นทาง Installer ─────────────────────
 
+        ''' <summary>เส้นทาง Installer สำหรับเครื่องประเภท HE</summary>
         Public Shared ReadOnly Property InstallerPathHE As String
             Get
                 Return GetSetting("InstallerPathHE", "")
             End Get
         End Property
 
+        ''' <summary>เส้นทาง Installer สำหรับเครื่องประเภท LLE</summary>
         Public Shared ReadOnly Property InstallerPathLLE As String
             Get
                 Return GetSetting("InstallerPathLLE", "")
             End Get
         End Property
 
+        ''' <summary>อาร์กิวเมนต์ที่ส่งให้ Installer (เช่น /silent /norestart)</summary>
         Public Shared ReadOnly Property InstallerArgs As String
             Get
                 Return GetSetting("InstallerArgs", "/silent /norestart")
@@ -83,34 +90,39 @@ Namespace Config
 
         ' ───────────────────── Registry ─────────────────────
 
+        ''' <summary>เส้นทาง Registry Key สำหรับอ่านเวอร์ชันปัจจุบัน</summary>
         Public Shared ReadOnly Property RegistryKeyPath As String
             Get
                 Return GetSetting("RegistryKeyPath", "HKEY_LOCAL_MACHINE\SOFTWARE\MyApp")
             End Get
         End Property
 
+        ''' <summary>ชื่อ Registry Value สำหรับเวอร์ชัน</summary>
         Public Shared ReadOnly Property RegistryValueName As String
             Get
                 Return GetSetting("RegistryValueName", "Version")
             End Get
         End Property
 
-        ' ───────────────────── Logging ─────────────────────
+        ' ───────────────────── การบันทึก Log ─────────────────────
 
+        ''' <summary>โฟลเดอร์สำหรับเก็บไฟล์ Log</summary>
         Public Shared ReadOnly Property LogPath As String
             Get
                 Return GetSetting("LogPath", "C:\Logs\AutoUpdate\")
             End Get
         End Property
 
+        ''' <summary>ระดับการบันทึก Log (Info, Warn, Error)</summary>
         Public Shared ReadOnly Property LogLevel As String
             Get
                 Return GetSetting("LogLevel", "Info")
             End Get
         End Property
 
-        ' ───────────────────── Scheduler ─────────────────────
+        ' ───────────────────── ตัวตั้งเวลา ─────────────────────
 
+        ''' <summary>ระยะเวลาตรวจสอบการอัปเดต (หน่วย: นาที)</summary>
         Public Shared ReadOnly Property PollingIntervalMinutes As Integer
             Get
                 Dim value As Integer
@@ -121,10 +133,10 @@ Namespace Config
             End Get
         End Property
 
-        ' ───────────────────── Reload ─────────────────────
+        ' ───────────────────── โหลดใหม่ ─────────────────────
 
         ''' <summary>
-        ''' Forces a re-read of app.config on next property access.
+        ''' บังคับให้อ่านค่า app.config ใหม่ในครั้งถัดไป
         ''' </summary>
         Public Shared Sub Reload()
             ConfigurationManager.RefreshSection("appSettings")

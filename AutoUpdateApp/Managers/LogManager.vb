@@ -7,9 +7,9 @@ Imports System.Text
 Namespace Managers
 
     ''' <summary>
-    ''' Thread-safe file-based logger with daily rotation.
-    ''' Log format: [yyyy-MM-dd HH:mm:ss] [LEVEL] message
-    ''' Logging never throws — swallows all internal errors.
+    ''' ระบบบันทึก Log แบบไฟล์ ปลอดภัยต่อ Thread พร้อมหมุนเวียนไฟล์รายวัน
+    ''' รูปแบบ Log: [yyyy-MM-dd HH:mm:ss] [LEVEL] message
+    ''' การบันทึก Log ต้องไม่ทำให้แอปพลิเคชันหยุดทำงาน — ดักจับทุก Error ภายใน
     ''' </summary>
     Public NotInheritable Class LogManager
 
@@ -17,7 +17,7 @@ Namespace Managers
         Private Shared _logDirectory As String
 
         Private Sub New()
-            ' Static-only class
+            ' คลาสแบบ Static เท่านั้น ไม่ต้องสร้าง Instance
         End Sub
 
         Private Shared ReadOnly Property LogDirectory As String
@@ -29,7 +29,7 @@ Namespace Managers
                             Directory.CreateDirectory(_logDirectory)
                         End If
                     Catch
-                        ' Fall back to app directory
+                        ' ใช้โฟลเดอร์โปรแกรมแทน
                         _logDirectory = AppDomain.CurrentDomain.BaseDirectory
                     End Try
                 End If
@@ -43,17 +43,17 @@ Namespace Managers
             End Get
         End Property
 
-        ''' <summary>Logs an informational message.</summary>
+        ''' <summary>บันทึกข้อความระดับ Info</summary>
         Public Shared Sub Info(message As String)
             WriteLog("INFO", message)
         End Sub
 
-        ''' <summary>Logs a warning message.</summary>
+        ''' <summary>บันทึกข้อความระดับ Warning</summary>
         Public Shared Sub Warn(message As String)
             WriteLog("WARN", message)
         End Sub
 
-        ''' <summary>Logs an error message with optional exception details.</summary>
+        ''' <summary>บันทึกข้อความระดับ Error พร้อมรายละเอียด Exception (ถ้ามี)</summary>
         Public Shared Sub [Error](message As String, Optional ex As Exception = Nothing)
             Dim fullMessage As String = message
             If ex IsNot Nothing Then
@@ -76,12 +76,12 @@ Namespace Managers
                     File.AppendAllText(LogFilePath, sb.ToString())
                 End SyncLock
             Catch
-                ' Logging must never crash the application
+                ' การบันทึก Log ต้องไม่ทำให้แอปพลิเคชันหยุดทำงาน
             End Try
         End Sub
 
         ''' <summary>
-        ''' Resets the cached log directory (e.g. after config reload).
+        ''' รีเซ็ตตำแหน่งโฟลเดอร์ Log ที่ Cache ไว้ (เช่น หลังโหลด Config ใหม่)
         ''' </summary>
         Public Shared Sub Reset()
             SyncLock _lock

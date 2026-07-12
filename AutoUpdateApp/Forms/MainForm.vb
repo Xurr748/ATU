@@ -6,11 +6,11 @@ Imports System.Windows.Forms
 Namespace Forms
 
     ''' <summary>
-    ''' Main application form — minimal skeleton.
-    ''' Hosts the SchedulerManager and UpdateWorker.
-    ''' Provides a system tray icon with "Check Now" and "Exit" options.
+    ''' หน้าจอหลักของแอปพลิเคชัน — โครงสร้างขั้นต่ำ
+    ''' เป็นที่อยู่ของ SchedulerManager และ UpdateWorker
+    ''' แสดงไอคอนที่ System Tray พร้อมเมนู
     ''' 
-    ''' Customize the UI in this file as needed.
+    ''' ปรับแต่ง UI ในไฟล์นี้ได้ตามต้องการ
     ''' </summary>
     Public Class MainForm
         Inherits Form
@@ -86,10 +86,10 @@ Namespace Forms
         Protected Overrides Sub OnLoad(ByVal e As EventArgs)
             MyBase.OnLoad(e)
 
-            ' Hide the form
+            ' ซ่อนหน้าต่าง
             Me.Visible = False
 
-            ' Initialize the worker and scheduler
+            ' สร้าง Worker และตัวตั้งเวลา
             _updateWorker = New Workers.UpdateWorker(Me)
             AddHandler _updateWorker.UpdateCompleted, AddressOf OnUpdateCompleted
 
@@ -100,25 +100,25 @@ Namespace Forms
             Managers.LogManager.Info("MainForm loaded. Scheduler started.")
         End Sub
 
-        ' ── Scheduler tick → run update check ──
+        ' ── Timer ครบรอบ → เริ่มตรวจสอบอัปเดต ──
         Private Sub OnSchedulerTick(ByVal sender As Object, ByVal e As EventArgs)
             If _updateWorker IsNot Nothing AndAlso Not _updateWorker.IsBusy Then
                 _updateWorker.RunAsync()
             End If
         End Sub
 
-        ' ── Update completed ──
+        ' ── ตรวจสอบอัปเดตเสร็จแล้ว ──
         Private Sub OnUpdateCompleted(ByVal sender As Object, ByVal e As Workers.UpdateCompletedEventArgs)
             ' You can add UI feedback here (e.g. balloon tooltip)
             ' _notifyIcon.ShowBalloonTip(3000, "Auto Update", e.Message, ToolTipIcon.Info)
         End Sub
 
-        ' ── Tray icon: Double-click to show/restore form ──
+        ' ── ไอคอน Tray: ดับเบิลคลิกเพื่อเปิดหน้าต่าง ──
         Private Sub NotifyIcon_DoubleClick(ByVal sender As Object, ByVal e As EventArgs) Handles _notifyIcon.DoubleClick
             ShowForm()
         End Sub
 
-        ' ── Show/restore the main form ──
+        ' ── แสดง/คืนสภาพหน้าต่างหลัก ──
         Private Sub ShowForm()
             Me.Visible = True
             Me.ShowInTaskbar = True
@@ -128,7 +128,7 @@ Namespace Forms
             Me.Activate()
         End Sub
 
-        ' ── Menu: Check Now ──
+        ' ── เมนู: ตรวจสอบตอนนี้ ──
         Private Sub MnuCheckNow_Click(ByVal sender As Object, ByVal e As EventArgs) Handles _mnuCheckNow.Click
             If _updateWorker IsNot Nothing AndAlso Not _updateWorker.IsBusy Then
                 Managers.LogManager.Info("Manual check triggered by user.")
@@ -136,13 +136,13 @@ Namespace Forms
             End If
         End Sub
 
-        ' ── Menu: Exit ──
+        ' ── เมนู: ออกจากโปรแกรม ──
         Private Sub MnuExit_Click(ByVal sender As Object, ByVal e As EventArgs) Handles _mnuExit.Click
             CleanupAndExit()
         End Sub
 
         ''' <summary>
-        ''' Properly disposes all resources and exits the application.
+        ''' ปล่อยทรัพยากรทั้งหมดและปิดโปรแกรมอย่างถูกต้อง
         ''' </summary>
         Private Sub CleanupAndExit()
             If _scheduler IsNot Nothing Then
@@ -167,7 +167,7 @@ Namespace Forms
         End Sub
 
         Protected Overrides Sub OnFormClosing(ByVal e As FormClosingEventArgs)
-            ' Minimize to tray instead of closing (unless exiting via menu)
+            ' ย่อลงไปที่ Tray แทนการปิด (ยกเว้นกดออกจากเมนู)
             If e.CloseReason = CloseReason.UserClosing Then
                 e.Cancel = True
                 Me.WindowState = FormWindowState.Minimized

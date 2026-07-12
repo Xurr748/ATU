@@ -4,19 +4,19 @@ Option Explicit On
 Namespace Managers
 
     ''' <summary>
-    ''' Reads and compares application versions.
-    ''' Current version comes from the Windows Registry.
-    ''' Latest version comes from version.txt on the config share.
+    ''' อ่านและเปรียบเทียบเวอร์ชันของแอปพลิเคชัน
+    ''' เวอร์ชันปัจจุบันอ่านจาก Windows Registry
+    ''' เวอร์ชันล่าสุดอ่านจากไฟล์ version.txt บน Config Share
     ''' </summary>
     Public NotInheritable Class VersionManager
 
         Private Sub New()
-            ' Static-only class
+            ' คลาสแบบ Static เท่านั้น ไม่ต้องสร้าง Instance
         End Sub
 
         ''' <summary>
-        ''' Reads the currently installed version from the registry.
-        ''' Returns empty string if not found.
+        ''' อ่านเวอร์ชันที่ติดตั้งอยู่จาก Registry
+        ''' คืนค่า String ว่างหากอ่านไม่ได้
         ''' </summary>
         Public Shared Function ReadRegistryVersion() As String
             Dim keyPath As String = Config.AppSettings.RegistryKeyPath
@@ -32,8 +32,8 @@ Namespace Managers
         End Function
 
         ''' <summary>
-        ''' Reads the latest available version from version.txt.
-        ''' Returns empty string if the file cannot be read.
+        ''' อ่านเวอร์ชันล่าสุดจากไฟล์ version.txt
+        ''' คืนค่า String ว่างหากอ่านไฟล์ไม่ได้
         ''' </summary>
         Public Shared Function ReadLatestVersion() As String
             Dim filePath As String = Config.AppSettings.VersionFilePath
@@ -48,8 +48,8 @@ Namespace Managers
         End Function
 
         ''' <summary>
-        ''' Returns True if the installed version differs from the latest version.
-        ''' Returns False if either version is empty (to avoid false positives).
+        ''' คืนค่า True หากเวอร์ชันที่ติดตั้งต่างจากเวอร์ชันล่าสุด
+        ''' คืนค่า False หากเวอร์ชันใดเวอร์ชันหนึ่งว่าง (ป้องกันการอัปเดตที่ผิดพลาด)
         ''' </summary>
         Public Shared Function NeedsUpdate() As Boolean
             Dim current As String = ReadRegistryVersion()

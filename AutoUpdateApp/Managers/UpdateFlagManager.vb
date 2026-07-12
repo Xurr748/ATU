@@ -6,21 +6,21 @@ Imports System.Text
 Namespace Managers
 
     ''' <summary>
-    ''' Reads and writes the updateflag.txt file.
-    ''' The file uses CSV format: ComputerName,UpdateFlag
-    ''' Thread-safe writes via SyncLock.
+    ''' อ่านและเขียนไฟล์ updateflag.txt
+    ''' ไฟล์ใช้รูปแบบ CSV: ComputerName,UpdateFlag
+    ''' เขียนอย่างปลอดภัยต่อ Thread ด้วย SyncLock
     ''' </summary>
     Public NotInheritable Class UpdateFlagManager
 
         Private Shared ReadOnly _lock As New Object
 
         Private Sub New()
-            ' Static-only class
+            ' คลาสแบบ Static เท่านั้น ไม่ต้องสร้าง Instance
         End Sub
 
         ''' <summary>
-        ''' Gets the update flag for a specific computer.
-        ''' Returns Nothing if the computer is not found in the file.
+        ''' ดึงค่า Flag การอัปเดตของเครื่องที่ระบุ
+        ''' คืนค่า Nothing หากไม่พบเครื่องในไฟล์
         ''' </summary>
         Public Shared Function GetFlag(computerName As String) As Boolean?
             Dim entries As List(Of Models.UpdateFlagEntry) = LoadAll()
@@ -33,9 +33,9 @@ Namespace Managers
         End Function
 
         ''' <summary>
-        ''' Sets the update flag for a specific computer.
-        ''' Updates existing entry or adds a new one.
-        ''' Writes the entire file back atomically.
+        ''' ตั้งค่า Flag การอัปเดตสำหรับเครื่องที่ระบุ
+        ''' แก้ไขรายการเดิม หรือเพิ่มรายการใหม่
+        ''' เขียนไฟล์ทั้งหมดกลับคืนแบบ Atomic
         ''' </summary>
         Public Shared Sub SetFlag(computerName As String, value As Boolean)
             SyncLock _lock
@@ -57,7 +57,7 @@ Namespace Managers
                     entries.Add(newEntry)
                 End If
 
-                ' Rebuild file content
+                ' สร้างเนื้อหาไฟล์ใหม่
                 Dim sb As New StringBuilder(entries.Count * 30)
                 sb.AppendLine("ComputerName,UpdateFlag")
                 For Each entry In entries
@@ -73,8 +73,8 @@ Namespace Managers
         End Sub
 
         ''' <summary>
-        ''' Loads all flag entries from updateflag.txt.
-        ''' Returns empty list if file doesn't exist or is empty.
+        ''' โหลดรายการ Flag ทั้งหมดจาก updateflag.txt
+        ''' คืนค่า List ว่างหากไฟล์ไม่มีอยู่หรือว่างเปล่า
         ''' </summary>
         Private Shared Function LoadAll() As List(Of Models.UpdateFlagEntry)
             Dim result As New List(Of Models.UpdateFlagEntry)

@@ -4,9 +4,9 @@ Option Explicit On
 Namespace Managers
 
     ''' <summary>
-    ''' Manages TesterType.csv data with automatic cache invalidation.
-    ''' Caches tester list and reloads only when the file's timestamp changes.
-    ''' Thread-safe via SyncLock.
+    ''' จัดการข้อมูล TesterType.csv พร้อมระบบ Cache อัตโนมัติ
+    ''' เก็บ Cache รายชื่อเครื่อง โหลดใหม่เฉพาะเมื่อไฟล์ถูกแก้ไข
+    ''' ปลอดภัยต่อ Thread ด้วย SyncLock
     ''' </summary>
     Public NotInheritable Class ConfigManager
 
@@ -15,19 +15,19 @@ Namespace Managers
         Private Shared ReadOnly _lock As New Object
 
         Private Sub New()
-            ' Static-only class
+            ' คลาสแบบ Static เท่านั้น ไม่ต้องสร้าง Instance
         End Sub
 
         ''' <summary>
-        ''' Returns all tester entries from TesterType.csv.
-        ''' Uses cached data if file hasn't changed.
+        ''' คืนค่ารายการเครื่องทดสอบทั้งหมดจาก TesterType.csv
+        ''' ใช้ข้อมูลจาก Cache หากไฟล์ไม่ได้ถูกแก้ไข
         ''' </summary>
         Public Shared Function LoadAll() As List(Of Models.TesterInfo)
             Dim filePath As String = Config.AppSettings.TesterTypePath
             Dim currentModified As DateTime = Utilities.FileHelper.GetLastWriteTimeSafe(filePath)
 
             SyncLock _lock
-                ' Return cache if file hasn't been modified
+                ' คืนค่าจาก Cache หากไฟล์ไม่ได้ถูกแก้ไข
                 If _testers IsNot Nothing AndAlso currentModified <= _lastModified Then
                     Return _testers
                 End If
@@ -59,8 +59,8 @@ Namespace Managers
         End Function
 
         ''' <summary>
-        ''' Finds a tester entry by computer name (case-insensitive).
-        ''' Returns Nothing if not found.
+        ''' ค้นหาข้อมูลเครื่องทดสอบตามชื่อเครื่อง (ไม่สนตัวพิมพ์เล็ก-ใหญ่)
+        ''' คืนค่า Nothing หากไม่พบ
         ''' </summary>
         Public Shared Function GetTesterByName(computerName As String) As Models.TesterInfo
             Dim all As List(Of Models.TesterInfo) = LoadAll()
@@ -73,7 +73,7 @@ Namespace Managers
         End Function
 
         ''' <summary>
-        ''' Forces reload on next access by clearing the cache.
+        ''' บังคับโหลดใหม่ในครั้งถัดไปโดยล้าง Cache
         ''' </summary>
         Public Shared Sub InvalidateCache()
             SyncLock _lock

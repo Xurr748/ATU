@@ -4,18 +4,18 @@ Option Explicit On
 Namespace Utilities
 
     ''' <summary>
-    ''' Provides environment information with lazy caching.
+    ''' ดึงข้อมูลสภาพแวดล้อมของเครื่อง พร้อม Cache อัตโนมัติ
     ''' </summary>
     Public NotInheritable Class EnvironmentHelper
 
         Private Shared _computerName As String
 
         Private Sub New()
-            ' Static-only class
+            ' คลาสแบบ Static เท่านั้น ไม่ต้องสร้าง Instance
         End Sub
 
         ''' <summary>
-        ''' Gets the machine name (cached after first access).
+        ''' ชื่อเครื่องคอมพิวเตอร์ (Cache หลังเรียกครั้งแรก ไม่ต้องเรียก System ซ้ำ)
         ''' </summary>
         Public Shared ReadOnly Property ComputerName As String
             Get

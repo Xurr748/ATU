@@ -4,10 +4,10 @@ Option Explicit On
 Namespace Strategies
 
     ''' <summary>
-    ''' EVA mode: Standby only.
-    ''' No automatic update action is performed.
-    ''' Used for manual installation and testing by the user.
-    ''' Logs the version difference and returns NoAction.
+    ''' โหมด EVA: Standby เท่านั้น
+    ''' ไม่มีการอัปเดตอัตโนมัติ
+    ''' ใช้สำหรับการติดตั้งและทดสอบด้วยตนเอง
+    ''' บันทึกความแตกต่างของเวอร์ชันแล้วคืนค่า NoAction
     ''' </summary>
     Public Class EvaStrategy
         Implements IUpdateStrategy

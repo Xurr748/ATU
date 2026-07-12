@@ -6,9 +6,9 @@ Imports System.Windows.Forms
 Namespace Managers
 
     ''' <summary>
-    ''' Timer-based scheduler using System.Windows.Forms.Timer.
-    ''' Fires on the UI thread — safe for form interactions.
-    ''' Polling interval is configurable via app.config.
+    ''' ตัวตั้งเวลาตรวจสอบ ใช้ System.Windows.Forms.Timer
+    ''' ทำงานบน UI Thread — ปลอดภัยสำหรับการโต้ตอบกับ Form
+    ''' ระยะเวลาตรวจสอบตั้งค่าได้ผ่าน app.config
     ''' </summary>
     Public Class SchedulerManager
         Implements IDisposable
@@ -16,12 +16,12 @@ Namespace Managers
         Private _timer As Timer
         Private _disposed As Boolean
 
-        ''' <summary>Raised on each timer tick (UI thread).</summary>
+        ''' <summary>เกิดขึ้นทุกครั้งที่ Timer ครบรอบ (UI Thread)</summary>
         Public Event TickFired As EventHandler
 
         ''' <summary>
-        ''' Starts the scheduler with the configured polling interval.
-        ''' No-op if already running.
+        ''' เริ่มการทำงานของตัวตั้งเวลาด้วยระยะเวลาที่ตั้งค่าไว้
+        ''' ไม่ทำอะไรหากกำลังทำงานอยู่แล้ว
         ''' </summary>
         Public Sub Start()
             If _timer IsNot Nothing Then
@@ -30,9 +30,9 @@ Namespace Managers
 
             Dim intervalMs As Integer = Config.AppSettings.PollingIntervalMinutes * 60 * 1000
 
-            ' Guard against zero or negative interval
+            ' ป้องกันค่าระยะเวลาเป็น 0 หรือติดลบ
             If intervalMs <= 0 Then
-                intervalMs = 3600000 ' Default 1 hour
+                intervalMs = 3600000 ' ค่าเริ่มต้น 1 ชั่วโมง
             End If
 
             _timer = New Timer()
@@ -44,7 +44,7 @@ Namespace Managers
         End Sub
 
         ''' <summary>
-        ''' Stops the scheduler and releases the timer.
+        ''' หยุดตัวตั้งเวลาและปล่อย Timer
         ''' </summary>
         Public Sub [Stop]()
             If _timer IsNot Nothing Then
@@ -57,7 +57,7 @@ Namespace Managers
         End Sub
 
         ''' <summary>
-        ''' Returns True if the scheduler is currently running.
+        ''' คืนค่า True หากตัวตั้งเวลากำลังทำงานอยู่
         ''' </summary>
         Public ReadOnly Property IsRunning As Boolean
             Get

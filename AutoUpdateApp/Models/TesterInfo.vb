@@ -4,21 +4,21 @@ Option Explicit On
 Namespace Models
 
     ''' <summary>
-    ''' Represents a single entry from TesterType.csv.
-    ''' Maps: ComputerName, Type, Mode, Time
+    ''' ข้อมูลเครื่องทดสอบ 1 แถว จากไฟล์ TesterType.csv
+    ''' คอลัมน์: ComputerName, Type, Mode, Time
     ''' </summary>
     Public Class TesterInfo
 
-        ''' <summary>Machine name (e.g. PC001)</summary>
+        ''' <summary>ชื่อเครื่อง (เช่น PC001)</summary>
         Public Property ComputerName As String
 
-        ''' <summary>Tester type: HE or LLE</summary>
+        ''' <summary>ประเภทเครื่องทดสอบ: HE หรือ LLE</summary>
         Public Property TesterType As String
 
-        ''' <summary>Update mode: EVA, Normal, or Auto</summary>
+        ''' <summary>โหมดการอัปเดต: EVA, Normal หรือ Auto</summary>
         Public Property Mode As String
 
-        ''' <summary>Scheduled time for update check</summary>
+        ''' <summary>เวลาที่กำหนดให้ตรวจสอบการอัปเดต</summary>
         Public Property ScheduledTime As TimeSpan
 
     End Class

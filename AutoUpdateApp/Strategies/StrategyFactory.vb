@@ -6,9 +6,9 @@ Imports System.Windows.Forms
 Namespace Strategies
 
     ''' <summary>
-    ''' Factory for creating mode-specific update strategies.
-    ''' Maps mode strings (EVA, Normal, Auto) to strategy implementations.
-    ''' Unknown modes default to EVA (standby) for safety.
+    ''' Factory สำหรับสร้าง Strategy ตามโหมดการอัปเดต
+    ''' แปลง String ของโหมด (EVA, Normal, Auto) เป็น Strategy ที่ตรงกัน
+    ''' โหมดที่ไม่รู้จักจะใช้ EVA (Standby) เพื่อความปลอดภัย
     ''' </summary>
     Public NotInheritable Class StrategyFactory
 
@@ -17,7 +17,7 @@ Namespace Strategies
         End Sub
 
         ''' <summary>
-        ''' Creates the appropriate strategy for the given mode.
+        ''' สร้าง Strategy ที่เหมาะสมกับโหมดที่ระบุ
         ''' </summary>
         ''' <param name="mode">Mode string from TesterType.csv (EVA, Normal, Auto).</param>
         ''' <param name="invokeControl">Control for UI thread marshaling (needed for Normal mode).</param>
