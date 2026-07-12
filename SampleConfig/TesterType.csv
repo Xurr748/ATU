@@ -1,0 +1,4 @@
+ComputerName,Type,Mode,Time
+PC001,HE,EVA,12:00:00
+PC002,LLE,Normal,12:05:00
+PC003,HE,Auto,12:10:00
