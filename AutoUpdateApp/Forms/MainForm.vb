@@ -18,7 +18,7 @@ Namespace Forms
         Private WithEvents _scheduler As Managers.SchedulerManager
         Private WithEvents _updateWorker As Workers.UpdateWorker
 
-        Private _notifyIcon As NotifyIcon
+        Private WithEvents _notifyIcon As NotifyIcon
         Private _contextMenu As ContextMenuStrip
         Private WithEvents _mnuCheckNow As ToolStripMenuItem
         Private _mnuSeparator As ToolStripSeparator
@@ -113,6 +113,21 @@ Namespace Forms
             ' _notifyIcon.ShowBalloonTip(3000, "Auto Update", e.Message, ToolTipIcon.Info)
         End Sub
 
+        ' ── Tray icon: Double-click to show/restore form ──
+        Private Sub NotifyIcon_DoubleClick(ByVal sender As Object, ByVal e As EventArgs) Handles _notifyIcon.DoubleClick
+            ShowForm()
+        End Sub
+
+        ' ── Show/restore the main form ──
+        Private Sub ShowForm()
+            Me.Visible = True
+            Me.ShowInTaskbar = True
+            Me.Opacity = 1.0R
+            Me.WindowState = FormWindowState.Normal
+            Me.BringToFront()
+            Me.Activate()
+        End Sub
+
         ' ── Menu: Check Now ──
         Private Sub MnuCheckNow_Click(ByVal sender As Object, ByVal e As EventArgs) Handles _mnuCheckNow.Click
             If _updateWorker IsNot Nothing AndAlso Not _updateWorker.IsBusy Then
@@ -155,6 +170,8 @@ Namespace Forms
             ' Minimize to tray instead of closing (unless exiting via menu)
             If e.CloseReason = CloseReason.UserClosing Then
                 e.Cancel = True
+                Me.WindowState = FormWindowState.Minimized
+                Me.ShowInTaskbar = False
                 Me.Visible = False
             Else
                 CleanupAndExit()
