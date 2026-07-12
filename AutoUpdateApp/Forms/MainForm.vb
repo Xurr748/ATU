@@ -23,6 +23,10 @@ Namespace Forms
         Private WithEvents _mnuCheckNow As ToolStripMenuItem
         Private _mnuSeparator As ToolStripSeparator
         Private components As System.ComponentModel.IContainer
+        Friend WithEvents Label1 As System.Windows.Forms.Label
+        Friend WithEvents Button1 As System.Windows.Forms.Button
+        Friend WithEvents Button2 As System.Windows.Forms.Button
+        Friend WithEvents Button3 As System.Windows.Forms.Button
         Private WithEvents _mnuExit As ToolStripMenuItem
 
         Public Sub New()
@@ -37,6 +41,10 @@ Namespace Forms
             Me._mnuSeparator = New System.Windows.Forms.ToolStripSeparator()
             Me._mnuExit = New System.Windows.Forms.ToolStripMenuItem()
             Me._notifyIcon = New System.Windows.Forms.NotifyIcon(Me.components)
+            Me.Label1 = New System.Windows.Forms.Label()
+            Me.Button1 = New System.Windows.Forms.Button()
+            Me.Button2 = New System.Windows.Forms.Button()
+            Me.Button3 = New System.Windows.Forms.Button()
             Me._contextMenu.SuspendLayout()
             Me.SuspendLayout()
             '
@@ -44,7 +52,7 @@ Namespace Forms
             '
             Me._contextMenu.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me._mnuCheckNow, Me._mnuSeparator, Me._mnuExit})
             Me._contextMenu.Name = "_contextMenu"
-            Me._contextMenu.Size = New System.Drawing.Size(136, 32)
+            Me._contextMenu.Size = New System.Drawing.Size(136, 54)
             '
             '_mnuCheckNow
             '
@@ -60,7 +68,7 @@ Namespace Forms
             '_mnuExit
             '
             Me._mnuExit.Name = "_mnuExit"
-            Me._mnuExit.Size = New System.Drawing.Size(32, 19)
+            Me._mnuExit.Size = New System.Drawing.Size(135, 22)
             Me._mnuExit.Text = "Exit"
             '
             '_notifyIcon
@@ -70,9 +78,49 @@ Namespace Forms
             Me._notifyIcon.Text = "Auto Update"
             Me._notifyIcon.Visible = True
             '
+            'Label1
+            '
+            Me.Label1.AutoSize = True
+            Me.Label1.Location = New System.Drawing.Point(60, 28)
+            Me.Label1.Name = "Label1"
+            Me.Label1.Size = New System.Drawing.Size(39, 13)
+            Me.Label1.TabIndex = 1
+            Me.Label1.Text = "Label1"
+            '
+            'Button1
+            '
+            Me.Button1.Location = New System.Drawing.Point(27, 208)
+            Me.Button1.Name = "Button1"
+            Me.Button1.Size = New System.Drawing.Size(109, 33)
+            Me.Button1.TabIndex = 2
+            Me.Button1.Text = "Button1"
+            Me.Button1.UseVisualStyleBackColor = True
+            '
+            'Button2
+            '
+            Me.Button2.Location = New System.Drawing.Point(175, 208)
+            Me.Button2.Name = "Button2"
+            Me.Button2.Size = New System.Drawing.Size(125, 33)
+            Me.Button2.TabIndex = 3
+            Me.Button2.Text = "Button2"
+            Me.Button2.UseVisualStyleBackColor = True
+            '
+            'Button3
+            '
+            Me.Button3.Location = New System.Drawing.Point(369, 208)
+            Me.Button3.Name = "Button3"
+            Me.Button3.Size = New System.Drawing.Size(82, 33)
+            Me.Button3.TabIndex = 4
+            Me.Button3.Text = "Button3"
+            Me.Button3.UseVisualStyleBackColor = True
+            '
             'MainForm
             '
-            Me.ClientSize = New System.Drawing.Size(738, 408)
+            Me.ClientSize = New System.Drawing.Size(548, 274)
+            Me.Controls.Add(Me.Button3)
+            Me.Controls.Add(Me.Button2)
+            Me.Controls.Add(Me.Button1)
+            Me.Controls.Add(Me.Label1)
             Me.Name = "MainForm"
             Me.Opacity = 0.0R
             Me.ShowInTaskbar = False
@@ -80,6 +128,7 @@ Namespace Forms
             Me.WindowState = System.Windows.Forms.FormWindowState.Minimized
             Me._contextMenu.ResumeLayout(False)
             Me.ResumeLayout(False)
+            Me.PerformLayout()
 
         End Sub
 
