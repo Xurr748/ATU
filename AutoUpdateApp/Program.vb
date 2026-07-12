@@ -15,18 +15,18 @@ Imports System.Windows.Forms
 ''' </summary>
 Module Program
 
-    Private Const MutexName As String = "Global\AutoUpdateApp_SingleInstance"
+    Private Const MutexName As String = "Local\AutoUpdateApp_SingleInstance"
 
     Sub Main()
-        ' ── Single-instance check ──
-        Dim createdNew As Boolean
-        Using mutex As New Mutex(True, MutexName, createdNew)
-            If Not createdNew Then
-                ' Another instance is already running
-                Return
-            End If
+        Try
+            ' ── Single-instance check ──
+            Dim createdNew As Boolean
+            Using mutex As New Mutex(True, MutexName, createdNew)
+                If Not createdNew Then
+                    ' Another instance is already running
+                    Return
+                End If
 
-            Try
                 Application.EnableVisualStyles()
                 Application.SetCompatibleTextRenderingDefault(False)
 
@@ -41,15 +41,15 @@ Module Program
                 Application.Run(New Forms.MainForm())
 
                 Managers.LogManager.Info("Application shut down normally.")
+            End Using
 
-            Catch ex As Exception
-                Managers.LogManager.[Error]("Fatal error in application.", ex)
-                MessageBox.Show("A fatal error occurred. Please check the log file." & _
-                                Environment.NewLine & ex.Message, _
-                                "Auto Update Error", _
-                                MessageBoxButtons.OK, MessageBoxIcon.[Error])
-            End Try
-        End Using
+        Catch ex As Exception
+            Managers.LogManager.[Error]("Fatal error in application.", ex)
+            MessageBox.Show("A fatal error occurred. Please check the log file." & _
+                            Environment.NewLine & ex.Message, _
+                            "Auto Update Error", _
+                            MessageBoxButtons.OK, MessageBoxIcon.[Error])
+        End Try
     End Sub
 
     ''' <summary>

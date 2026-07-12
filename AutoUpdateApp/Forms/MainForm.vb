@@ -20,10 +20,10 @@ Namespace Forms
 
         Private _notifyIcon As NotifyIcon
         Private _contextMenu As ContextMenuStrip
-        Private _mnuCheckNow As ToolStripMenuItem
+        Private WithEvents _mnuCheckNow As ToolStripMenuItem
         Private _mnuSeparator As ToolStripSeparator
         Private components As System.ComponentModel.IContainer
-        Private _mnuExit As ToolStripMenuItem
+        Private WithEvents _mnuExit As ToolStripMenuItem
 
         Public Sub New()
             InitializeComponent()
