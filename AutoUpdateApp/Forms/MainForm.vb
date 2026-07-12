@@ -83,7 +83,7 @@ Namespace Forms
 
         End Sub
 
-        Protected Overrides Sub OnLoad(e As EventArgs)
+        Protected Overrides Sub OnLoad(ByVal e As EventArgs)
             MyBase.OnLoad(e)
 
             ' Hide the form
@@ -101,14 +101,14 @@ Namespace Forms
         End Sub
 
         ' ── Scheduler tick → run update check ──
-        Private Sub OnSchedulerTick(sender As Object, e As EventArgs)
+        Private Sub OnSchedulerTick(ByVal sender As Object, ByVal e As EventArgs)
             If _updateWorker IsNot Nothing AndAlso Not _updateWorker.IsBusy Then
                 _updateWorker.RunAsync()
             End If
         End Sub
 
         ' ── Update completed ──
-        Private Sub OnUpdateCompleted(sender As Object, e As Workers.UpdateCompletedEventArgs)
+        Private Sub OnUpdateCompleted(ByVal sender As Object, ByVal e As Workers.UpdateCompletedEventArgs)
             ' You can add UI feedback here (e.g. balloon tooltip)
             ' _notifyIcon.ShowBalloonTip(3000, "Auto Update", e.Message, ToolTipIcon.Info)
         End Sub
@@ -151,7 +151,7 @@ Namespace Forms
             Application.Exit()
         End Sub
 
-        Protected Overrides Sub OnFormClosing(e As FormClosingEventArgs)
+        Protected Overrides Sub OnFormClosing(ByVal e As FormClosingEventArgs)
             ' Minimize to tray instead of closing (unless exiting via menu)
             If e.CloseReason = CloseReason.UserClosing Then
                 e.Cancel = True
@@ -162,7 +162,7 @@ Namespace Forms
             MyBase.OnFormClosing(e)
         End Sub
 
-        Protected Overrides Sub Dispose(disposing As Boolean)
+        Protected Overrides Sub Dispose(ByVal disposing As Boolean)
             If disposing Then
                 If _contextMenu IsNot Nothing Then
                     RemoveHandler _mnuCheckNow.Click, AddressOf MnuCheckNow_Click
