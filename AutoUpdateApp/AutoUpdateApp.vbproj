@@ -15,6 +15,7 @@
     <OptionInfer>On</OptionInfer>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
+    <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
     <DebugSymbols>true</DebugSymbols>

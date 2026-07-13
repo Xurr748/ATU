@@ -36,12 +36,15 @@ Namespace Managers
         ''' รอจนกว่า Installer จะทำงานเสร็จ
         ''' </summary>
         Public Shared Function RunInstaller(testerType As String) As Boolean
-            Dim installerPath As String = GetInstallerPath(testerType)
+            Dim installerFolder As String = GetInstallerPath(testerType)
 
-            If String.IsNullOrEmpty(installerPath) Then
+            If String.IsNullOrEmpty(installerFolder) Then
                 LogManager.[Error]("Installer path is empty for type: " & testerType)
                 Return False
             End If
+
+            ' ต่อ \setup.exe เข้ากับ path โฟลเดอร์
+            Dim installerPath As String = IO.Path.Combine(installerFolder, "setup.exe")
 
             If Not Utilities.FileHelper.FileExistsSafe(installerPath) Then
                 LogManager.[Error]("Installer not found: " & installerPath)
