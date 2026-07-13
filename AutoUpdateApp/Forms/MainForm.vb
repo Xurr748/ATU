@@ -84,89 +84,150 @@ Namespace Forms
             Catch
             End Try
 
+            Dim fontNormal As New Font("Segoe UI", 9.0F, FontStyle.Regular)
+            Dim fontBold As New Font("Segoe UI", 9.0F, FontStyle.Bold)
+            Dim fontGroupTitle As New Font("Segoe UI", 9.5F, FontStyle.Bold)
+
             ' ══════════════════════════════════════════════
             ' กลุ่ม: ข้อมูลเครื่อง
             ' ══════════════════════════════════════════════
-            _grpInfo = New GroupBox()
-            _grpInfo.Text = " ข้อมูลเครื่อง "
-            _grpInfo.Font = New Font("Segoe UI", 9.5F, FontStyle.Bold)
-            _grpInfo.Location = New Point(14, 14)
-            _grpInfo.Size = New Size(370, 130)
-
-            Dim fontNormal As New Font("Segoe UI", 9.0F, FontStyle.Regular)
-            Dim fontValue As New Font("Segoe UI", 9.0F, FontStyle.Bold)
+            Me._grpInfo = New GroupBox()
+            Me._grpInfo.Text = " ข้อมูลเครื่อง "
+            Me._grpInfo.Font = fontGroupTitle
+            Me._grpInfo.Location = New Point(14, 14)
+            Me._grpInfo.Size = New Size(370, 130)
 
             ' ComputerName
-            _lblComNameLabel = CreateLabel("ชื่อเครื่อง:", New Point(16, 28), fontNormal)
-            _lblComNameValue = CreateLabel("...", New Point(130, 28), fontValue)
+            Me._lblComNameLabel = New Label()
+            Me._lblComNameLabel.Text = "ชื่อเครื่อง:"
+            Me._lblComNameLabel.Location = New Point(16, 28)
+            Me._lblComNameLabel.AutoSize = True
+            Me._lblComNameLabel.Font = fontNormal
+
+            Me._lblComNameValue = New Label()
+            Me._lblComNameValue.Text = "..."
+            Me._lblComNameValue.Location = New Point(130, 28)
+            Me._lblComNameValue.AutoSize = True
+            Me._lblComNameValue.Font = fontBold
 
             ' Type
-            _lblTypeLabel = CreateLabel("ประเภท:", New Point(16, 52), fontNormal)
-            _lblTypeValue = CreateLabel("...", New Point(130, 52), fontValue)
+            Me._lblTypeLabel = New Label()
+            Me._lblTypeLabel.Text = "ประเภท:"
+            Me._lblTypeLabel.Location = New Point(16, 52)
+            Me._lblTypeLabel.AutoSize = True
+            Me._lblTypeLabel.Font = fontNormal
+
+            Me._lblTypeValue = New Label()
+            Me._lblTypeValue.Text = "..."
+            Me._lblTypeValue.Location = New Point(130, 52)
+            Me._lblTypeValue.AutoSize = True
+            Me._lblTypeValue.Font = fontBold
 
             ' Mode
-            _lblModeLabel = CreateLabel("โหมด:", New Point(16, 76), fontNormal)
-            _lblModeValue = CreateLabel("...", New Point(130, 76), fontValue)
+            Me._lblModeLabel = New Label()
+            Me._lblModeLabel.Text = "โหมด:"
+            Me._lblModeLabel.Location = New Point(16, 76)
+            Me._lblModeLabel.AutoSize = True
+            Me._lblModeLabel.Font = fontNormal
+
+            Me._lblModeValue = New Label()
+            Me._lblModeValue.Text = "..."
+            Me._lblModeValue.Location = New Point(130, 76)
+            Me._lblModeValue.AutoSize = True
+            Me._lblModeValue.Font = fontBold
 
             ' Time
-            _lblTimeLabel = CreateLabel("เวลาตรวจสอบ:", New Point(16, 100), fontNormal)
-            _lblTimeValue = CreateLabel("...", New Point(130, 100), fontValue)
+            Me._lblTimeLabel = New Label()
+            Me._lblTimeLabel.Text = "เวลาตรวจสอบ:"
+            Me._lblTimeLabel.Location = New Point(16, 100)
+            Me._lblTimeLabel.AutoSize = True
+            Me._lblTimeLabel.Font = fontNormal
 
-            _grpInfo.Controls.AddRange(New Control() { _
-                _lblComNameLabel, _lblComNameValue, _
-                _lblTypeLabel, _lblTypeValue, _
-                _lblModeLabel, _lblModeValue, _
-                _lblTimeLabel, _lblTimeValue})
+            Me._lblTimeValue = New Label()
+            Me._lblTimeValue.Text = "..."
+            Me._lblTimeValue.Location = New Point(130, 100)
+            Me._lblTimeValue.AutoSize = True
+            Me._lblTimeValue.Font = fontBold
+
+            Me._grpInfo.Controls.AddRange(New Control() { _
+                Me._lblComNameLabel, Me._lblComNameValue, _
+                Me._lblTypeLabel, Me._lblTypeValue, _
+                Me._lblModeLabel, Me._lblModeValue, _
+                Me._lblTimeLabel, Me._lblTimeValue})
 
             ' ══════════════════════════════════════════════
             ' กลุ่ม: เวอร์ชัน
             ' ══════════════════════════════════════════════
-            _grpVersion = New GroupBox()
-            _grpVersion.Text = " เวอร์ชัน "
-            _grpVersion.Font = New Font("Segoe UI", 9.5F, FontStyle.Bold)
-            _grpVersion.Location = New Point(14, 152)
-            _grpVersion.Size = New Size(370, 104)
+            Me._grpVersion = New GroupBox()
+            Me._grpVersion.Text = " เวอร์ชัน "
+            Me._grpVersion.Font = fontGroupTitle
+            Me._grpVersion.Location = New Point(14, 152)
+            Me._grpVersion.Size = New Size(370, 104)
 
             ' Current Version
-            _lblCurrentLabel = CreateLabel("เวอร์ชันปัจจุบัน:", New Point(16, 28), fontNormal)
-            _lblCurrentValue = CreateLabel("...", New Point(150, 28), fontValue)
+            Me._lblCurrentLabel = New Label()
+            Me._lblCurrentLabel.Text = "เวอร์ชันปัจจุบัน:"
+            Me._lblCurrentLabel.Location = New Point(16, 28)
+            Me._lblCurrentLabel.AutoSize = True
+            Me._lblCurrentLabel.Font = fontNormal
+
+            Me._lblCurrentValue = New Label()
+            Me._lblCurrentValue.Text = "..."
+            Me._lblCurrentValue.Location = New Point(150, 28)
+            Me._lblCurrentValue.AutoSize = True
+            Me._lblCurrentValue.Font = fontBold
 
             ' Server Version
-            _lblServerLabel = CreateLabel("เวอร์ชัน Server:", New Point(16, 52), fontNormal)
-            _lblServerValue = CreateLabel("...", New Point(150, 52), fontValue)
+            Me._lblServerLabel = New Label()
+            Me._lblServerLabel.Text = "เวอร์ชัน Server:"
+            Me._lblServerLabel.Location = New Point(16, 52)
+            Me._lblServerLabel.AutoSize = True
+            Me._lblServerLabel.Font = fontNormal
+
+            Me._lblServerValue = New Label()
+            Me._lblServerValue.Text = "..."
+            Me._lblServerValue.Location = New Point(150, 52)
+            Me._lblServerValue.AutoSize = True
+            Me._lblServerValue.Font = fontBold
 
             ' Status
-            _lblStatusLabel = CreateLabel("สถานะ:", New Point(16, 76), fontNormal)
-            _lblStatusValue = CreateLabel("...", New Point(150, 76), fontValue)
+            Me._lblStatusLabel = New Label()
+            Me._lblStatusLabel.Text = "สถานะ:"
+            Me._lblStatusLabel.Location = New Point(16, 76)
+            Me._lblStatusLabel.AutoSize = True
+            Me._lblStatusLabel.Font = fontNormal
 
-            _grpVersion.Controls.AddRange(New Control() { _
-                _lblCurrentLabel, _lblCurrentValue, _
-                _lblServerLabel, _lblServerValue, _
-                _lblStatusLabel, _lblStatusValue})
+            Me._lblStatusValue = New Label()
+            Me._lblStatusValue.Text = "..."
+            Me._lblStatusValue.Location = New Point(150, 76)
+            Me._lblStatusValue.AutoSize = True
+            Me._lblStatusValue.Font = fontBold
+
+            Me._grpVersion.Controls.AddRange(New Control() { _
+                Me._lblCurrentLabel, Me._lblCurrentValue, _
+                Me._lblServerLabel, Me._lblServerValue, _
+                Me._lblStatusLabel, Me._lblStatusValue})
 
             ' ══════════════════════════════════════════════
             ' ปุ่ม
             ' ══════════════════════════════════════════════
-            _btnCheckNow = New Button()
-            _btnCheckNow.Text = "ตรวจสอบอัปเดต"
-            _btnCheckNow.Location = New Point(14, 268)
-            _btnCheckNow.Size = New Size(120, 32)
-            _btnCheckNow.Font = fontNormal
-            AddHandler _btnCheckNow.Click, AddressOf BtnCheckNow_Click
+            Me._btnCheckNow = New Button()
+            Me._btnCheckNow.Text = "ตรวจสอบอัปเดต"
+            Me._btnCheckNow.Location = New Point(14, 268)
+            Me._btnCheckNow.Size = New Size(120, 32)
+            Me._btnCheckNow.Font = fontNormal
 
-            _btnRefreshInfo = New Button()
-            _btnRefreshInfo.Text = "รีเฟรชข้อมูล"
-            _btnRefreshInfo.Location = New Point(144, 268)
-            _btnRefreshInfo.Size = New Size(110, 32)
-            _btnRefreshInfo.Font = fontNormal
-            AddHandler _btnRefreshInfo.Click, AddressOf BtnRefreshInfo_Click
+            Me._btnRefreshInfo = New Button()
+            Me._btnRefreshInfo.Text = "รีเฟรชข้อมูล"
+            Me._btnRefreshInfo.Location = New Point(144, 268)
+            Me._btnRefreshInfo.Size = New Size(110, 32)
+            Me._btnRefreshInfo.Font = fontNormal
 
-            _btnExit = New Button()
-            _btnExit.Text = "ออก"
-            _btnExit.Location = New Point(314, 268)
-            _btnExit.Size = New Size(70, 32)
-            _btnExit.Font = fontNormal
-            AddHandler _btnExit.Click, AddressOf BtnExit_Click
+            Me._btnExit = New Button()
+            Me._btnExit.Text = "ออก"
+            Me._btnExit.Location = New Point(314, 268)
+            Me._btnExit.Size = New Size(70, 32)
+            Me._btnExit.Font = fontNormal
 
             ' ══════════════════════════════════════════════
             ' Form
@@ -181,24 +242,15 @@ Namespace Forms
             Me.WindowState = FormWindowState.Minimized
             Me.Opacity = 0.0R
 
-            Me.Controls.Add(_grpInfo)
-            Me.Controls.Add(_grpVersion)
-            Me.Controls.Add(_btnCheckNow)
-            Me.Controls.Add(_btnRefreshInfo)
-            Me.Controls.Add(_btnExit)
+            Me.Controls.Add(Me._grpInfo)
+            Me.Controls.Add(Me._grpVersion)
+            Me.Controls.Add(Me._btnCheckNow)
+            Me.Controls.Add(Me._btnRefreshInfo)
+            Me.Controls.Add(Me._btnExit)
 
             Me._contextMenu.ResumeLayout(False)
             Me.ResumeLayout(False)
         End Sub
-
-        Private Shared Function CreateLabel(text As String, loc As Point, fnt As Font) As Label
-            Dim lbl As New Label()
-            lbl.Text = text
-            lbl.Location = loc
-            lbl.AutoSize = True
-            lbl.Font = fnt
-            Return lbl
-        End Function
 
         ' ══════════════════════════════════════════════
         ' โหลดข้อมูลแสดงผลบน UI
@@ -255,6 +307,11 @@ Namespace Forms
 
             ' ซ่อนหน้าต่าง
             Me.Visible = False
+
+            ' ผูก Event ปุ่ม
+            AddHandler _btnCheckNow.Click, AddressOf BtnCheckNow_Click
+            AddHandler _btnRefreshInfo.Click, AddressOf BtnRefreshInfo_Click
+            AddHandler _btnExit.Click, AddressOf BtnExit_Click
 
             ' สร้าง Worker และตัวตั้งเวลา
             _updateWorker = New Workers.UpdateWorker(Me)
