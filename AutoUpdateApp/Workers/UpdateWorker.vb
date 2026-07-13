@@ -39,6 +39,7 @@ Namespace Workers
         Private ReadOnly _worker As BackgroundWorker
         Private ReadOnly _invokeControl As Control
         Private _disposed As Boolean
+        Private _lastRunDate As DateTime = DateTime.MinValue
 
         ''' <summary>เกิดขึ้นเมื่อการตรวจสอบอัปเดตเสร็จ (บน UI Thread)</summary>
         Public Event UpdateCompleted As EventHandler(Of UpdateCompletedEventArgs)
@@ -114,6 +115,14 @@ Namespace Workers
                     e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.NoAction, "Time not reached")
                     Return
                 End If
+
+                ' ── ป้องกันรันซ้ำในวันเดียวกัน ──
+                If _lastRunDate.Date = DateTime.Now.Date Then
+                    Managers.LogManager.Info("Already checked today. Skipping.")
+                    e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.NoAction, "Already checked today")
+                    Return
+                End If
+                _lastRunDate = DateTime.Now
 
                 ' ── ขั้นตอนที่ 4 และ 5: อ่านเวอร์ชัน ──
                 Dim currentVersion As String = Managers.VersionManager.ReadRegistryVersion()

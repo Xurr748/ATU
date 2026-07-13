@@ -41,6 +41,9 @@ Namespace Managers
             _timer.Start()
 
             LogManager.Info("Scheduler started. Interval: " & Config.AppSettings.PollingIntervalMinutes.ToString() & " minutes.")
+
+            ' ยิง Tick ครั้งแรกทันทีไม่ต้องรอ
+            OnTimerTick(Me, EventArgs.Empty)
         End Sub
 
         ''' <summary>
