@@ -122,7 +122,6 @@ Namespace Workers
                     e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.NoAction, "Already checked today")
                     Return
                 End If
-                _lastRunDate = DateTime.Now
 
                 ' ── ขั้นตอนที่ 4 และ 5: อ่านเวอร์ชัน ──
                 Dim currentVersion As String = Managers.VersionManager.ReadRegistryVersion()
@@ -165,6 +164,12 @@ Namespace Workers
                 Dim strategy As Strategies.IUpdateStrategy = _
                     Strategies.StrategyFactory.Create(tester.Mode, _invokeControl)
                 Dim result As Strategies.UpdateResult = strategy.Execute(context)
+
+                ' เซ็ตวันที่รันเฉพาะตอนสำเร็จ/ไม่ต้องอัปเดต (ถ้า Error จะลองใหม่วันเดียวกัน)
+                If result <> Strategies.UpdateResult.[Error] Then
+                    _lastRunDate = DateTime.Now
+                End If
+
                 e.Result = New UpdateCompletedEventArgs(result, "Strategy executed: " & tester.Mode)
 
             Catch ex As Exception

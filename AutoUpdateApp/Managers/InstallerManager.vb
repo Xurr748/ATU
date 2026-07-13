@@ -58,12 +58,17 @@ Namespace Managers
                 Dim psi As New ProcessStartInfo()
                 psi.FileName = installerPath
                 psi.Arguments = args
-                psi.UseShellExecute = False
-                psi.CreateNoWindow = True
+                psi.UseShellExecute = True
+                psi.WindowStyle = ProcessWindowStyle.Hidden
 
                 Using proc As Process = Process.Start(psi)
                     If proc IsNot Nothing Then
-                        proc.WaitForExit()
+                        ' รอ 30 นาที ป้องกัน hang ตลอดกาล
+                        proc.WaitForExit(1800000)
+                        If Not proc.HasExited Then
+                            LogManager.Warn("Installer timed out after 30 minutes.")
+                            Return False
+                        End If
                         Dim exitCode As Integer = proc.ExitCode
                         LogManager.Info("Installer exited with code: " & exitCode.ToString())
                         Return (exitCode = 0)
