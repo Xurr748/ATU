@@ -32,8 +32,9 @@ Namespace Managers
 
         ''' <summary>
         ''' เรียกใช้ Installer สำหรับประเภทเครื่องที่ระบุ
-        ''' คืนค่า True หาก Installer ปิดตัวด้วยรหัส 0 มิฉะนั้นคืนค่า False
-        ''' รอจนกว่า Installer จะทำงานเสร็จ
+        ''' โดยจะรัน uninstall.bat ก่อน แล้วตามด้วย install.bat
+        ''' คืนค่า True หากทั้งสองกระบวนการทำงานสำเร็จ
+        ''' รอจนกว่าจะทำงานเสร็จทีละตัว
         ''' </summary>
         Public Shared Function RunInstaller(testerType As String) As Boolean
             Dim installerFolder As String = GetInstallerPath(testerType)
@@ -43,43 +44,63 @@ Namespace Managers
                 Return False
             End If
 
-            ' ต่อ \setup.exe เข้ากับ path โฟลเดอร์
-            Dim installerPath As String = IO.Path.Combine(installerFolder, "setup.exe")
+            Dim uninstallPath As String = IO.Path.Combine(installerFolder, "uninstall.bat")
+            Dim installPath As String = IO.Path.Combine(installerFolder, "install.bat")
 
-            If Not Utilities.FileHelper.FileExistsSafe(installerPath) Then
-                LogManager.[Error]("Installer not found: " & installerPath)
+            ' รัน uninstall.bat (ถ้ามี)
+            If Utilities.FileHelper.FileExistsSafe(uninstallPath) Then
+                If Not RunBatchFile(uninstallPath, "uninstall") Then
+                    LogManager.[Error]("Uninstall process failed.")
+                    Return False
+                End If
+            Else
+                LogManager.Warn("Uninstall script not found: " & uninstallPath & " (Skipping uninstall step)")
+            End If
+
+            ' รัน install.bat
+            If Not Utilities.FileHelper.FileExistsSafe(installPath) Then
+                LogManager.[Error]("Install script not found: " & installPath)
                 Return False
             End If
 
+            If Not RunBatchFile(installPath, "install") Then
+                LogManager.[Error]("Install process failed.")
+                Return False
+            End If
+
+            Return True
+        End Function
+
+        Private Shared Function RunBatchFile(batchPath As String, stepName As String) As Boolean
             Try
                 Dim args As String = Config.AppSettings.InstallerArgs
-                LogManager.Info("Starting installer: " & installerPath & " " & args)
+                LogManager.Info(String.Format("Starting {0} script: {1} {2}", stepName, batchPath, args))
 
                 Dim psi As New ProcessStartInfo()
-                psi.FileName = installerPath
+                psi.FileName = batchPath
                 psi.Arguments = args
                 psi.UseShellExecute = True
                 psi.WindowStyle = ProcessWindowStyle.Hidden
+                psi.WorkingDirectory = IO.Path.GetDirectoryName(batchPath) ' Set working directory just in case
 
                 Using proc As Process = Process.Start(psi)
                     If proc IsNot Nothing Then
                         ' รอ 30 นาที ป้องกัน hang ตลอดกาล
                         proc.WaitForExit(1800000)
                         If Not proc.HasExited Then
-                            LogManager.Warn("Installer timed out after 30 minutes.")
+                            LogManager.Warn(stepName & " script timed out after 30 minutes.")
                             Return False
                         End If
                         Dim exitCode As Integer = proc.ExitCode
-                        LogManager.Info("Installer exited with code: " & exitCode.ToString())
+                        LogManager.Info(stepName & " script exited with code: " & exitCode.ToString())
+                        ' Bat scripts may not always return 0, but we assume 0 means success.
                         Return (exitCode = 0)
                     End If
                 End Using
 
-                LogManager.[Error]("ไม่สามารถเริ่ม Process ของ Installer ได้")
                 Return False
-
             Catch ex As Exception
-                LogManager.[Error]("Failed to run installer: " & installerPath, ex)
+                LogManager.[Error]("Failed to run " & stepName & " script: " & batchPath, ex)
                 Return False
             End Try
         End Function

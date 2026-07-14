@@ -155,6 +155,12 @@ Namespace Workers
 
                 ' ── ขั้นตอนที่ 7: ตรวจสอบว่าต้องอัปเดตหรือไม่ ──
                 If Not context.NeedsUpdate Then
+                    ' ถ้าเวอร์ชันล่าสุดแล้วแต่ Flag ยังเป็น True (เช่น ผู้ใช้อัปเดตเอง) ให้ล้างค่าทิ้ง
+                    If context.HasPendingRestartFlag Then
+                        Managers.LogManager.Info("App is up to date but restart flag is True. Clearing flag.")
+                        Managers.UpdateFlagManager.SetFlag(computerName, False)
+                    End If
+
                     Managers.LogManager.Info("Application is up to date.")
                     e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.NoAction, "Up to date")
                     Return

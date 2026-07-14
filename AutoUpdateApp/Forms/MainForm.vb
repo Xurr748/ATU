@@ -46,6 +46,7 @@ Namespace Forms
         Private _btnCheckNow As Button
         Private _btnRefreshInfo As Button
         Private _btnExit As Button
+        Private _btnUpdateNow As Button
 
         Public Sub New()
             InitializeComponent()
@@ -78,6 +79,7 @@ Namespace Forms
             Me._btnCheckNow = New System.Windows.Forms.Button()
             Me._btnRefreshInfo = New System.Windows.Forms.Button()
             Me._btnExit = New System.Windows.Forms.Button()
+            Me._btnUpdateNow = New System.Windows.Forms.Button()
             Me._contextMenu.SuspendLayout()
             Me._grpInfo.SuspendLayout()
             Me._grpVersion.SuspendLayout()
@@ -287,36 +289,47 @@ Namespace Forms
             Me._lblStatusValue.TabIndex = 5
             Me._lblStatusValue.Text = "..."
             '
+            '_btnUpdateNow
+            '
+            Me._btnUpdateNow.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
+            Me._btnUpdateNow.Location = New System.Drawing.Point(14, 268)
+            Me._btnUpdateNow.Name = "_btnUpdateNow"
+            Me._btnUpdateNow.Size = New System.Drawing.Size(370, 32)
+            Me._btnUpdateNow.TabIndex = 3
+            Me._btnUpdateNow.Text = "อัปเดตทันที"
+            Me._btnUpdateNow.BackColor = System.Drawing.Color.LightSteelBlue
+            '
             '_btnCheckNow
             '
             Me._btnCheckNow.Font = New System.Drawing.Font("Segoe UI", 9.0!)
-            Me._btnCheckNow.Location = New System.Drawing.Point(14, 268)
+            Me._btnCheckNow.Location = New System.Drawing.Point(14, 310)
             Me._btnCheckNow.Name = "_btnCheckNow"
             Me._btnCheckNow.Size = New System.Drawing.Size(120, 32)
-            Me._btnCheckNow.TabIndex = 3
+            Me._btnCheckNow.TabIndex = 4
             Me._btnCheckNow.Text = "ตรวจสอบอัปเดต"
             '
             '_btnRefreshInfo
             '
             Me._btnRefreshInfo.Font = New System.Drawing.Font("Segoe UI", 9.0!)
-            Me._btnRefreshInfo.Location = New System.Drawing.Point(144, 268)
+            Me._btnRefreshInfo.Location = New System.Drawing.Point(144, 310)
             Me._btnRefreshInfo.Name = "_btnRefreshInfo"
             Me._btnRefreshInfo.Size = New System.Drawing.Size(110, 32)
-            Me._btnRefreshInfo.TabIndex = 4
+            Me._btnRefreshInfo.TabIndex = 5
             Me._btnRefreshInfo.Text = "รีเฟรชข้อมูล"
             '
             '_btnExit
             '
             Me._btnExit.Font = New System.Drawing.Font("Segoe UI", 9.0!)
-            Me._btnExit.Location = New System.Drawing.Point(314, 268)
+            Me._btnExit.Location = New System.Drawing.Point(314, 310)
             Me._btnExit.Name = "_btnExit"
             Me._btnExit.Size = New System.Drawing.Size(70, 32)
-            Me._btnExit.TabIndex = 5
+            Me._btnExit.TabIndex = 6
             Me._btnExit.Text = "ออก"
             '
             'MainForm
             '
-            Me.ClientSize = New System.Drawing.Size(400, 316)
+            Me.ClientSize = New System.Drawing.Size(400, 356)
+            Me.Controls.Add(Me._btnUpdateNow)
             Me.Controls.Add(Me._grpInfo)
             Me.Controls.Add(Me._grpVersion)
             Me.Controls.Add(Me._btnCheckNow)
@@ -370,12 +383,15 @@ Namespace Forms
                 If String.IsNullOrEmpty(currentVer) OrElse String.IsNullOrEmpty(serverVer) Then
                     _lblStatusValue.Text = "ไม่สามารถตรวจสอบได้"
                     _lblStatusValue.ForeColor = Color.Gray
+                    If _btnUpdateNow IsNot Nothing Then _btnUpdateNow.Enabled = False
                 ElseIf String.Equals(currentVer, serverVer, StringComparison.OrdinalIgnoreCase) Then
                     _lblStatusValue.Text = "✓ เวอร์ชันล่าสุดแล้ว"
                     _lblStatusValue.ForeColor = Color.Green
+                    If _btnUpdateNow IsNot Nothing Then _btnUpdateNow.Enabled = False
                 Else
                     _lblStatusValue.Text = "✗ มีอัปเดตใหม่"
                     _lblStatusValue.ForeColor = Color.Red
+                    If _btnUpdateNow IsNot Nothing Then _btnUpdateNow.Enabled = True
                 End If
 
             Catch ex As Exception
@@ -399,6 +415,7 @@ Namespace Forms
             AddHandler _btnCheckNow.Click, AddressOf BtnCheckNow_Click
             AddHandler _btnRefreshInfo.Click, AddressOf BtnRefreshInfo_Click
             AddHandler _btnExit.Click, AddressOf BtnExit_Click
+            AddHandler _btnUpdateNow.Click, AddressOf BtnUpdateNow_Click
 
             ' สร้าง Worker และตัวตั้งเวลา
             _updateWorker = New Workers.UpdateWorker(Me)
@@ -469,6 +486,44 @@ Namespace Forms
             LoadInfo()
         End Sub
 
+        ' ── ปุ่ม: อัปเดตทันที ──
+        Private Sub BtnUpdateNow_Click(ByVal sender As Object, ByVal e As EventArgs)
+            Try
+                Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
+                Dim tester As Models.TesterInfo = Managers.ConfigManager.GetTesterByName(computerName)
+                
+                If tester Is Nothing Then
+                    MessageBox.Show("เครื่องนี้ไม่อยู่ในระบบ (TesterType.csv)", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                    Return
+                End If
+
+                Dim result = MessageBox.Show("ต้องการอัปเดตแอปพลิเคชันเดี๋ยวนี้หรือไม่?", "ยืนยัน", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
+                If result = DialogResult.Yes Then
+                    _btnUpdateNow.Enabled = False
+                    _btnUpdateNow.Text = "กำลังอัปเดต..."
+                    Application.DoEvents()
+                    
+                    Dim success = Managers.InstallerManager.RunInstaller(tester.TesterType)
+                    
+                    If success Then
+                        MessageBox.Show("อัปเดตสำเร็จเรียบร้อยแล้ว", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                        ' ล้าง Flag เผื่อมีค้างอยู่
+                        Managers.UpdateFlagManager.SetFlag(computerName, False)
+                        LoadInfo()
+                    Else
+                        MessageBox.Show("อัปเดตไม่สำเร็จ กรุณาตรวจสอบ Log", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                        _btnUpdateNow.Enabled = True
+                        _btnUpdateNow.Text = "อัปเดตทันที"
+                    End If
+                End If
+            Catch ex As Exception
+                Managers.LogManager.[Error]("Manual update failed.", ex)
+                MessageBox.Show("Error: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                _btnUpdateNow.Enabled = True
+                _btnUpdateNow.Text = "อัปเดตทันที"
+            End Try
+        End Sub
+
         ' ── ปุ่ม: ออก ──
         Private Sub BtnExit_Click(ByVal sender As Object, ByVal e As EventArgs)
             CleanupAndExit()
@@ -517,6 +572,7 @@ Namespace Forms
                 If _btnCheckNow IsNot Nothing Then RemoveHandler _btnCheckNow.Click, AddressOf BtnCheckNow_Click
                 If _btnRefreshInfo IsNot Nothing Then RemoveHandler _btnRefreshInfo.Click, AddressOf BtnRefreshInfo_Click
                 If _btnExit IsNot Nothing Then RemoveHandler _btnExit.Click, AddressOf BtnExit_Click
+                If _btnUpdateNow IsNot Nothing Then RemoveHandler _btnUpdateNow.Click, AddressOf BtnUpdateNow_Click
                 If _contextMenu IsNot Nothing Then _contextMenu.Dispose()
                 If _notifyIcon IsNot Nothing Then
                     _notifyIcon.Visible = False
