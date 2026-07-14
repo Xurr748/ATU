@@ -63,17 +63,20 @@ Namespace Workers
             End Get
         End Property
 
+        Private _isManual As Boolean = False
+
         ''' <summary>
         ''' เริ่มตรวจสอบอัปเดตแบบ Async ไม่ทำอะไรหากกำลังทำงานอยู่
         ''' </summary>
-        Public Sub RunAsync()
+        Public Sub RunAsync(Optional isManual As Boolean = False)
             If _worker.IsBusy Then
                 Managers.LogManager.Warn("Update worker is already running. Skipping.")
                 Return
             End If
+            _isManual = isManual
             _worker.RunWorkerAsync()
         End Sub
-
+        
         ''' <summary>ร้องขอยกเลิกการตรวจสอบอัปเดต</summary>
         Public Sub Cancel()
             If _worker.IsBusy Then
@@ -108,19 +111,21 @@ Namespace Workers
 
                 ' ── ขั้นตอนที่ 3: ตรวจสอบเวลาที่กำหนด ──
                 Dim now As TimeSpan = DateTime.Now.TimeOfDay
-                If now < tester.ScheduledTime Then
-                    Managers.LogManager.Info("Scheduled time not reached (" & _
-                        now.ToString("hh\:mm\:ss") & " < " & _
-                        tester.ScheduledTime.ToString("hh\:mm\:ss") & "). Skipping.")
-                    e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.NoAction, "Time not reached")
-                    Return
-                End If
+                If Not _isManual Then
+                    If now < tester.ScheduledTime Then
+                        Managers.LogManager.Info("Scheduled time not reached (" & _
+                            now.ToString("hh\:mm\:ss") & " < " & _
+                            tester.ScheduledTime.ToString("hh\:mm\:ss") & "). Skipping.")
+                        e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.NoAction, "Time not reached")
+                        Return
+                    End If
 
-                ' ── ป้องกันรันซ้ำในวันเดียวกัน ──
-                If _lastRunDate.Date = DateTime.Now.Date Then
-                    Managers.LogManager.Info("Already checked today. Skipping.")
-                    e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.NoAction, "Already checked today")
-                    Return
+                    ' ── ป้องกันรันซ้ำในวันเดียวกัน ──
+                    If _lastRunDate.Date = DateTime.Now.Date Then
+                        Managers.LogManager.Info("Already checked today. Skipping.")
+                        e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.NoAction, "Already checked today")
+                        Return
+                    End If
                 End If
 
                 ' ── ขั้นตอนที่ 4 และ 5: อ่านเวอร์ชัน ──

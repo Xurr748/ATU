@@ -48,6 +48,11 @@ Namespace Forms
         Private _btnExit As Button
         Private _btnUpdateNow As Button
 
+        ' ── Progress Bar + Status ──
+        Private _progressBar As ProgressBar
+        Private _lblProgress As Label
+        Private _manualUpdateWorker As System.ComponentModel.BackgroundWorker
+
         Public Sub New()
             InitializeComponent()
         End Sub
@@ -291,44 +296,85 @@ Namespace Forms
             '
             '_btnUpdateNow
             '
-            Me._btnUpdateNow.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
+            Me._btnUpdateNow.FlatStyle = System.Windows.Forms.FlatStyle.Flat
+            Me._btnUpdateNow.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(70, 130, 180)
+            Me._btnUpdateNow.Font = New System.Drawing.Font("Segoe UI", 9.5!, System.Drawing.FontStyle.Bold)
             Me._btnUpdateNow.Location = New System.Drawing.Point(14, 268)
             Me._btnUpdateNow.Name = "_btnUpdateNow"
-            Me._btnUpdateNow.Size = New System.Drawing.Size(370, 32)
+            Me._btnUpdateNow.Size = New System.Drawing.Size(370, 34)
             Me._btnUpdateNow.TabIndex = 3
             Me._btnUpdateNow.Text = "อัปเดตทันที"
-            Me._btnUpdateNow.BackColor = System.Drawing.Color.LightSteelBlue
+            Me._btnUpdateNow.BackColor = System.Drawing.Color.FromArgb(70, 130, 180)
+            Me._btnUpdateNow.ForeColor = System.Drawing.Color.White
+            Me._btnUpdateNow.Cursor = System.Windows.Forms.Cursors.Hand
             '
             '_btnCheckNow
             '
+            Me._btnCheckNow.FlatStyle = System.Windows.Forms.FlatStyle.Flat
+            Me._btnCheckNow.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(70, 130, 180)
+            Me._btnCheckNow.BackColor = System.Drawing.Color.White
             Me._btnCheckNow.Font = New System.Drawing.Font("Segoe UI", 9.0!)
             Me._btnCheckNow.Location = New System.Drawing.Point(14, 310)
             Me._btnCheckNow.Name = "_btnCheckNow"
             Me._btnCheckNow.Size = New System.Drawing.Size(120, 32)
             Me._btnCheckNow.TabIndex = 4
             Me._btnCheckNow.Text = "ตรวจสอบอัปเดต"
+            Me._btnCheckNow.Cursor = System.Windows.Forms.Cursors.Hand
             '
             '_btnRefreshInfo
             '
+            Me._btnRefreshInfo.FlatStyle = System.Windows.Forms.FlatStyle.Flat
+            Me._btnRefreshInfo.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(180, 180, 180)
+            Me._btnRefreshInfo.BackColor = System.Drawing.Color.White
             Me._btnRefreshInfo.Font = New System.Drawing.Font("Segoe UI", 9.0!)
             Me._btnRefreshInfo.Location = New System.Drawing.Point(144, 310)
             Me._btnRefreshInfo.Name = "_btnRefreshInfo"
             Me._btnRefreshInfo.Size = New System.Drawing.Size(110, 32)
             Me._btnRefreshInfo.TabIndex = 5
             Me._btnRefreshInfo.Text = "รีเฟรชข้อมูล"
+            Me._btnRefreshInfo.Cursor = System.Windows.Forms.Cursors.Hand
             '
             '_btnExit
             '
-            Me._btnExit.Font = New System.Drawing.Font("Segoe UI", 9.0!)
+            Me._btnExit.FlatStyle = System.Windows.Forms.FlatStyle.Flat
+            Me._btnExit.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(220, 80, 80)
+            Me._btnExit.BackColor = System.Drawing.Color.White
+            Me._btnExit.ForeColor = System.Drawing.Color.FromArgb(180, 50, 50)
+            Me._btnExit.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
             Me._btnExit.Location = New System.Drawing.Point(314, 310)
             Me._btnExit.Name = "_btnExit"
             Me._btnExit.Size = New System.Drawing.Size(70, 32)
             Me._btnExit.TabIndex = 6
             Me._btnExit.Text = "ออก"
+            Me._btnExit.Cursor = System.Windows.Forms.Cursors.Hand
+            '
+            '_progressBar
+            '
+            Me._progressBar = New System.Windows.Forms.ProgressBar()
+            Me._progressBar.Location = New System.Drawing.Point(14, 350)
+            Me._progressBar.Name = "_progressBar"
+            Me._progressBar.Size = New System.Drawing.Size(370, 18)
+            Me._progressBar.Style = System.Windows.Forms.ProgressBarStyle.Marquee
+            Me._progressBar.MarqueeAnimationSpeed = 30
+            Me._progressBar.Visible = False
+            '
+            '_lblProgress
+            '
+            Me._lblProgress = New System.Windows.Forms.Label()
+            Me._lblProgress.Location = New System.Drawing.Point(14, 370)
+            Me._lblProgress.Name = "_lblProgress"
+            Me._lblProgress.Size = New System.Drawing.Size(370, 18)
+            Me._lblProgress.Font = New System.Drawing.Font("Segoe UI", 8.0!, System.Drawing.FontStyle.Italic)
+            Me._lblProgress.ForeColor = System.Drawing.Color.FromArgb(100, 100, 100)
+            Me._lblProgress.Text = ""
+            Me._lblProgress.TextAlign = System.Drawing.ContentAlignment.MiddleCenter
+            Me._lblProgress.Visible = False
             '
             'MainForm
             '
-            Me.ClientSize = New System.Drawing.Size(400, 356)
+            Me.ClientSize = New System.Drawing.Size(400, 398)
+            Me.Controls.Add(Me._progressBar)
+            Me.Controls.Add(Me._lblProgress)
             Me.Controls.Add(Me._btnUpdateNow)
             Me.Controls.Add(Me._grpInfo)
             Me.Controls.Add(Me._grpVersion)
@@ -343,6 +389,7 @@ Namespace Forms
             Me.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen
             Me.Text = "Auto Update"
             Me.WindowState = System.Windows.Forms.FormWindowState.Minimized
+            Me.BackColor = System.Drawing.Color.FromArgb(245, 245, 250)
             Me._contextMenu.ResumeLayout(False)
             Me._grpInfo.ResumeLayout(False)
             Me._grpInfo.PerformLayout()
@@ -441,6 +488,7 @@ Namespace Forms
         ' ── ตรวจสอบอัปเดตเสร็จแล้ว → รีเฟรช UI + แจ้งผล ──
         Private Sub OnUpdateCompleted(ByVal sender As Object, ByVal e As Workers.UpdateCompletedEventArgs)
             LoadInfo()
+            ShowProgress(False, "")
             ' คืนค่าปุ่มตรวจสอบ
             If _btnCheckNow IsNot Nothing Then
                 _btnCheckNow.Enabled = True
@@ -479,7 +527,7 @@ Namespace Forms
         Private Sub MnuCheckNow_Click(ByVal sender As Object, ByVal e As EventArgs) Handles _mnuCheckNow.Click
             If _updateWorker IsNot Nothing AndAlso Not _updateWorker.IsBusy Then
                 Managers.LogManager.Info("Manual check triggered by user.")
-                _updateWorker.RunAsync()
+                _updateWorker.RunAsync(True)
             End If
         End Sub
 
@@ -494,7 +542,8 @@ Namespace Forms
                 Managers.LogManager.Info("Manual check triggered by user (button).")
                 _btnCheckNow.Enabled = False
                 _btnCheckNow.Text = "กำลังตรวจสอบ..."
-                _updateWorker.RunAsync()
+                ShowProgress(True, "กำลังตรวจสอบอัปเดต...")
+                _updateWorker.RunAsync(True)
             Else
                 MessageBox.Show("กำลังตรวจสอบอยู่แล้ว กรุณารอสักครู่", "แจ้งเตือน", MessageBoxButtons.OK, MessageBoxIcon.Information)
             End If
@@ -507,7 +556,7 @@ Namespace Forms
             MessageBox.Show("รีเฟรชข้อมูลเรียบร้อยแล้ว", "สำเร็จ", MessageBoxButtons.OK, MessageBoxIcon.Information)
         End Sub
 
-        ' ── ปุ่ม: อัปเดตทันที ──
+        ' ── ปุ่ม: อัปเดตทันที (รันบน BackgroundWorker) ──
         Private Sub BtnUpdateNow_Click(ByVal sender As Object, ByVal e As EventArgs)
             Try
                 Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
@@ -522,27 +571,66 @@ Namespace Forms
                 If result = DialogResult.Yes Then
                     _btnUpdateNow.Enabled = False
                     _btnUpdateNow.Text = "กำลังอัปเดต..."
-                    Application.DoEvents()
+                    ShowProgress(True, "กำลังรัน uninstall / install ...")
                     
-                    Dim success = Managers.InstallerManager.RunInstaller(tester.TesterType)
-                    
-                    If success Then
-                        MessageBox.Show("อัปเดตสำเร็จเรียบร้อยแล้ว", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
-                        ' ล้าง Flag เผื่อมีค้างอยู่
-                        Managers.UpdateFlagManager.SetFlag(computerName, False)
-                        LoadInfo()
-                    Else
-                        MessageBox.Show("อัปเดตไม่สำเร็จ กรุณาตรวจสอบ Log", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-                        _btnUpdateNow.Enabled = True
-                        _btnUpdateNow.Text = "อัปเดตทันที"
+                    ' รันบน BackgroundWorker เพื่อไม่บล็อก UI
+                    If _manualUpdateWorker IsNot Nothing Then
+                        RemoveHandler _manualUpdateWorker.DoWork, AddressOf ManualUpdate_DoWork
+                        RemoveHandler _manualUpdateWorker.RunWorkerCompleted, AddressOf ManualUpdate_Completed
+                        _manualUpdateWorker.Dispose()
                     End If
+                    _manualUpdateWorker = New System.ComponentModel.BackgroundWorker()
+                    AddHandler _manualUpdateWorker.DoWork, AddressOf ManualUpdate_DoWork
+                    AddHandler _manualUpdateWorker.RunWorkerCompleted, AddressOf ManualUpdate_Completed
+                    _manualUpdateWorker.RunWorkerAsync(tester.TesterType)
                 End If
             Catch ex As Exception
                 Managers.LogManager.[Error]("Manual update failed.", ex)
                 MessageBox.Show("Error: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                ResetUpdateButton()
+            End Try
+        End Sub
+
+        Private Sub ManualUpdate_DoWork(ByVal sender As Object, ByVal e As System.ComponentModel.DoWorkEventArgs)
+            Dim testerType As String = DirectCast(e.Argument, String)
+            e.Result = Managers.InstallerManager.RunInstaller(testerType)
+        End Sub
+
+        Private Sub ManualUpdate_Completed(ByVal sender As Object, ByVal e As System.ComponentModel.RunWorkerCompletedEventArgs)
+            ShowProgress(False, "")
+            If e.Error IsNot Nothing Then
+                Managers.LogManager.[Error]("Manual update error.", e.Error)
+                MessageBox.Show("Error: " & e.Error.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                ResetUpdateButton()
+                Return
+            End If
+
+            Dim success As Boolean = DirectCast(e.Result, Boolean)
+            If success Then
+                MessageBox.Show("อัปเดตสำเร็จเรียบร้อยแล้ว", "สำเร็จ", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
+                Managers.UpdateFlagManager.SetFlag(computerName, False)
+                LoadInfo()
+            Else
+                MessageBox.Show("อัปเดตไม่สำเร็จ กรุณาตรวจสอบ Log", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            End If
+            ResetUpdateButton()
+        End Sub
+
+        Private Sub ResetUpdateButton()
+            If _btnUpdateNow IsNot Nothing Then
                 _btnUpdateNow.Enabled = True
                 _btnUpdateNow.Text = "อัปเดตทันที"
-            End Try
+            End If
+        End Sub
+
+        ' ── แสดง/ซ่อน Progress Bar ──
+        Private Sub ShowProgress(show As Boolean, statusText As String)
+            If _progressBar IsNot Nothing Then _progressBar.Visible = show
+            If _lblProgress IsNot Nothing Then
+                _lblProgress.Text = statusText
+                _lblProgress.Visible = show
+            End If
         End Sub
 
         ' ── ปุ่ม: ออก ──
@@ -594,6 +682,11 @@ Namespace Forms
                 If _btnRefreshInfo IsNot Nothing Then RemoveHandler _btnRefreshInfo.Click, AddressOf BtnRefreshInfo_Click
                 If _btnExit IsNot Nothing Then RemoveHandler _btnExit.Click, AddressOf BtnExit_Click
                 If _btnUpdateNow IsNot Nothing Then RemoveHandler _btnUpdateNow.Click, AddressOf BtnUpdateNow_Click
+                If _manualUpdateWorker IsNot Nothing Then
+                    RemoveHandler _manualUpdateWorker.DoWork, AddressOf ManualUpdate_DoWork
+                    RemoveHandler _manualUpdateWorker.RunWorkerCompleted, AddressOf ManualUpdate_Completed
+                    _manualUpdateWorker.Dispose()
+                End If
                 If _contextMenu IsNot Nothing Then _contextMenu.Dispose()
                 If _notifyIcon IsNot Nothing Then
                     _notifyIcon.Visible = False

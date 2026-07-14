@@ -67,8 +67,13 @@ Namespace Forms
             btnUpdateNow = New Button()
             btnUpdateNow.Text = "อัปเดตตอนนี้"
             btnUpdateNow.Location = New Drawing.Point(20, 90)
-            btnUpdateNow.Size = New Drawing.Size(100, 35)
+            btnUpdateNow.Size = New Drawing.Size(105, 35)
             btnUpdateNow.Font = New Drawing.Font("Segoe UI", 9.0F, Drawing.FontStyle.Bold)
+            btnUpdateNow.FlatStyle = FlatStyle.Flat
+            btnUpdateNow.FlatAppearance.BorderColor = Drawing.Color.FromArgb(70, 130, 180)
+            btnUpdateNow.BackColor = Drawing.Color.FromArgb(70, 130, 180)
+            btnUpdateNow.ForeColor = Drawing.Color.White
+            btnUpdateNow.Cursor = Cursors.Hand
             AddHandler btnUpdateNow.Click, AddressOf BtnUpdateNow_Click
 
             ' ── btnAfterRestart ──
@@ -76,13 +81,21 @@ Namespace Forms
             btnAfterRestart.Text = "หลังรีสตาร์ท"
             btnAfterRestart.Location = New Drawing.Point(135, 90)
             btnAfterRestart.Size = New Drawing.Size(110, 35)
+            btnAfterRestart.FlatStyle = FlatStyle.Flat
+            btnAfterRestart.FlatAppearance.BorderColor = Drawing.Color.FromArgb(200, 200, 200)
+            btnAfterRestart.BackColor = Drawing.Color.White
+            btnAfterRestart.Cursor = Cursors.Hand
             AddHandler btnAfterRestart.Click, AddressOf BtnAfterRestart_Click
 
             ' ── btnRemindLater ──
             btnRemindLater = New Button()
             btnRemindLater.Text = "เตือนทีหลัง"
-            btnRemindLater.Location = New Drawing.Point(260, 90)
-            btnRemindLater.Size = New Drawing.Size(100, 35)
+            btnRemindLater.Location = New Drawing.Point(255, 90)
+            btnRemindLater.Size = New Drawing.Size(105, 35)
+            btnRemindLater.FlatStyle = FlatStyle.Flat
+            btnRemindLater.FlatAppearance.BorderColor = Drawing.Color.FromArgb(200, 200, 200)
+            btnRemindLater.BackColor = Drawing.Color.White
+            btnRemindLater.Cursor = Cursors.Hand
             AddHandler btnRemindLater.Click, AddressOf BtnRemindLater_Click
 
             ' ── Form ──
@@ -95,6 +108,7 @@ Namespace Forms
             Me.ShowInTaskbar = True
             Me.TopMost = True
             Me.Font = New Drawing.Font("Segoe UI", 9.0F)
+            Me.BackColor = Drawing.Color.FromArgb(245, 245, 250)
 
             Me.Controls.Add(lblMessage)
             Me.Controls.Add(lblVersionInfo)
