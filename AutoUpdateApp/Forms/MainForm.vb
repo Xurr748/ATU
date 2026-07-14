@@ -438,9 +438,25 @@ Namespace Forms
             End If
         End Sub
 
-        ' ── ตรวจสอบอัปเดตเสร็จแล้ว → รีเฟรช UI ──
+        ' ── ตรวจสอบอัปเดตเสร็จแล้ว → รีเฟรช UI + แจ้งผล ──
         Private Sub OnUpdateCompleted(ByVal sender As Object, ByVal e As Workers.UpdateCompletedEventArgs)
             LoadInfo()
+            ' คืนค่าปุ่มตรวจสอบ
+            If _btnCheckNow IsNot Nothing Then
+                _btnCheckNow.Enabled = True
+                _btnCheckNow.Text = "ตรวจสอบอัปเดต"
+            End If
+            ' แจ้งผลเฉพาะตอนหน้าต่างเปิดอยู่
+            If Me.Visible AndAlso Me.WindowState <> FormWindowState.Minimized Then
+                Select Case e.Result
+                    Case Strategies.UpdateResult.NoAction
+                        MessageBox.Show("ตรวจสอบเสร็จ: " & e.Message, "ผลการตรวจสอบ", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                    Case Strategies.UpdateResult.UpdateCompleted
+                        MessageBox.Show("อัปเดตสำเร็จเรียบร้อย!", "ผลการตรวจสอบ", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                    Case Strategies.UpdateResult.[Error]
+                        MessageBox.Show("เกิดข้อผิดพลาด: " & e.Message, "ผลการตรวจสอบ", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                End Select
+            End If
         End Sub
 
         ' ── ไอคอน Tray: ดับเบิลคลิกเพื่อเปิดหน้าต่าง ──
@@ -476,7 +492,11 @@ Namespace Forms
         Private Sub BtnCheckNow_Click(ByVal sender As Object, ByVal e As EventArgs)
             If _updateWorker IsNot Nothing AndAlso Not _updateWorker.IsBusy Then
                 Managers.LogManager.Info("Manual check triggered by user (button).")
+                _btnCheckNow.Enabled = False
+                _btnCheckNow.Text = "กำลังตรวจสอบ..."
                 _updateWorker.RunAsync()
+            Else
+                MessageBox.Show("กำลังตรวจสอบอยู่แล้ว กรุณารอสักครู่", "แจ้งเตือน", MessageBoxButtons.OK, MessageBoxIcon.Information)
             End If
         End Sub
 
@@ -484,6 +504,7 @@ Namespace Forms
         Private Sub BtnRefreshInfo_Click(ByVal sender As Object, ByVal e As EventArgs)
             Managers.ConfigManager.InvalidateCache()
             LoadInfo()
+            MessageBox.Show("รีเฟรชข้อมูลเรียบร้อยแล้ว", "สำเร็จ", MessageBoxButtons.OK, MessageBoxIcon.Information)
         End Sub
 
         ' ── ปุ่ม: อัปเดตทันที ──

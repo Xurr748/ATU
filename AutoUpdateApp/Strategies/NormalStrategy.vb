@@ -7,11 +7,10 @@ Namespace Strategies
 
     ''' <summary>
     ''' โหมด Normal: แสดงหน้าต่างให้ผู้ใช้เลือก 3 ตัวเลือก:
-    ''' - อัปเดตตอนนี้ → รัน Installer ทันที
+    ''' - อัปเดตตอนนี้ → รัน uninstall.bat/install.bat ทันที
     ''' - อัปเดตหลังรีสตาร์ท → ตั้ง Flag ใน updateflag.txt
     ''' - เตือนฉันทีหลัง → เลื่อนไปรอบถัดไป
     ''' ใช้ Control.Invoke เพื่อแสดงหน้าต่างบน UI Thread
-    ''' when called from a BackgroundWorker.
     ''' </summary>
     Public Class NormalStrategy
         Implements IUpdateStrategy
@@ -21,7 +20,6 @@ Namespace Strategies
         ''' <summary>
         ''' สร้าง NormalStrategy พร้อม Control สำหรับเรียก UI Thread
         ''' </summary>
-        ''' <param name="invokeControl">A control (e.g. MainForm) for thread marshaling.</param>
         Public Sub New(invokeControl As Control)
             _invokeControl = invokeControl
         End Sub
@@ -31,11 +29,15 @@ Namespace Strategies
 
             Try
                 ' แสดงหน้าต่างบน UI Thread
-                If _invokeControl IsNot Nothing AndAlso _invokeControl.InvokeRequired Then
+                If _invokeControl IsNot Nothing AndAlso _invokeControl.IsHandleCreated AndAlso _invokeControl.InvokeRequired Then
                     _invokeControl.Invoke(New MethodInvoker(Sub()
                         choice = ShowPrompt(context)
                     End Sub))
+                ElseIf _invokeControl IsNot Nothing AndAlso _invokeControl.IsHandleCreated Then
+                    choice = ShowPrompt(context)
                 Else
+                    ' ไม่มี Control สำหรับแสดง UI → ลองแสดงตรงๆ
+                    Managers.LogManager.Warn("InvokeControl not ready. Showing prompt directly.")
                     choice = ShowPrompt(context)
                 End If
             Catch ex As Exception
@@ -49,6 +51,8 @@ Namespace Strategies
                     Managers.LogManager.Info("User chose: Update Now")
                     Dim success As Boolean = Managers.InstallerManager.RunInstaller(context.Tester.TesterType)
                     If success Then
+                        ' ล้าง Flag เผื่อมีค้างอยู่
+                        Managers.UpdateFlagManager.SetFlag(context.Tester.ComputerName, False)
                         Return UpdateResult.UpdateCompleted
                     Else
                         Return UpdateResult.[Error]

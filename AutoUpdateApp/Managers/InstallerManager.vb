@@ -73,15 +73,14 @@ Namespace Managers
 
         Private Shared Function RunBatchFile(batchPath As String, stepName As String) As Boolean
             Try
-                Dim args As String = Config.AppSettings.InstallerArgs
-                LogManager.Info(String.Format("Starting {0} script: {1} {2}", stepName, batchPath, args))
+                LogManager.Info(String.Format("Starting {0} script: {1}", stepName, batchPath))
 
                 Dim psi As New ProcessStartInfo()
                 psi.FileName = batchPath
-                psi.Arguments = args
+                psi.Arguments = ""
                 psi.UseShellExecute = True
                 psi.WindowStyle = ProcessWindowStyle.Hidden
-                psi.WorkingDirectory = IO.Path.GetDirectoryName(batchPath) ' Set working directory just in case
+                psi.WorkingDirectory = IO.Path.GetDirectoryName(batchPath)
 
                 Using proc As Process = Process.Start(psi)
                     If proc IsNot Nothing Then

@@ -4,8 +4,9 @@ Option Explicit On
 Namespace Strategies
 
     ''' <summary>
-    ''' โหมด Auto: รัน Installer อัตโนมัติเมื่อถึงเวลาที่กำหนดและเวอร์ชันไม่ตรงกัน
+    ''' โหมด Auto: รัน uninstall.bat/install.bat อัตโนมัติเมื่อถึงเวลาที่กำหนดและเวอร์ชันไม่ตรงกัน
     ''' ไม่ต้องมีการโต้ตอบกับผู้ใช้
+    ''' หลังติดตั้งสำเร็จจะล้าง Flag ใน updateflag.txt อัตโนมัติ
     ''' </summary>
     Public Class AutoStrategy
         Implements IUpdateStrategy
@@ -18,6 +19,8 @@ Namespace Strategies
             Dim success As Boolean = Managers.InstallerManager.RunInstaller(context.Tester.TesterType)
 
             If success Then
+                ' ล้าง Flag เผื่อมีค้างอยู่จากการกด "อัปเดตหลังรีสตาร์ท"
+                Managers.UpdateFlagManager.SetFlag(context.Tester.ComputerName, False)
                 Managers.LogManager.Info("Auto update completed successfully.")
                 Return UpdateResult.UpdateCompleted
             Else

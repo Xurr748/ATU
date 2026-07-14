@@ -17,7 +17,7 @@ Namespace Forms
     ''' <summary>
     ''' หน้าต่างแจ้งเตือนสำหรับโหมด Normal
     ''' แสดงเวอร์ชันปัจจุบัน vs ล่าสุด และปุ่มเลือก 3 ปุ่ม
-    ''' ปรับแต่ง UI ได้ตามต้องการ
+    ''' ใช้ uninstall.bat/install.bat สำหรับการอัปเดต
     ''' </summary>
     Public Class UpdatePromptForm
         Inherits Form
@@ -41,7 +41,7 @@ Namespace Forms
 
         Public Sub New(currentVersion As String, latestVersion As String)
             InitializeComponent()
-            lblVersionInfo.Text = "Current: " & currentVersion & "  →  Latest: " & latestVersion
+            lblVersionInfo.Text = "ปัจจุบัน: " & currentVersion & "  →  ล่าสุด: " & latestVersion
         End Sub
 
         Private Sub InitializeComponent()
@@ -49,7 +49,7 @@ Namespace Forms
 
             ' ── lblMessage ──
             lblMessage = New Label()
-            lblMessage.Text = "A new update is available."
+            lblMessage.Text = "พบเวอร์ชันใหม่พร้อมอัปเดต!"
             lblMessage.Font = New Drawing.Font("Segoe UI", 10.0F, Drawing.FontStyle.Bold)
             lblMessage.Location = New Drawing.Point(20, 20)
             lblMessage.Size = New Drawing.Size(340, 25)
@@ -65,27 +65,28 @@ Namespace Forms
 
             ' ── btnUpdateNow ──
             btnUpdateNow = New Button()
-            btnUpdateNow.Text = "Update Now"
+            btnUpdateNow.Text = "อัปเดตตอนนี้"
             btnUpdateNow.Location = New Drawing.Point(20, 90)
             btnUpdateNow.Size = New Drawing.Size(100, 35)
+            btnUpdateNow.Font = New Drawing.Font("Segoe UI", 9.0F, Drawing.FontStyle.Bold)
             AddHandler btnUpdateNow.Click, AddressOf BtnUpdateNow_Click
 
             ' ── btnAfterRestart ──
             btnAfterRestart = New Button()
-            btnAfterRestart.Text = "After Restart"
+            btnAfterRestart.Text = "หลังรีสตาร์ท"
             btnAfterRestart.Location = New Drawing.Point(135, 90)
             btnAfterRestart.Size = New Drawing.Size(110, 35)
             AddHandler btnAfterRestart.Click, AddressOf BtnAfterRestart_Click
 
             ' ── btnRemindLater ──
             btnRemindLater = New Button()
-            btnRemindLater.Text = "Remind Later"
+            btnRemindLater.Text = "เตือนทีหลัง"
             btnRemindLater.Location = New Drawing.Point(260, 90)
             btnRemindLater.Size = New Drawing.Size(100, 35)
             AddHandler btnRemindLater.Click, AddressOf BtnRemindLater_Click
 
             ' ── Form ──
-            Me.Text = "Application Update"
+            Me.Text = "แจ้งเตือนอัปเดต"
             Me.ClientSize = New Drawing.Size(380, 145)
             Me.FormBorderStyle = FormBorderStyle.FixedDialog
             Me.StartPosition = FormStartPosition.CenterScreen
@@ -106,16 +107,19 @@ Namespace Forms
 
         Private Sub BtnUpdateNow_Click(sender As Object, e As EventArgs)
             _userChoice = UpdatePromptResult.UpdateNow
+            Me.DialogResult = DialogResult.OK
             Me.Close()
         End Sub
 
         Private Sub BtnAfterRestart_Click(sender As Object, e As EventArgs)
             _userChoice = UpdatePromptResult.UpdateAfterRestart
+            Me.DialogResult = DialogResult.OK
             Me.Close()
         End Sub
 
         Private Sub BtnRemindLater_Click(sender As Object, e As EventArgs)
             _userChoice = UpdatePromptResult.RemindLater
+            Me.DialogResult = DialogResult.Cancel
             Me.Close()
         End Sub
 
