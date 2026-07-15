@@ -143,18 +143,11 @@ Namespace Workers
                 Dim flag As Boolean? = Managers.UpdateFlagManager.GetFlag(computerName)
                 context.HasPendingRestartFlag = (flag.HasValue AndAlso flag.Value)
 
-                ' จัดการ Flag รีสตาร์ทค้าง (มีความสำคัญสูงสุด)
+                ' จัดการ Flag รีสตาร์ทค้าง (รอการรีสตาร์ทหรือแอปเริ่มทำงานใหม่ ไม่รันอัปเดตทันทีผ่าน Scheduler)
                 If context.HasPendingRestartFlag AndAlso context.NeedsUpdate Then
-                    Managers.LogManager.Info("Pending restart update detected. Running installer.")
-                    Dim success As Boolean = Managers.InstallerManager.RunInstaller(tester.TesterType)
-                    If success Then
-                        Managers.UpdateFlagManager.SetFlag(computerName, False)
-                        e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.UpdateCompleted, _
-                                                                "Restart update completed")
-                    Else
-                        e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.[Error], _
-                                                                "Restart update failed")
-                    End If
+                    Managers.LogManager.Info("Pending restart update flag is already set. Waiting for restart.")
+                    e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.UpdateScheduledForRestart, _
+                                                            "Pending restart update flag is already set. Waiting for restart.")
                     Return
                 End If
 

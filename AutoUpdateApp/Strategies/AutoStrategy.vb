@@ -4,29 +4,25 @@ Option Explicit On
 Namespace Strategies
 
     ''' <summary>
-    ''' โหมด Auto: รัน uninstall.bat/install.bat อัตโนมัติเมื่อถึงเวลาที่กำหนดและเวอร์ชันไม่ตรงกัน
+    ''' โหมด Auto: ตั้งค่า Flag เพื่ออัปเดตหลังรีสตาร์ทเมื่อถึงเวลาที่กำหนดและเวอร์ชันไม่ตรงกัน
     ''' ไม่ต้องมีการโต้ตอบกับผู้ใช้
-    ''' หลังติดตั้งสำเร็จจะล้าง Flag ใน updateflag.txt อัตโนมัติ
     ''' </summary>
     Public Class AutoStrategy
         Implements IUpdateStrategy
 
         Public Function Execute(context As Models.UpdateContext) As UpdateResult Implements IUpdateStrategy.Execute
             Managers.LogManager.Info( _
-                "Auto mode — Starting automatic update for " & context.Tester.ComputerName & _
+                "Auto mode — Setting update flag for restart for " & context.Tester.ComputerName & _
                 ". Current: " & context.CurrentVersion & " → Latest: " & context.LatestVersion)
 
-            Dim success As Boolean = Managers.InstallerManager.RunInstaller(context.Tester.TesterType)
-
-            If success Then
-                ' ล้าง Flag เผื่อมีค้างอยู่จากการกด "อัปเดตหลังรีสตาร์ท"
-                Managers.UpdateFlagManager.SetFlag(context.Tester.ComputerName, False)
-                Managers.LogManager.Info("Auto update completed successfully.")
-                Return UpdateResult.UpdateCompleted
-            Else
-                Managers.LogManager.[Error]("Auto update failed for " & context.Tester.ComputerName)
+            Try
+                Managers.UpdateFlagManager.SetFlag(context.Tester.ComputerName, True)
+                Managers.LogManager.Info("Auto update flag set successfully.")
+                Return UpdateResult.UpdateScheduledForRestart
+            Catch ex As Exception
+                Managers.LogManager.[Error]("Failed to set update flag in Auto mode for " & context.Tester.ComputerName, ex)
                 Return UpdateResult.[Error]
-            End If
+            End Try
         End Function
 
     End Class
