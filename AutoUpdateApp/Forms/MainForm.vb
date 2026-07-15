@@ -55,6 +55,9 @@ Namespace Forms
         Private _lblProgress As Label
         Private _manualUpdateWorker As System.ComponentModel.BackgroundWorker
         Private WithEvents _fadeTimer As Timer
+        Private WithEvents _typewriteTimer As Timer
+        Private _typewriteTargets As New System.Collections.Generic.Dictionary(Of Label, String)
+        Private _typewriteIndices As New System.Collections.Generic.Dictionary(Of Label, Integer)
 
         Public Sub New()
             InitializeComponent()
@@ -494,6 +497,11 @@ Namespace Forms
             AddHandler _btnExit.Click, AddressOf BtnExit_Click
             AddHandler _btnUpdateNow.Click, AddressOf BtnUpdateNow_Click
 
+            ' เริ่มตัวนับเวลาของ Typewriter Effect
+            _typewriteTimer = New System.Windows.Forms.Timer()
+            _typewriteTimer.Interval = 25 ' ความเร็วพิมพ์ตัวอักษร 25ms
+            AddHandler _typewriteTimer.Tick, AddressOf TypewriteTimer_Tick
+
             ' สร้าง Worker และตัวตั้งเวลา
             _updateWorker = New Workers.UpdateWorker(Me)
             AddHandler _updateWorker.UpdateCompleted, AddressOf OnUpdateCompleted
@@ -545,6 +553,25 @@ Namespace Forms
         ' ── แสดง/คืนสภาพหน้าต่างหลัก ──
         Private Sub ShowForm()
             LoadInfo()
+
+            ' ดึงค่าที่โหลดขึ้นมาแล้ว เพื่อเตรียมทำเอฟเฟคพิมพ์ดีด
+            Dim comName As String = _lblComNameValue.Text
+            Dim testerType As String = _lblTypeValue.Text
+            Dim mode As String = _lblModeValue.Text
+            Dim timeStr As String = _lblTimeValue.Text
+            Dim currentVer As String = _lblCurrentValue.Text
+            Dim serverVer As String = _lblServerValue.Text
+            Dim statusStr As String = _lblStatusValue.Text
+
+            ' เริ่มกระบวนการอนิเมชั่น Typewriter
+            StartTypewriter(_lblComNameValue, comName)
+            StartTypewriter(_lblTypeValue, testerType)
+            StartTypewriter(_lblModeValue, mode)
+            StartTypewriter(_lblTimeValue, timeStr)
+            StartTypewriter(_lblCurrentValue, currentVer)
+            StartTypewriter(_lblServerValue, serverVer)
+            StartTypewriter(_lblStatusValue, statusStr)
+
             Me.Opacity = 0.0R
             Me.Visible = True
             Me.ShowInTaskbar = True
@@ -736,6 +763,11 @@ Namespace Forms
                     _fadeTimer.Dispose()
                     _fadeTimer = Nothing
                 End If
+                If _typewriteTimer IsNot Nothing Then
+                    RemoveHandler _typewriteTimer.Tick, AddressOf TypewriteTimer_Tick
+                    _typewriteTimer.Dispose()
+                    _typewriteTimer = Nothing
+                End If
                 If _contextMenu IsNot Nothing Then _contextMenu.Dispose()
                 If _notifyIcon IsNot Nothing Then
                     _notifyIcon.Visible = False
@@ -743,6 +775,37 @@ Namespace Forms
                 End If
             End If
             MyBase.Dispose(disposing)
+        End Sub
+
+        ' ── เริ่มอนิเมชั่นพิมพ์ดีดสำหรับ Label ที่ระบุ ──
+        Private Sub StartTypewriter(ByVal lbl As Label, ByVal text As String)
+            If lbl Is Nothing Then Return
+            lbl.Text = ""
+            _typewriteTargets(lbl) = text
+            _typewriteIndices(lbl) = 0
+            If _typewriteTimer IsNot Nothing Then
+                _typewriteTimer.Start()
+            End If
+        End Sub
+
+        ' ── ตัวนับเวลาการวาดตัวอักษรทีละตัว ──
+        Private Sub TypewriteTimer_Tick(ByVal sender As Object, ByVal e As EventArgs)
+            Dim keys As New System.Collections.Generic.List(Of Label)(_typewriteTargets.Keys)
+            Dim allDone As Boolean = True
+
+            For Each lbl In keys
+                Dim target As String = _typewriteTargets(lbl)
+                Dim idx As Integer = _typewriteIndices(lbl)
+                If idx < target.Length Then
+                    lbl.Text = target.Substring(0, idx + 1)
+                    _typewriteIndices(lbl) = idx + 1
+                    allDone = False
+                End If
+            Next
+
+            If allDone Then
+                _typewriteTimer.Stop()
+            End If
         End Sub
 
     End Class
