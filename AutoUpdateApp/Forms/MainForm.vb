@@ -705,6 +705,19 @@ Namespace Forms
         Private Sub BtnRefreshInfo_Click(ByVal sender As Object, ByVal e As EventArgs)
             Managers.ConfigManager.InvalidateCache()
             LoadInfo()
+
+            ' ดึงค่าใหม่มาใส่ตัวแปรชั่วคราวเพื่อทำเอฟเฟคพิมพ์ดีดซ้ำอีกรอบ
+            _tempComName = _lblComNameValue.Text
+            _tempType = _lblTypeValue.Text
+            _tempMode = _lblModeValue.Text
+            _tempTime = _lblTimeValue.Text
+            _tempCurrentVer = _lblCurrentValue.Text
+            _tempServerVer = _lblServerValue.Text
+            _tempStatus = _lblStatusValue.Text
+
+            ' สั่งรันเอฟเฟค Typewriter พิมพ์ใหม่
+            TriggerTypewriter()
+
             MessageBox.Show("รีเฟรชข้อมูลเรียบร้อยแล้ว", "สำเร็จ", MessageBoxButtons.OK, MessageBoxIcon.Information)
         End Sub
 
