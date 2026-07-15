@@ -107,6 +107,9 @@ Namespace Forms
             Me._btnRefreshInfo = New System.Windows.Forms.Button()
             Me._btnExit = New System.Windows.Forms.Button()
             Me._btnUpdateNow = New System.Windows.Forms.Button()
+            Me._progressBar = New System.Windows.Forms.ProgressBar()
+            Me._lblProgress = New System.Windows.Forms.Label()
+            Me._fadeTimer = New System.Windows.Forms.Timer(Me.components)
             Me._contextMenu.SuspendLayout()
             Me._grpInfo.SuspendLayout()
             Me._grpVersion.SuspendLayout()
@@ -144,6 +147,7 @@ Namespace Forms
             '
             '_grpInfo
             '
+            Me._grpInfo.BackColor = System.Drawing.Color.White
             Me._grpInfo.Controls.Add(Me._lblInfoTitle)
             Me._grpInfo.Controls.Add(Me._lblComNameLabel)
             Me._grpInfo.Controls.Add(Me._lblComNameValue)
@@ -157,15 +161,16 @@ Namespace Forms
             Me._grpInfo.Name = "_grpInfo"
             Me._grpInfo.Size = New System.Drawing.Size(370, 130)
             Me._grpInfo.TabIndex = 1
-            Me._grpInfo.BackColor = System.Drawing.Color.White
             '
             '_lblInfoTitle
             '
             Me._lblInfoTitle.AutoSize = True
             Me._lblInfoTitle.Font = New System.Drawing.Font("Segoe UI", 10.0!, System.Drawing.FontStyle.Bold)
-            Me._lblInfoTitle.ForeColor = System.Drawing.Color.FromArgb(41, 128, 185)
+            Me._lblInfoTitle.ForeColor = System.Drawing.Color.FromArgb(CType(CType(41, Byte), Integer), CType(CType(128, Byte), Integer), CType(CType(185, Byte), Integer))
             Me._lblInfoTitle.Location = New System.Drawing.Point(16, 12)
             Me._lblInfoTitle.Name = "_lblInfoTitle"
+            Me._lblInfoTitle.Size = New System.Drawing.Size(124, 19)
+            Me._lblInfoTitle.TabIndex = 0
             Me._lblInfoTitle.Text = "ข้อมูลเครื่องทดสอบ"
             '
             '_lblComNameLabel
@@ -250,6 +255,7 @@ Namespace Forms
             '
             '_grpVersion
             '
+            Me._grpVersion.BackColor = System.Drawing.Color.White
             Me._grpVersion.Controls.Add(Me._lblVersionTitle)
             Me._grpVersion.Controls.Add(Me._lblCurrentLabel)
             Me._grpVersion.Controls.Add(Me._lblCurrentValue)
@@ -261,15 +267,16 @@ Namespace Forms
             Me._grpVersion.Name = "_grpVersion"
             Me._grpVersion.Size = New System.Drawing.Size(370, 104)
             Me._grpVersion.TabIndex = 2
-            Me._grpVersion.BackColor = System.Drawing.Color.White
             '
             '_lblVersionTitle
             '
             Me._lblVersionTitle.AutoSize = True
             Me._lblVersionTitle.Font = New System.Drawing.Font("Segoe UI", 10.0!, System.Drawing.FontStyle.Bold)
-            Me._lblVersionTitle.ForeColor = System.Drawing.Color.FromArgb(41, 128, 185)
+            Me._lblVersionTitle.ForeColor = System.Drawing.Color.FromArgb(CType(CType(41, Byte), Integer), CType(CType(128, Byte), Integer), CType(CType(185, Byte), Integer))
             Me._lblVersionTitle.Location = New System.Drawing.Point(16, 12)
             Me._lblVersionTitle.Name = "_lblVersionTitle"
+            Me._lblVersionTitle.Size = New System.Drawing.Size(109, 19)
+            Me._lblVersionTitle.TabIndex = 0
             Me._lblVersionTitle.Text = "สถานะซอฟต์แวร์"
             '
             '_lblCurrentLabel
@@ -332,90 +339,94 @@ Namespace Forms
             Me._lblStatusValue.TabIndex = 5
             Me._lblStatusValue.Text = "..."
             '
-            '
-            '_btnUpdateNow
-            '
-            Me._btnUpdateNow.FlatStyle = System.Windows.Forms.FlatStyle.Flat
-            Me._btnUpdateNow.FlatAppearance.BorderSize = 0
-            Me._btnUpdateNow.Font = New System.Drawing.Font("Segoe UI", 9.5!, System.Drawing.FontStyle.Bold)
-            Me._btnUpdateNow.Location = New System.Drawing.Point(14, 268)
-            Me._btnUpdateNow.Name = "_btnUpdateNow"
-            Me._btnUpdateNow.Size = New System.Drawing.Size(370, 34)
-            Me._btnUpdateNow.TabIndex = 3
-            Me._btnUpdateNow.Text = "อัปเดตทันที"
-            Me._btnUpdateNow.BackColor = System.Drawing.Color.FromArgb(9, 132, 227)
-            Me._btnUpdateNow.ForeColor = System.Drawing.Color.White
-            Me._btnUpdateNow.Cursor = System.Windows.Forms.Cursors.Hand
-            '
             '_btnCheckNow
             '
-            Me._btnCheckNow.FlatStyle = System.Windows.Forms.FlatStyle.Flat
-            Me._btnCheckNow.FlatAppearance.BorderSize = 1
-            Me._btnCheckNow.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(9, 132, 227)
             Me._btnCheckNow.BackColor = System.Drawing.Color.White
-            Me._btnCheckNow.ForeColor = System.Drawing.Color.FromArgb(9, 132, 227)
+            Me._btnCheckNow.Cursor = System.Windows.Forms.Cursors.Hand
+            Me._btnCheckNow.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(CType(CType(9, Byte), Integer), CType(CType(132, Byte), Integer), CType(CType(227, Byte), Integer))
+            Me._btnCheckNow.FlatStyle = System.Windows.Forms.FlatStyle.Flat
             Me._btnCheckNow.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
+            Me._btnCheckNow.ForeColor = System.Drawing.Color.FromArgb(CType(CType(9, Byte), Integer), CType(CType(132, Byte), Integer), CType(CType(227, Byte), Integer))
             Me._btnCheckNow.Location = New System.Drawing.Point(14, 310)
             Me._btnCheckNow.Name = "_btnCheckNow"
             Me._btnCheckNow.Size = New System.Drawing.Size(120, 32)
             Me._btnCheckNow.TabIndex = 4
             Me._btnCheckNow.Text = "ตรวจสอบอัปเดต"
-            Me._btnCheckNow.Cursor = System.Windows.Forms.Cursors.Hand
+            Me._btnCheckNow.UseVisualStyleBackColor = False
             '
             '_btnRefreshInfo
             '
-            Me._btnRefreshInfo.FlatStyle = System.Windows.Forms.FlatStyle.Flat
-            Me._btnRefreshInfo.FlatAppearance.BorderSize = 1
-            Me._btnRefreshInfo.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(108, 92, 231)
             Me._btnRefreshInfo.BackColor = System.Drawing.Color.White
-            Me._btnRefreshInfo.ForeColor = System.Drawing.Color.FromArgb(108, 92, 231)
+            Me._btnRefreshInfo.Cursor = System.Windows.Forms.Cursors.Hand
+            Me._btnRefreshInfo.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(CType(CType(108, Byte), Integer), CType(CType(92, Byte), Integer), CType(CType(231, Byte), Integer))
+            Me._btnRefreshInfo.FlatStyle = System.Windows.Forms.FlatStyle.Flat
             Me._btnRefreshInfo.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
+            Me._btnRefreshInfo.ForeColor = System.Drawing.Color.FromArgb(CType(CType(108, Byte), Integer), CType(CType(92, Byte), Integer), CType(CType(231, Byte), Integer))
             Me._btnRefreshInfo.Location = New System.Drawing.Point(144, 310)
             Me._btnRefreshInfo.Name = "_btnRefreshInfo"
             Me._btnRefreshInfo.Size = New System.Drawing.Size(110, 32)
             Me._btnRefreshInfo.TabIndex = 5
             Me._btnRefreshInfo.Text = "รีเฟรชข้อมูล"
-            Me._btnRefreshInfo.Cursor = System.Windows.Forms.Cursors.Hand
+            Me._btnRefreshInfo.UseVisualStyleBackColor = False
             '
             '_btnExit
             '
-            Me._btnExit.FlatStyle = System.Windows.Forms.FlatStyle.Flat
-            Me._btnExit.FlatAppearance.BorderSize = 1
-            Me._btnExit.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(235, 77, 75)
             Me._btnExit.BackColor = System.Drawing.Color.White
-            Me._btnExit.ForeColor = System.Drawing.Color.FromArgb(235, 77, 75)
+            Me._btnExit.Cursor = System.Windows.Forms.Cursors.Hand
+            Me._btnExit.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(CType(CType(235, Byte), Integer), CType(CType(77, Byte), Integer), CType(CType(75, Byte), Integer))
+            Me._btnExit.FlatStyle = System.Windows.Forms.FlatStyle.Flat
             Me._btnExit.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
+            Me._btnExit.ForeColor = System.Drawing.Color.FromArgb(CType(CType(235, Byte), Integer), CType(CType(77, Byte), Integer), CType(CType(75, Byte), Integer))
             Me._btnExit.Location = New System.Drawing.Point(314, 310)
             Me._btnExit.Name = "_btnExit"
             Me._btnExit.Size = New System.Drawing.Size(70, 32)
             Me._btnExit.TabIndex = 6
             Me._btnExit.Text = "ออก"
-            Me._btnExit.Cursor = System.Windows.Forms.Cursors.Hand
+            Me._btnExit.UseVisualStyleBackColor = False
+            '
+            '_btnUpdateNow
+            '
+            Me._btnUpdateNow.BackColor = System.Drawing.Color.FromArgb(CType(CType(9, Byte), Integer), CType(CType(132, Byte), Integer), CType(CType(227, Byte), Integer))
+            Me._btnUpdateNow.Cursor = System.Windows.Forms.Cursors.Hand
+            Me._btnUpdateNow.FlatAppearance.BorderSize = 0
+            Me._btnUpdateNow.FlatStyle = System.Windows.Forms.FlatStyle.Flat
+            Me._btnUpdateNow.Font = New System.Drawing.Font("Segoe UI", 9.5!, System.Drawing.FontStyle.Bold)
+            Me._btnUpdateNow.ForeColor = System.Drawing.Color.White
+            Me._btnUpdateNow.Location = New System.Drawing.Point(14, 268)
+            Me._btnUpdateNow.Name = "_btnUpdateNow"
+            Me._btnUpdateNow.Size = New System.Drawing.Size(370, 34)
+            Me._btnUpdateNow.TabIndex = 3
+            Me._btnUpdateNow.Text = "อัปเดตทันที"
+            Me._btnUpdateNow.UseVisualStyleBackColor = False
             '
             '_progressBar
             '
-            Me._progressBar = New System.Windows.Forms.ProgressBar()
             Me._progressBar.Location = New System.Drawing.Point(14, 350)
+            Me._progressBar.MarqueeAnimationSpeed = 30
             Me._progressBar.Name = "_progressBar"
             Me._progressBar.Size = New System.Drawing.Size(370, 18)
             Me._progressBar.Style = System.Windows.Forms.ProgressBarStyle.Marquee
-            Me._progressBar.MarqueeAnimationSpeed = 30
+            Me._progressBar.TabIndex = 1
             Me._progressBar.Visible = False
             '
             '_lblProgress
             '
-            Me._lblProgress = New System.Windows.Forms.Label()
+            Me._lblProgress.Font = New System.Drawing.Font("Segoe UI", 8.0!, System.Drawing.FontStyle.Italic)
+            Me._lblProgress.ForeColor = System.Drawing.Color.FromArgb(CType(CType(100, Byte), Integer), CType(CType(100, Byte), Integer), CType(CType(100, Byte), Integer))
             Me._lblProgress.Location = New System.Drawing.Point(14, 370)
             Me._lblProgress.Name = "_lblProgress"
             Me._lblProgress.Size = New System.Drawing.Size(370, 18)
-            Me._lblProgress.Font = New System.Drawing.Font("Segoe UI", 8.0!, System.Drawing.FontStyle.Italic)
-            Me._lblProgress.ForeColor = System.Drawing.Color.FromArgb(100, 100, 100)
-            Me._lblProgress.Text = ""
+            Me._lblProgress.TabIndex = 2
             Me._lblProgress.TextAlign = System.Drawing.ContentAlignment.MiddleCenter
             Me._lblProgress.Visible = False
             '
+            '_fadeTimer
+            '
+            Me._fadeTimer.Interval = 30
+            '
             'MainForm
             '
+            Me.BackColor = System.Drawing.Color.FromArgb(CType(CType(245, Byte), Integer), CType(CType(245, Byte), Integer), CType(CType(250, Byte), Integer))
             Me.ClientSize = New System.Drawing.Size(400, 398)
             Me.Controls.Add(Me._progressBar)
             Me.Controls.Add(Me._lblProgress)
@@ -433,10 +444,6 @@ Namespace Forms
             Me.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen
             Me.Text = "Auto Update"
             Me.WindowState = System.Windows.Forms.FormWindowState.Minimized
-            Me.BackColor = System.Drawing.Color.FromArgb(245, 245, 250)
-            Me._fadeTimer = New System.Windows.Forms.Timer()
-            Me._fadeTimer.Interval = 30
-            AddHandler Me._fadeTimer.Tick, AddressOf FadeTimer_Tick
             Me._contextMenu.ResumeLayout(False)
             Me._grpInfo.ResumeLayout(False)
             Me._grpInfo.PerformLayout()
@@ -633,7 +640,7 @@ Namespace Forms
         End Sub
 
         ' ── ตัวนับเวลาสำหรับทำอนิเมชั่นค่อยๆ แสดงหน้าต่าง (Fade-in) และขยับเลื่อนการ์ดแบบเยื้องเวลา (Staggered Slide-in) ──
-        Private Sub FadeTimer_Tick(ByVal sender As Object, ByVal e As EventArgs)
+        Private Sub FadeTimer_Tick(ByVal sender As Object, ByVal e As EventArgs) Handles _fadeTimer.Tick
             Dim isOpacityDone As Boolean = False
             If Me.Opacity < 1.0R Then
                 Me.Opacity += 0.08R
@@ -718,7 +725,6 @@ Namespace Forms
             ' สั่งรันเอฟเฟค Typewriter พิมพ์ใหม่
             TriggerTypewriter()
 
-            MessageBox.Show("รีเฟรชข้อมูลเรียบร้อยแล้ว", "สำเร็จ", MessageBoxButtons.OK, MessageBoxIcon.Information)
         End Sub
 
         ' ── ปุ่ม: อัปเดตทันที (รันบน BackgroundWorker) ──
@@ -726,7 +732,7 @@ Namespace Forms
             Try
                 Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
                 Dim tester As Models.TesterInfo = Managers.ConfigManager.GetTesterByName(computerName)
-                
+
                 If tester Is Nothing Then
                     MessageBox.Show("เครื่องนี้ไม่อยู่ในระบบ (TesterType.csv)", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
                     Return
@@ -737,7 +743,7 @@ Namespace Forms
                     _btnUpdateNow.Enabled = False
                     _btnUpdateNow.Text = "กำลังอัปเดต..."
                     ShowProgress(True, "กำลังรัน uninstall / install ...")
-                    
+
                     ' รันบน BackgroundWorker เพื่อไม่บล็อก UI
                     If _manualUpdateWorker IsNot Nothing Then
                         RemoveHandler _manualUpdateWorker.DoWork, AddressOf ManualUpdate_DoWork
@@ -798,14 +804,12 @@ Namespace Forms
             End If
         End Sub
 
-        ' ── ปุ่ม: ออก ──
+
         Private Sub BtnExit_Click(ByVal sender As Object, ByVal e As EventArgs)
             CleanupAndExit()
         End Sub
 
-        ''' <summary>
-        ''' ปล่อยทรัพยากรทั้งหมดและปิดโปรแกรมอย่างถูกต้อง
-        ''' </summary>
+
         Private Sub CleanupAndExit()
             If _scheduler IsNot Nothing Then
                 _scheduler.Dispose()
@@ -907,56 +911,56 @@ Namespace Forms
             End If
         End Sub
 
-        ' ── วาดพื้นหลังหน้าต่างหลักแบบไล่เฉดสีนุ่มนวล (MainForm Gradient Background) ──
+
         Private Sub MainForm_Paint(ByVal sender As Object, ByVal e As PaintEventArgs)
             Dim rect As New Rectangle(0, 0, Me.Width, Me.Height)
             Using brush As New LinearGradientBrush(rect, Color.FromArgb(245, 247, 250), Color.FromArgb(232, 236, 243), 90.0F)
                 e.Graphics.FillRectangle(brush, rect)
             End Using
 
-            ' วาดเงาการ์ดข้อมูลแบบนุ่มนวล (Soft Panel Shadows)
+
             DrawPanelShadow(e.Graphics, _grpInfo.Bounds)
             DrawPanelShadow(e.Graphics, _grpVersion.Bounds)
         End Sub
 
-        ' ── วาดเงาฟุ้งแบบมีมิติใต้ Panel การ์ดต่าง ๆ ──
+
         Private Sub DrawPanelShadow(ByVal g As Graphics, ByVal rect As Rectangle)
-            ' วาดเงานุ่มๆ 5 ชั้นโดยลดความโปร่งแสงออกไปด้านนอก
+
             For i As Integer = 1 To 5
                 Using pen As New Pen(Color.FromArgb(CInt(10 - (i * 2)), 0, 0, 0), i * 2)
-                    ' วาดเส้นเงาด้านล่างและด้านขวา
+
                     g.DrawLine(pen, rect.Left + 4, rect.Bottom + i, rect.Right + i, rect.Bottom + i)
                     g.DrawLine(pen, rect.Right + i, rect.Top + 4, rect.Right + i, rect.Bottom + i)
                 End Using
             Next
         End Sub
 
-        ' ── วาดการ์ดข้อมูลแต่ละใบเป็นแบบไล่เฉดสีมุมทแยงพร้อมขอบบาง (Panel Card Gradient) ──
+
         Private Sub Panel_Paint(ByVal sender As Object, ByVal e As PaintEventArgs)
             Dim pnl As Panel = DirectCast(sender, Panel)
             Dim rect As New Rectangle(0, 0, pnl.Width, pnl.Height)
             Using brush As New LinearGradientBrush(rect, Color.White, Color.FromArgb(248, 250, 253), 45.0F)
                 e.Graphics.FillRectangle(brush, rect)
             End Using
-            ' วาดเส้นขอบแบบพรีเมียม
+
             Using borderPen As New Pen(Color.FromArgb(218, 224, 233), 1)
                 e.Graphics.DrawRectangle(borderPen, 0, 0, pnl.Width - 1, pnl.Height - 1)
             End Using
         End Sub
 
-        ' ── ระบบจัดการลงทะเบียน Event ให้ปุ่มรองรับ Hover และ Click Transitions ──
+
         Private Sub AddButtonAnimHandlers(ByVal btn As Button, ByVal normalColor As Color, ByVal hoverColor As Color, ByVal normalBorder As Color, ByVal hoverBorder As Color)
             If btn Is Nothing Then Return
-            
-            ' กำหนดสีเริ่มต้น
+
             btn.BackColor = normalColor
             btn.FlatAppearance.BorderColor = normalBorder
-            
+            btn.FlatAppearance.MouseOverBackColor = Color.Transparent
+            btn.FlatAppearance.MouseDownBackColor = Color.Transparent
+
             _btnTargets(btn) = normalColor
             _btnBorders(btn) = normalBorder
             _btnTargetBorders(btn) = normalBorder
 
-            ' ลงทะเบียน Mouse Events
             AddHandler btn.MouseEnter, Sub(s, ev)
                                            _btnTargets(btn) = hoverColor
                                            _btnTargetBorders(btn) = hoverBorder
@@ -968,7 +972,6 @@ Namespace Forms
                                            If _btnAnimTimer IsNot Nothing Then _btnAnimTimer.Start()
                                        End Sub
             AddHandler btn.MouseDown, Sub(s, ev)
-                                          ' Tactile click effect: ขยับเนื้อหาลงเล็กน้อย
                                           btn.Padding = New Padding(0, 2, 0, 0)
                                       End Sub
             AddHandler btn.MouseUp, Sub(s, ev)
@@ -976,7 +979,6 @@ Namespace Forms
                                     End Sub
         End Sub
 
-        ' ── ค่อยๆ ปรับ R, G, B ของปุ่มให้ลื่นไหล (Color Transitions Step) ──
         Private Function InterpolateColor(ByVal current As Color, ByVal target As Color, ByVal stepVal As Integer) As Color
             Dim r As Integer = current.R
             Dim g As Integer = current.G
@@ -992,11 +994,10 @@ Namespace Forms
             Return Color.FromArgb(r, g, b)
         End Function
 
-        ' ── อัปเดตเฟรมอนิเมชั่นสีปุ่มทีละนิดจนกว่าจะถึงสีเป้าหมาย ──
         Private Sub BtnAnimTimer_Tick(ByVal sender As Object, ByVal e As EventArgs)
             Dim btns As New System.Collections.Generic.List(Of Button)(_btnTargets.Keys)
             Dim allColorsReached As Boolean = True
-            Dim stepVal As Integer = 15 ' อัตราความเร็วในการเฟดสี
+            Dim stepVal As Integer = 15
 
             For Each btn In btns
                 Dim currentBack As Color = btn.BackColor
