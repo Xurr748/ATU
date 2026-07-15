@@ -954,8 +954,8 @@ Namespace Forms
 
             btn.BackColor = normalColor
             btn.FlatAppearance.BorderColor = normalBorder
-            btn.FlatAppearance.MouseOverBackColor = Color.Transparent
-            btn.FlatAppearance.MouseDownBackColor = Color.Transparent
+            btn.FlatAppearance.MouseOverBackColor = normalColor
+            btn.FlatAppearance.MouseDownBackColor = normalColor
 
             _btnTargets(btn) = normalColor
             _btnBorders(btn) = normalBorder
@@ -1006,7 +1006,10 @@ Namespace Forms
                 Dim targetBorder As Color = _btnTargetBorders(btn)
 
                 If currentBack <> targetBack Then
-                    btn.BackColor = InterpolateColor(currentBack, targetBack, stepVal)
+                    Dim nextColor As Color = InterpolateColor(currentBack, targetBack, stepVal)
+                    btn.BackColor = nextColor
+                    btn.FlatAppearance.MouseOverBackColor = nextColor
+                    btn.FlatAppearance.MouseDownBackColor = nextColor
                     allColorsReached = False
                 End If
 
