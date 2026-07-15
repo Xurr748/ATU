@@ -25,7 +25,8 @@ Namespace Forms
         Private WithEvents _mnuExit As ToolStripMenuItem
 
         ' ── UI Controls ──
-        Private _grpInfo As GroupBox
+        Private _grpInfo As Panel
+        Private _lblInfoTitle As Label
         Private _lblComNameLabel As Label
         Private _lblComNameValue As Label
         Private _lblTypeLabel As Label
@@ -35,7 +36,8 @@ Namespace Forms
         Private _lblTimeLabel As Label
         Private _lblTimeValue As Label
 
-        Private _grpVersion As GroupBox
+        Private _grpVersion As Panel
+        Private _lblVersionTitle As Label
         Private _lblCurrentLabel As Label
         Private _lblCurrentValue As Label
         Private _lblServerLabel As Label
@@ -52,6 +54,7 @@ Namespace Forms
         Private _progressBar As ProgressBar
         Private _lblProgress As Label
         Private _manualUpdateWorker As System.ComponentModel.BackgroundWorker
+        Private WithEvents _fadeTimer As Timer
 
         Public Sub New()
             InitializeComponent()
@@ -65,7 +68,8 @@ Namespace Forms
             Me._mnuSeparator = New System.Windows.Forms.ToolStripSeparator()
             Me._mnuExit = New System.Windows.Forms.ToolStripMenuItem()
             Me._notifyIcon = New System.Windows.Forms.NotifyIcon(Me.components)
-            Me._grpInfo = New System.Windows.Forms.GroupBox()
+            Me._grpInfo = New System.Windows.Forms.Panel()
+            Me._lblInfoTitle = New System.Windows.Forms.Label()
             Me._lblComNameLabel = New System.Windows.Forms.Label()
             Me._lblComNameValue = New System.Windows.Forms.Label()
             Me._lblTypeLabel = New System.Windows.Forms.Label()
@@ -74,7 +78,8 @@ Namespace Forms
             Me._lblModeValue = New System.Windows.Forms.Label()
             Me._lblTimeLabel = New System.Windows.Forms.Label()
             Me._lblTimeValue = New System.Windows.Forms.Label()
-            Me._grpVersion = New System.Windows.Forms.GroupBox()
+            Me._grpVersion = New System.Windows.Forms.Panel()
+            Me._lblVersionTitle = New System.Windows.Forms.Label()
             Me._lblCurrentLabel = New System.Windows.Forms.Label()
             Me._lblCurrentValue = New System.Windows.Forms.Label()
             Me._lblServerLabel = New System.Windows.Forms.Label()
@@ -122,6 +127,7 @@ Namespace Forms
             '
             '_grpInfo
             '
+            Me._grpInfo.Controls.Add(Me._lblInfoTitle)
             Me._grpInfo.Controls.Add(Me._lblComNameLabel)
             Me._grpInfo.Controls.Add(Me._lblComNameValue)
             Me._grpInfo.Controls.Add(Me._lblTypeLabel)
@@ -130,19 +136,26 @@ Namespace Forms
             Me._grpInfo.Controls.Add(Me._lblModeValue)
             Me._grpInfo.Controls.Add(Me._lblTimeLabel)
             Me._grpInfo.Controls.Add(Me._lblTimeValue)
-            Me._grpInfo.Font = New System.Drawing.Font("Segoe UI", 9.5!, System.Drawing.FontStyle.Bold)
             Me._grpInfo.Location = New System.Drawing.Point(14, 14)
             Me._grpInfo.Name = "_grpInfo"
             Me._grpInfo.Size = New System.Drawing.Size(370, 130)
             Me._grpInfo.TabIndex = 1
-            Me._grpInfo.TabStop = False
-            Me._grpInfo.Text = " ข้อมูลเครื่อง "
+            Me._grpInfo.BackColor = System.Drawing.Color.White
+            '
+            '_lblInfoTitle
+            '
+            Me._lblInfoTitle.AutoSize = True
+            Me._lblInfoTitle.Font = New System.Drawing.Font("Segoe UI", 10.0!, System.Drawing.FontStyle.Bold)
+            Me._lblInfoTitle.ForeColor = System.Drawing.Color.FromArgb(41, 128, 185)
+            Me._lblInfoTitle.Location = New System.Drawing.Point(16, 12)
+            Me._lblInfoTitle.Name = "_lblInfoTitle"
+            Me._lblInfoTitle.Text = "ข้อมูลเครื่องทดสอบ"
             '
             '_lblComNameLabel
             '
             Me._lblComNameLabel.AutoSize = True
             Me._lblComNameLabel.Font = New System.Drawing.Font("Segoe UI", 9.0!)
-            Me._lblComNameLabel.Location = New System.Drawing.Point(16, 28)
+            Me._lblComNameLabel.Location = New System.Drawing.Point(16, 40)
             Me._lblComNameLabel.Name = "_lblComNameLabel"
             Me._lblComNameLabel.Size = New System.Drawing.Size(49, 15)
             Me._lblComNameLabel.TabIndex = 0
@@ -152,7 +165,7 @@ Namespace Forms
             '
             Me._lblComNameValue.AutoSize = True
             Me._lblComNameValue.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
-            Me._lblComNameValue.Location = New System.Drawing.Point(130, 28)
+            Me._lblComNameValue.Location = New System.Drawing.Point(130, 40)
             Me._lblComNameValue.Name = "_lblComNameValue"
             Me._lblComNameValue.Size = New System.Drawing.Size(16, 15)
             Me._lblComNameValue.TabIndex = 1
@@ -162,7 +175,7 @@ Namespace Forms
             '
             Me._lblTypeLabel.AutoSize = True
             Me._lblTypeLabel.Font = New System.Drawing.Font("Segoe UI", 9.0!)
-            Me._lblTypeLabel.Location = New System.Drawing.Point(16, 52)
+            Me._lblTypeLabel.Location = New System.Drawing.Point(16, 62)
             Me._lblTypeLabel.Name = "_lblTypeLabel"
             Me._lblTypeLabel.Size = New System.Drawing.Size(43, 15)
             Me._lblTypeLabel.TabIndex = 2
@@ -172,7 +185,7 @@ Namespace Forms
             '
             Me._lblTypeValue.AutoSize = True
             Me._lblTypeValue.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
-            Me._lblTypeValue.Location = New System.Drawing.Point(130, 52)
+            Me._lblTypeValue.Location = New System.Drawing.Point(130, 62)
             Me._lblTypeValue.Name = "_lblTypeValue"
             Me._lblTypeValue.Size = New System.Drawing.Size(16, 15)
             Me._lblTypeValue.TabIndex = 3
@@ -182,7 +195,7 @@ Namespace Forms
             '
             Me._lblModeLabel.AutoSize = True
             Me._lblModeLabel.Font = New System.Drawing.Font("Segoe UI", 9.0!)
-            Me._lblModeLabel.Location = New System.Drawing.Point(16, 76)
+            Me._lblModeLabel.Location = New System.Drawing.Point(16, 84)
             Me._lblModeLabel.Name = "_lblModeLabel"
             Me._lblModeLabel.Size = New System.Drawing.Size(36, 15)
             Me._lblModeLabel.TabIndex = 4
@@ -192,7 +205,7 @@ Namespace Forms
             '
             Me._lblModeValue.AutoSize = True
             Me._lblModeValue.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
-            Me._lblModeValue.Location = New System.Drawing.Point(130, 76)
+            Me._lblModeValue.Location = New System.Drawing.Point(130, 84)
             Me._lblModeValue.Name = "_lblModeValue"
             Me._lblModeValue.Size = New System.Drawing.Size(16, 15)
             Me._lblModeValue.TabIndex = 5
@@ -202,7 +215,7 @@ Namespace Forms
             '
             Me._lblTimeLabel.AutoSize = True
             Me._lblTimeLabel.Font = New System.Drawing.Font("Segoe UI", 9.0!)
-            Me._lblTimeLabel.Location = New System.Drawing.Point(16, 100)
+            Me._lblTimeLabel.Location = New System.Drawing.Point(16, 106)
             Me._lblTimeLabel.Name = "_lblTimeLabel"
             Me._lblTimeLabel.Size = New System.Drawing.Size(71, 15)
             Me._lblTimeLabel.TabIndex = 6
@@ -212,7 +225,7 @@ Namespace Forms
             '
             Me._lblTimeValue.AutoSize = True
             Me._lblTimeValue.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
-            Me._lblTimeValue.Location = New System.Drawing.Point(130, 100)
+            Me._lblTimeValue.Location = New System.Drawing.Point(130, 106)
             Me._lblTimeValue.Name = "_lblTimeValue"
             Me._lblTimeValue.Size = New System.Drawing.Size(16, 15)
             Me._lblTimeValue.TabIndex = 7
@@ -220,25 +233,33 @@ Namespace Forms
             '
             '_grpVersion
             '
+            Me._grpVersion.Controls.Add(Me._lblVersionTitle)
             Me._grpVersion.Controls.Add(Me._lblCurrentLabel)
             Me._grpVersion.Controls.Add(Me._lblCurrentValue)
             Me._grpVersion.Controls.Add(Me._lblServerLabel)
             Me._grpVersion.Controls.Add(Me._lblServerValue)
             Me._grpVersion.Controls.Add(Me._lblStatusLabel)
             Me._grpVersion.Controls.Add(Me._lblStatusValue)
-            Me._grpVersion.Font = New System.Drawing.Font("Segoe UI", 9.5!, System.Drawing.FontStyle.Bold)
             Me._grpVersion.Location = New System.Drawing.Point(14, 152)
             Me._grpVersion.Name = "_grpVersion"
             Me._grpVersion.Size = New System.Drawing.Size(370, 104)
             Me._grpVersion.TabIndex = 2
-            Me._grpVersion.TabStop = False
-            Me._grpVersion.Text = " เวอร์ชัน "
+            Me._grpVersion.BackColor = System.Drawing.Color.White
+            '
+            '_lblVersionTitle
+            '
+            Me._lblVersionTitle.AutoSize = True
+            Me._lblVersionTitle.Font = New System.Drawing.Font("Segoe UI", 10.0!, System.Drawing.FontStyle.Bold)
+            Me._lblVersionTitle.ForeColor = System.Drawing.Color.FromArgb(41, 128, 185)
+            Me._lblVersionTitle.Location = New System.Drawing.Point(16, 12)
+            Me._lblVersionTitle.Name = "_lblVersionTitle"
+            Me._lblVersionTitle.Text = "สถานะซอฟต์แวร์"
             '
             '_lblCurrentLabel
             '
             Me._lblCurrentLabel.AutoSize = True
             Me._lblCurrentLabel.Font = New System.Drawing.Font("Segoe UI", 9.0!)
-            Me._lblCurrentLabel.Location = New System.Drawing.Point(16, 28)
+            Me._lblCurrentLabel.Location = New System.Drawing.Point(16, 40)
             Me._lblCurrentLabel.Name = "_lblCurrentLabel"
             Me._lblCurrentLabel.Size = New System.Drawing.Size(76, 15)
             Me._lblCurrentLabel.TabIndex = 0
@@ -248,7 +269,7 @@ Namespace Forms
             '
             Me._lblCurrentValue.AutoSize = True
             Me._lblCurrentValue.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
-            Me._lblCurrentValue.Location = New System.Drawing.Point(150, 28)
+            Me._lblCurrentValue.Location = New System.Drawing.Point(150, 40)
             Me._lblCurrentValue.Name = "_lblCurrentValue"
             Me._lblCurrentValue.Size = New System.Drawing.Size(16, 15)
             Me._lblCurrentValue.TabIndex = 1
@@ -258,7 +279,7 @@ Namespace Forms
             '
             Me._lblServerLabel.AutoSize = True
             Me._lblServerLabel.Font = New System.Drawing.Font("Segoe UI", 9.0!)
-            Me._lblServerLabel.Location = New System.Drawing.Point(16, 52)
+            Me._lblServerLabel.Location = New System.Drawing.Point(16, 62)
             Me._lblServerLabel.Name = "_lblServerLabel"
             Me._lblServerLabel.Size = New System.Drawing.Size(78, 15)
             Me._lblServerLabel.TabIndex = 2
@@ -268,7 +289,7 @@ Namespace Forms
             '
             Me._lblServerValue.AutoSize = True
             Me._lblServerValue.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
-            Me._lblServerValue.Location = New System.Drawing.Point(150, 52)
+            Me._lblServerValue.Location = New System.Drawing.Point(150, 62)
             Me._lblServerValue.Name = "_lblServerValue"
             Me._lblServerValue.Size = New System.Drawing.Size(16, 15)
             Me._lblServerValue.TabIndex = 3
@@ -278,7 +299,7 @@ Namespace Forms
             '
             Me._lblStatusLabel.AutoSize = True
             Me._lblStatusLabel.Font = New System.Drawing.Font("Segoe UI", 9.0!)
-            Me._lblStatusLabel.Location = New System.Drawing.Point(16, 76)
+            Me._lblStatusLabel.Location = New System.Drawing.Point(16, 84)
             Me._lblStatusLabel.Name = "_lblStatusLabel"
             Me._lblStatusLabel.Size = New System.Drawing.Size(39, 15)
             Me._lblStatusLabel.TabIndex = 4
@@ -288,32 +309,35 @@ Namespace Forms
             '
             Me._lblStatusValue.AutoSize = True
             Me._lblStatusValue.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
-            Me._lblStatusValue.Location = New System.Drawing.Point(150, 76)
+            Me._lblStatusValue.Location = New System.Drawing.Point(150, 84)
             Me._lblStatusValue.Name = "_lblStatusValue"
             Me._lblStatusValue.Size = New System.Drawing.Size(16, 15)
             Me._lblStatusValue.TabIndex = 5
             Me._lblStatusValue.Text = "..."
             '
+            '
             '_btnUpdateNow
             '
             Me._btnUpdateNow.FlatStyle = System.Windows.Forms.FlatStyle.Flat
-            Me._btnUpdateNow.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(70, 130, 180)
+            Me._btnUpdateNow.FlatAppearance.BorderSize = 0
             Me._btnUpdateNow.Font = New System.Drawing.Font("Segoe UI", 9.5!, System.Drawing.FontStyle.Bold)
             Me._btnUpdateNow.Location = New System.Drawing.Point(14, 268)
             Me._btnUpdateNow.Name = "_btnUpdateNow"
             Me._btnUpdateNow.Size = New System.Drawing.Size(370, 34)
             Me._btnUpdateNow.TabIndex = 3
             Me._btnUpdateNow.Text = "อัปเดตทันที"
-            Me._btnUpdateNow.BackColor = System.Drawing.Color.FromArgb(70, 130, 180)
+            Me._btnUpdateNow.BackColor = System.Drawing.Color.FromArgb(9, 132, 227)
             Me._btnUpdateNow.ForeColor = System.Drawing.Color.White
             Me._btnUpdateNow.Cursor = System.Windows.Forms.Cursors.Hand
             '
             '_btnCheckNow
             '
             Me._btnCheckNow.FlatStyle = System.Windows.Forms.FlatStyle.Flat
-            Me._btnCheckNow.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(70, 130, 180)
+            Me._btnCheckNow.FlatAppearance.BorderSize = 1
+            Me._btnCheckNow.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(9, 132, 227)
             Me._btnCheckNow.BackColor = System.Drawing.Color.White
-            Me._btnCheckNow.Font = New System.Drawing.Font("Segoe UI", 9.0!)
+            Me._btnCheckNow.ForeColor = System.Drawing.Color.FromArgb(9, 132, 227)
+            Me._btnCheckNow.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
             Me._btnCheckNow.Location = New System.Drawing.Point(14, 310)
             Me._btnCheckNow.Name = "_btnCheckNow"
             Me._btnCheckNow.Size = New System.Drawing.Size(120, 32)
@@ -324,9 +348,11 @@ Namespace Forms
             '_btnRefreshInfo
             '
             Me._btnRefreshInfo.FlatStyle = System.Windows.Forms.FlatStyle.Flat
-            Me._btnRefreshInfo.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(180, 180, 180)
+            Me._btnRefreshInfo.FlatAppearance.BorderSize = 1
+            Me._btnRefreshInfo.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(108, 92, 231)
             Me._btnRefreshInfo.BackColor = System.Drawing.Color.White
-            Me._btnRefreshInfo.Font = New System.Drawing.Font("Segoe UI", 9.0!)
+            Me._btnRefreshInfo.ForeColor = System.Drawing.Color.FromArgb(108, 92, 231)
+            Me._btnRefreshInfo.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
             Me._btnRefreshInfo.Location = New System.Drawing.Point(144, 310)
             Me._btnRefreshInfo.Name = "_btnRefreshInfo"
             Me._btnRefreshInfo.Size = New System.Drawing.Size(110, 32)
@@ -337,9 +363,10 @@ Namespace Forms
             '_btnExit
             '
             Me._btnExit.FlatStyle = System.Windows.Forms.FlatStyle.Flat
-            Me._btnExit.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(220, 80, 80)
+            Me._btnExit.FlatAppearance.BorderSize = 1
+            Me._btnExit.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(235, 77, 75)
             Me._btnExit.BackColor = System.Drawing.Color.White
-            Me._btnExit.ForeColor = System.Drawing.Color.FromArgb(180, 50, 50)
+            Me._btnExit.ForeColor = System.Drawing.Color.FromArgb(235, 77, 75)
             Me._btnExit.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
             Me._btnExit.Location = New System.Drawing.Point(314, 310)
             Me._btnExit.Name = "_btnExit"
@@ -390,6 +417,9 @@ Namespace Forms
             Me.Text = "Auto Update"
             Me.WindowState = System.Windows.Forms.FormWindowState.Minimized
             Me.BackColor = System.Drawing.Color.FromArgb(245, 245, 250)
+            Me._fadeTimer = New System.Windows.Forms.Timer()
+            Me._fadeTimer.Interval = 30
+            AddHandler Me._fadeTimer.Tick, AddressOf FadeTimer_Tick
             Me._contextMenu.ResumeLayout(False)
             Me._grpInfo.ResumeLayout(False)
             Me._grpInfo.PerformLayout()
@@ -428,16 +458,16 @@ Namespace Forms
 
                 ' ── สถานะ ──
                 If String.IsNullOrEmpty(currentVer) OrElse String.IsNullOrEmpty(serverVer) Then
-                    _lblStatusValue.Text = "ไม่สามารถตรวจสอบได้"
-                    _lblStatusValue.ForeColor = Color.Gray
+                    _lblStatusValue.Text = "● ไม่สามารถตรวจสอบได้"
+                    _lblStatusValue.ForeColor = Color.FromArgb(149, 165, 166)
                     If _btnUpdateNow IsNot Nothing Then _btnUpdateNow.Enabled = False
                 ElseIf String.Equals(currentVer, serverVer, StringComparison.OrdinalIgnoreCase) Then
-                    _lblStatusValue.Text = "✓ เวอร์ชันล่าสุดแล้ว"
-                    _lblStatusValue.ForeColor = Color.Green
+                    _lblStatusValue.Text = "● เวอร์ชันล่าสุดแล้ว"
+                    _lblStatusValue.ForeColor = Color.FromArgb(46, 204, 113)
                     If _btnUpdateNow IsNot Nothing Then _btnUpdateNow.Enabled = False
                 Else
-                    _lblStatusValue.Text = "✗ มีอัปเดตใหม่"
-                    _lblStatusValue.ForeColor = Color.Red
+                    _lblStatusValue.Text = "● มีอัปเดตใหม่"
+                    _lblStatusValue.ForeColor = Color.FromArgb(231, 76, 60)
                     If _btnUpdateNow IsNot Nothing Then _btnUpdateNow.Enabled = True
                 End If
 
@@ -515,12 +545,26 @@ Namespace Forms
         ' ── แสดง/คืนสภาพหน้าต่างหลัก ──
         Private Sub ShowForm()
             LoadInfo()
+            Me.Opacity = 0.0R
             Me.Visible = True
             Me.ShowInTaskbar = True
-            Me.Opacity = 1.0R
             Me.WindowState = FormWindowState.Normal
             Me.BringToFront()
             Me.Activate()
+            If Me._fadeTimer IsNot Nothing Then
+                Me._fadeTimer.Start()
+            Else
+                Me.Opacity = 1.0R
+            End If
+        End Sub
+
+        ' ── ตัวนับเวลาสำหรับทำอนิเมชั่นค่อยๆ แสดงหน้าต่าง (Fade-in) ──
+        Private Sub FadeTimer_Tick(ByVal sender As Object, ByVal e As EventArgs)
+            If Me.Opacity < 1.0R Then
+                Me.Opacity += 0.08R
+            Else
+                Me._fadeTimer.Stop()
+            End If
         End Sub
 
         ' ── เมนู Tray: ตรวจสอบตอนนี้ ──
@@ -686,6 +730,11 @@ Namespace Forms
                     RemoveHandler _manualUpdateWorker.DoWork, AddressOf ManualUpdate_DoWork
                     RemoveHandler _manualUpdateWorker.RunWorkerCompleted, AddressOf ManualUpdate_Completed
                     _manualUpdateWorker.Dispose()
+                End If
+                If _fadeTimer IsNot Nothing Then
+                    RemoveHandler _fadeTimer.Tick, AddressOf FadeTimer_Tick
+                    _fadeTimer.Dispose()
+                    _fadeTimer = Nothing
                 End If
                 If _contextMenu IsNot Nothing Then _contextMenu.Dispose()
                 If _notifyIcon IsNot Nothing Then
