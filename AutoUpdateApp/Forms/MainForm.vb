@@ -59,6 +59,15 @@ Namespace Forms
         Private _typewriteTargets As New System.Collections.Generic.Dictionary(Of Label, String)
         Private _typewriteIndices As New System.Collections.Generic.Dictionary(Of Label, Integer)
 
+        ' ── ตัวแปรเก็บค่าข้อความชั่วคราวระหว่างรอ Fade-in เสร็จ ──
+        Private _tempComName As String = ""
+        Private _tempType As String = ""
+        Private _tempMode As String = ""
+        Private _tempTime As String = ""
+        Private _tempCurrentVer As String = ""
+        Private _tempServerVer As String = ""
+        Private _tempStatus As String = ""
+
         Public Sub New()
             InitializeComponent()
         End Sub
@@ -499,7 +508,7 @@ Namespace Forms
 
             ' เริ่มตัวนับเวลาของ Typewriter Effect
             _typewriteTimer = New System.Windows.Forms.Timer()
-            _typewriteTimer.Interval = 25 ' ความเร็วพิมพ์ตัวอักษร 25ms
+            _typewriteTimer.Interval = 35 ' ความเร็วพิมพ์ตัวอักษร 35ms
             AddHandler _typewriteTimer.Tick, AddressOf TypewriteTimer_Tick
 
             ' สร้าง Worker และตัวตั้งเวลา
@@ -554,23 +563,23 @@ Namespace Forms
         Private Sub ShowForm()
             LoadInfo()
 
-            ' ดึงค่าที่โหลดขึ้นมาแล้ว เพื่อเตรียมทำเอฟเฟคพิมพ์ดีด
-            Dim comName As String = _lblComNameValue.Text
-            Dim testerType As String = _lblTypeValue.Text
-            Dim mode As String = _lblModeValue.Text
-            Dim timeStr As String = _lblTimeValue.Text
-            Dim currentVer As String = _lblCurrentValue.Text
-            Dim serverVer As String = _lblServerValue.Text
-            Dim statusStr As String = _lblStatusValue.Text
+            ' ดึงค่าที่โหลดขึ้นมาแล้ว เพื่อเตรียมทำเอฟเฟคพิมพ์ดีดหลังขยายหน้าต่างเสร็จ
+            _tempComName = _lblComNameValue.Text
+            _tempType = _lblTypeValue.Text
+            _tempMode = _lblModeValue.Text
+            _tempTime = _lblTimeValue.Text
+            _tempCurrentVer = _lblCurrentValue.Text
+            _tempServerVer = _lblServerValue.Text
+            _tempStatus = _lblStatusValue.Text
 
-            ' เริ่มกระบวนการอนิเมชั่น Typewriter
-            StartTypewriter(_lblComNameValue, comName)
-            StartTypewriter(_lblTypeValue, testerType)
-            StartTypewriter(_lblModeValue, mode)
-            StartTypewriter(_lblTimeValue, timeStr)
-            StartTypewriter(_lblCurrentValue, currentVer)
-            StartTypewriter(_lblServerValue, serverVer)
-            StartTypewriter(_lblStatusValue, statusStr)
+            ' เคลียร์ฟิลด์ชั่วคราวเพื่อให้เป็นช่องว่างระหว่างอนิเมชั่นค่อยๆ แสดงหน้าต่าง
+            _lblComNameValue.Text = ""
+            _lblTypeValue.Text = ""
+            _lblModeValue.Text = ""
+            _lblTimeValue.Text = ""
+            _lblCurrentValue.Text = ""
+            _lblServerValue.Text = ""
+            _lblStatusValue.Text = ""
 
             Me.Opacity = 0.0R
             Me.Visible = True
@@ -582,7 +591,19 @@ Namespace Forms
                 Me._fadeTimer.Start()
             Else
                 Me.Opacity = 1.0R
+                TriggerTypewriter()
             End If
+        End Sub
+
+        ' ── เรียกอนิเมชั่น Typewriter ให้ช่องข้อความเริ่มทำงานพร้อมกัน ──
+        Private Sub TriggerTypewriter()
+            StartTypewriter(_lblComNameValue, _tempComName)
+            StartTypewriter(_lblTypeValue, _tempType)
+            StartTypewriter(_lblModeValue, _tempMode)
+            StartTypewriter(_lblTimeValue, _tempTime)
+            StartTypewriter(_lblCurrentValue, _tempCurrentVer)
+            StartTypewriter(_lblServerValue, _tempServerVer)
+            StartTypewriter(_lblStatusValue, _tempStatus)
         End Sub
 
         ' ── ตัวนับเวลาสำหรับทำอนิเมชั่นค่อยๆ แสดงหน้าต่าง (Fade-in) ──
@@ -591,6 +612,7 @@ Namespace Forms
                 Me.Opacity += 0.08R
             Else
                 Me._fadeTimer.Stop()
+                TriggerTypewriter()
             End If
         End Sub
 
