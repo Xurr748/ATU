@@ -583,7 +583,7 @@ Namespace Forms
         Private Sub ShowForm()
             LoadInfo()
 
-            ' ดึงค่าที่โหลดขึ้นมาแล้ว เพื่อเตรียมทำเอฟเฟคพิมพ์ดีดหลังขยายหน้าต่างเสร็จ
+            ' ดึงค่าที่โหลดขึ้นมาแล้ว เพื่อเตรียมทำเอฟเฟคพิมพ์ดีดหลังขยายหน้าต่างและสไลด์การ์ดเสร็จ
             _tempComName = _lblComNameValue.Text
             _tempType = _lblTypeValue.Text
             _tempMode = _lblModeValue.Text
@@ -601,6 +601,10 @@ Namespace Forms
             _lblServerValue.Text = ""
             _lblStatusValue.Text = ""
 
+            ' ตั้งค่าพิกัดเริ่มต้นสำหรับการ์ดสไลด์เยื้องเวลา (Staggered Animation)
+            _grpInfo.Top = 50
+            _grpVersion.Top = 188
+
             Me.Opacity = 0.0R
             Me.Visible = True
             Me.ShowInTaskbar = True
@@ -610,6 +614,8 @@ Namespace Forms
             If Me._fadeTimer IsNot Nothing Then
                 Me._fadeTimer.Start()
             Else
+                _grpInfo.Top = 14
+                _grpVersion.Top = 152
                 Me.Opacity = 1.0R
                 TriggerTypewriter()
             End If
@@ -626,11 +632,44 @@ Namespace Forms
             StartTypewriter(_lblStatusValue, _tempStatus)
         End Sub
 
-        ' ── ตัวนับเวลาสำหรับทำอนิเมชั่นค่อยๆ แสดงหน้าต่าง (Fade-in) ──
+        ' ── ตัวนับเวลาสำหรับทำอนิเมชั่นค่อยๆ แสดงหน้าต่าง (Fade-in) และขยับเลื่อนการ์ดแบบเยื้องเวลา (Staggered Slide-in) ──
         Private Sub FadeTimer_Tick(ByVal sender As Object, ByVal e As EventArgs)
+            Dim isOpacityDone As Boolean = False
             If Me.Opacity < 1.0R Then
                 Me.Opacity += 0.08R
             Else
+                Me.Opacity = 1.0R
+                isOpacityDone = True
+            End If
+
+            Dim infoTarget As Integer = 14
+            Dim versionTarget As Integer = 152
+            Dim stepY As Integer = 3
+
+            ' เลื่อนการ์ดแรกทันที
+            Dim isInfoDone As Boolean = False
+            If _grpInfo.Top > infoTarget Then
+                _grpInfo.Top = Math.Max(infoTarget, _grpInfo.Top - stepY)
+            Else
+                _grpInfo.Top = infoTarget
+                isInfoDone = True
+            End If
+
+            ' เลื่อนการ์ดสองเยื้องเวลา (จะเริ่มเมื่อการ์ดแรกเลื่อนเข้าใกล้เป้าหมายแล้ว)
+            Dim isVersionDone As Boolean = False
+            If _grpInfo.Top <= 26 Then
+                If _grpVersion.Top > versionTarget Then
+                    _grpVersion.Top = Math.Max(versionTarget, _grpVersion.Top - stepY)
+                Else
+                    _grpVersion.Top = versionTarget
+                    isVersionDone = True
+                End If
+            End If
+
+            ' บังคับวาดหน้าต่างใหม่เพื่อให้แสดงเงาการ์ดเคลื่อนตามตำแหน่งของการ์ดจริง
+            Me.Invalidate()
+
+            If isOpacityDone AndAlso isInfoDone AndAlso isVersionDone Then
                 Me._fadeTimer.Stop()
                 TriggerTypewriter()
             End If
@@ -861,6 +900,22 @@ Namespace Forms
             Using brush As New LinearGradientBrush(rect, Color.FromArgb(245, 247, 250), Color.FromArgb(232, 236, 243), 90.0F)
                 e.Graphics.FillRectangle(brush, rect)
             End Using
+
+            ' วาดเงาการ์ดข้อมูลแบบนุ่มนวล (Soft Panel Shadows)
+            DrawPanelShadow(e.Graphics, _grpInfo.Bounds)
+            DrawPanelShadow(e.Graphics, _grpVersion.Bounds)
+        End Sub
+
+        ' ── วาดเงาฟุ้งแบบมีมิติใต้ Panel การ์ดต่าง ๆ ──
+        Private Sub DrawPanelShadow(ByVal g As Graphics, ByVal rect As Rectangle)
+            ' วาดเงานุ่มๆ 5 ชั้นโดยลดความโปร่งแสงออกไปด้านนอก
+            For i As Integer = 1 To 5
+                Using pen As New Pen(Color.FromArgb(CInt(10 - (i * 2)), 0, 0, 0), i * 2)
+                    ' วาดเส้นเงาด้านล่างและด้านขวา
+                    g.DrawLine(pen, rect.Left + 4, rect.Bottom + i, rect.Right + i, rect.Bottom + i)
+                    g.DrawLine(pen, rect.Right + i, rect.Top + 4, rect.Right + i, rect.Bottom + i)
+                End Using
+            Next
         End Sub
 
         ' ── วาดการ์ดข้อมูลแต่ละใบเป็นแบบไล่เฉดสีมุมทแยงพร้อมขอบบาง (Panel Card Gradient) ──
