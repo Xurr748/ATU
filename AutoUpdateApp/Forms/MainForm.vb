@@ -3,6 +3,7 @@ Option Explicit On
 
 Imports System.Windows.Forms
 Imports System.Drawing
+Imports System.Drawing.Drawing2D
 
 Namespace Forms
 
@@ -58,6 +59,10 @@ Namespace Forms
         Private WithEvents _typewriteTimer As Timer
         Private _typewriteTargets As New System.Collections.Generic.Dictionary(Of Label, String)
         Private _typewriteIndices As New System.Collections.Generic.Dictionary(Of Label, Integer)
+        Private WithEvents _btnAnimTimer As Timer
+        Private _btnTargets As New System.Collections.Generic.Dictionary(Of Button, Color)
+        Private _btnBorders As New System.Collections.Generic.Dictionary(Of Button, Color)
+        Private _btnTargetBorders As New System.Collections.Generic.Dictionary(Of Button, Color)
 
         ' ── ตัวแปรเก็บค่าข้อความชั่วคราวระหว่างรอ Fade-in เสร็จ ──
         Private _tempComName As String = ""
@@ -500,7 +505,17 @@ Namespace Forms
             ' ซ่อนหน้าต่าง
             Me.Visible = False
 
-            ' ผูก Event ปุ่ม
+            ' ผูก Event วาดพื้นหลังแบบไล่เฉดสี (Gradient)
+            AddHandler _grpInfo.Paint, AddressOf Panel_Paint
+            AddHandler _grpVersion.Paint, AddressOf Panel_Paint
+            AddHandler Me.Paint, AddressOf MainForm_Paint
+
+            ' ผูก Event ปุ่มและอนิเมชั่นของปุ่ม
+            AddButtonAnimHandlers(_btnUpdateNow, Color.FromArgb(41, 128, 185), Color.FromArgb(52, 152, 219), Color.FromArgb(41, 128, 185), Color.FromArgb(52, 152, 219))
+            AddButtonAnimHandlers(_btnCheckNow, Color.White, Color.FromArgb(235, 245, 253), Color.FromArgb(70, 130, 180), Color.FromArgb(41, 128, 185))
+            AddButtonAnimHandlers(_btnRefreshInfo, Color.White, Color.FromArgb(245, 240, 255), Color.FromArgb(180, 180, 180), Color.FromArgb(108, 92, 231))
+            AddButtonAnimHandlers(_btnExit, Color.White, Color.FromArgb(255, 240, 240), Color.FromArgb(220, 80, 80), Color.FromArgb(180, 50, 50))
+
             AddHandler _btnCheckNow.Click, AddressOf BtnCheckNow_Click
             AddHandler _btnRefreshInfo.Click, AddressOf BtnRefreshInfo_Click
             AddHandler _btnExit.Click, AddressOf BtnExit_Click
@@ -510,6 +525,11 @@ Namespace Forms
             _typewriteTimer = New System.Windows.Forms.Timer()
             _typewriteTimer.Interval = 35 ' ความเร็วพิมพ์ตัวอักษร 35ms
             AddHandler _typewriteTimer.Tick, AddressOf TypewriteTimer_Tick
+
+            ' เริ่มตัวนับเวลาของ Button Hover Animation
+            _btnAnimTimer = New System.Windows.Forms.Timer()
+            _btnAnimTimer.Interval = 15 ' อัพเดตสีทุกๆ 15ms เพื่อความลื่นไหล
+            AddHandler _btnAnimTimer.Tick, AddressOf BtnAnimTimer_Tick
 
             ' สร้าง Worker และตัวตั้งเวลา
             _updateWorker = New Workers.UpdateWorker(Me)
@@ -790,6 +810,11 @@ Namespace Forms
                     _typewriteTimer.Dispose()
                     _typewriteTimer = Nothing
                 End If
+                If _btnAnimTimer IsNot Nothing Then
+                    RemoveHandler _btnAnimTimer.Tick, AddressOf BtnAnimTimer_Tick
+                    _btnAnimTimer.Dispose()
+                    _btnAnimTimer = Nothing
+                End If
                 If _contextMenu IsNot Nothing Then _contextMenu.Dispose()
                 If _notifyIcon IsNot Nothing Then
                     _notifyIcon.Visible = False
@@ -827,6 +852,103 @@ Namespace Forms
 
             If allDone Then
                 _typewriteTimer.Stop()
+            End If
+        End Sub
+
+        ' ── วาดพื้นหลังหน้าต่างหลักแบบไล่เฉดสีนุ่มนวล (MainForm Gradient Background) ──
+        Private Sub MainForm_Paint(ByVal sender As Object, ByVal e As PaintEventArgs)
+            Dim rect As New Rectangle(0, 0, Me.Width, Me.Height)
+            Using brush As New LinearGradientBrush(rect, Color.FromArgb(245, 247, 250), Color.FromArgb(232, 236, 243), 90.0F)
+                e.Graphics.FillRectangle(brush, rect)
+            End Using
+        End Sub
+
+        ' ── วาดการ์ดข้อมูลแต่ละใบเป็นแบบไล่เฉดสีมุมทแยงพร้อมขอบบาง (Panel Card Gradient) ──
+        Private Sub Panel_Paint(ByVal sender As Object, ByVal e As PaintEventArgs)
+            Dim pnl As Panel = DirectCast(sender, Panel)
+            Dim rect As New Rectangle(0, 0, pnl.Width, pnl.Height)
+            Using brush As New LinearGradientBrush(rect, Color.White, Color.FromArgb(248, 250, 253), 45.0F)
+                e.Graphics.FillRectangle(brush, rect)
+            End Using
+            ' วาดเส้นขอบแบบพรีเมียม
+            Using borderPen As New Pen(Color.FromArgb(218, 224, 233), 1)
+                e.Graphics.DrawRectangle(borderPen, 0, 0, pnl.Width - 1, pnl.Height - 1)
+            End Using
+        End Sub
+
+        ' ── ระบบจัดการลงทะเบียน Event ให้ปุ่มรองรับ Hover และ Click Transitions ──
+        Private Sub AddButtonAnimHandlers(ByVal btn As Button, ByVal normalColor As Color, ByVal hoverColor As Color, ByVal normalBorder As Color, ByVal hoverBorder As Color)
+            If btn Is Nothing Then Return
+            
+            ' กำหนดสีเริ่มต้น
+            btn.BackColor = normalColor
+            btn.FlatAppearance.BorderColor = normalBorder
+            
+            _btnTargets(btn) = normalColor
+            _btnBorders(btn) = normalBorder
+            _btnTargetBorders(btn) = normalBorder
+
+            ' ลงทะเบียน Mouse Events
+            AddHandler btn.MouseEnter, Sub(s, ev)
+                                           _btnTargets(btn) = hoverColor
+                                           _btnTargetBorders(btn) = hoverBorder
+                                           If _btnAnimTimer IsNot Nothing Then _btnAnimTimer.Start()
+                                       End Sub
+            AddHandler btn.MouseLeave, Sub(s, ev)
+                                           _btnTargets(btn) = normalColor
+                                           _btnTargetBorders(btn) = normalBorder
+                                           If _btnAnimTimer IsNot Nothing Then _btnAnimTimer.Start()
+                                       End Sub
+            AddHandler btn.MouseDown, Sub(s, ev)
+                                          ' Tactile click effect: ขยับเนื้อหาลงเล็กน้อย
+                                          btn.Padding = New Padding(0, 2, 0, 0)
+                                      End Sub
+            AddHandler btn.MouseUp, Sub(s, ev)
+                                        btn.Padding = New Padding(0, 0, 0, 0)
+                                    End Sub
+        End Sub
+
+        ' ── ค่อยๆ ปรับ R, G, B ของปุ่มให้ลื่นไหล (Color Transitions Step) ──
+        Private Function InterpolateColor(ByVal current As Color, ByVal target As Color, ByVal stepVal As Integer) As Color
+            Dim r As Integer = current.R
+            Dim g As Integer = current.G
+            Dim b As Integer = current.B
+
+            If r < target.R Then r = Math.Min(target.R, r + stepVal)
+            If r > target.R Then r = Math.Max(target.R, r - stepVal)
+            If g < target.G Then g = Math.Min(target.G, g + stepVal)
+            If g > target.G Then g = Math.Max(target.G, g - stepVal)
+            If b < target.B Then b = Math.Min(target.B, b + stepVal)
+            If b > target.B Then b = Math.Max(target.B, b - stepVal)
+
+            Return Color.FromArgb(r, g, b)
+        End Function
+
+        ' ── อัปเดตเฟรมอนิเมชั่นสีปุ่มทีละนิดจนกว่าจะถึงสีเป้าหมาย ──
+        Private Sub BtnAnimTimer_Tick(ByVal sender As Object, ByVal e As EventArgs)
+            Dim btns As New System.Collections.Generic.List(Of Button)(_btnTargets.Keys)
+            Dim allColorsReached As Boolean = True
+            Dim stepVal As Integer = 15 ' อัตราความเร็วในการเฟดสี
+
+            For Each btn In btns
+                Dim currentBack As Color = btn.BackColor
+                Dim targetBack As Color = _btnTargets(btn)
+                Dim currentBorder As Color = btn.FlatAppearance.BorderColor
+                Dim targetBorder As Color = _btnTargetBorders(btn)
+
+                If currentBack <> targetBack Then
+                    btn.BackColor = InterpolateColor(currentBack, targetBack, stepVal)
+                    allColorsReached = False
+                End If
+
+                If currentBorder <> targetBorder Then
+                    btn.FlatAppearance.BorderColor = InterpolateColor(currentBorder, targetBorder, stepVal)
+                    allColorsReached = False
+                End If
+            Next
+
+            If allColorsReached Then
+                _btnAnimTimer.Stop()
             End If
         End Sub
 
