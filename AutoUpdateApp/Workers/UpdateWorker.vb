@@ -94,6 +94,9 @@ Namespace Workers
                     Return
                 End If
 
+                ' บันทึก IP Address เมื่อมีการใช้ฟังก์ชันตรวจสอบอัปเดต (หัวข้อ 7)
+                Managers.LogManager.LogIPAddress()
+
                 ' ── ขั้นตอนที่ 1: ดึงชื่อเครื่อง ──
                 Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
                 Managers.LogManager.Info("Computer: " & computerName)
@@ -109,14 +112,14 @@ Namespace Workers
                 Managers.LogManager.Info("Type: " & tester.TesterType & ", Mode: " & tester.Mode & _
                                         ", ScheduledTime: " & tester.ScheduledTime.ToString())
 
-                ' ── ขั้นตอนที่ 3: ตรวจสอบเวลาที่กำหนด ──
-                Dim now As TimeSpan = DateTime.Now.TimeOfDay
+                ' ── ขั้นตอนที่ 3: ตรวจสอบเวลาที่กำหนด (หัวข้อ 4) ──
+                Dim now As DateTime = DateTime.Now
                 If Not _isManual Then
-                    If now < tester.ScheduledTime Then
-                        Managers.LogManager.Info("Scheduled time not reached (" & _
-                            now.ToString("hh\:mm\:ss") & " < " & _
-                            tester.ScheduledTime.ToString("hh\:mm\:ss") & "). Skipping.")
-                        e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.NoAction, "Time not reached")
+                    Dim scheduled As TimeSpan = tester.ScheduledTime
+                    ' เช็กว่าชั่วโมงตรงกับเวลาที่ผู้ใช้ตั้งไว้หรือไม่ (ป้องกันการรันย้อนหลัง)
+                    If now.Hour <> scheduled.Hours Then
+                        Managers.LogManager.Info(String.Format("Scheduled hour not matching current hour. Current hour: {0}, Scheduled: {1}. Skipping.", now.Hour, scheduled.Hours))
+                        e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.NoAction, "Hour not matching")
                         Return
                     End If
 
@@ -151,7 +154,7 @@ Namespace Workers
                     Return
                 End If
 
-                ' ── ขั้นตอนที่ 7: ตรวจสอบว่าต้องอัปเดตหรือไม่ ──
+                ' ── ขั้นตอนที่ 7: ตรวจสอบว่าต้องอัปเดตหรือไม่ (หัวข้อ 3) ──
                 If Not context.NeedsUpdate Then
                     ' ถ้าเวอร์ชันล่าสุดแล้วแต่ Flag ยังเป็น True (เช่น ผู้ใช้อัปเดตเอง) ให้ล้างค่าทิ้ง
                     If context.HasPendingRestartFlag Then
@@ -160,7 +163,15 @@ Namespace Workers
                     End If
 
                     Managers.LogManager.Info("Application is up to date.")
-                    e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.NoAction, "Up to date")
+                    e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.NoAction, "โปรแกรมเป็นเวอร์ชันล่าสุดแล้ว (Up to Date)")
+                    Return
+                End If
+
+                ' ── ขั้นตอนที่ 7.5: ตรวจสอบการมีอยู่ของโฟลเดอร์ตัวติดตั้งบนเซิร์ฟเวอร์ก่อนเริ่มทำอะไร (หัวข้อ 3 & 6) ──
+                Dim installerFolder As String = Managers.InstallerManager.GetInstallerPath(tester.TesterType)
+                If String.IsNullOrEmpty(installerFolder) OrElse Not IO.Directory.Exists(installerFolder) Then
+                    Managers.LogManager.Warn("Installer folder not found on server: " & installerFolder)
+                    e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.Error, "ไม่พบไฟล์อัปเดต")
                     Return
                 End If
 

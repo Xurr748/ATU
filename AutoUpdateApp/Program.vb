@@ -69,14 +69,20 @@ Module Program
                 Return
             End If
 
-            ' ตรวจสอบ Flag
+            ' ตรวจสอบ Flag (หัวข้อ 5.2)
             Dim flag As Boolean? = Managers.UpdateFlagManager.GetFlag(computerName)
             If Not flag.HasValue OrElse Not flag.Value Then
                 Managers.LogManager.Info("No pending restart update.")
                 Return
             End If
 
-            ' ตรวจสอบว่าเวอร์ชันยังไม่ตรงกัน
+            ' ── ลำดับกระบวนการเมื่อตรวจพบ Flag ──
+            Managers.LogManager.Info("Pending restart flag detected. Starting update sequence.")
+
+            ' 3. หากพบ Flag ให้ปิดโปรแกรม ที่เป็นของ registry path (หัวข้อ 5.3)
+            Managers.InstallerManager.CloseProgramOfRegistryPath()
+
+            ' 4. เริ่มกระบวนการอัปเดต (ตรวจสอบเวอร์ชันก่อน) (หัวข้อ 5.4)
             Dim currentVersion As String = Managers.VersionManager.ReadRegistryVersion()
             Dim latestVersion As String = Managers.VersionManager.ReadLatestVersion()
 
@@ -86,7 +92,7 @@ Module Program
             End If
 
             If String.Equals(currentVersion, latestVersion, StringComparison.OrdinalIgnoreCase) Then
-                ' อัปเดตแล้ว — ล้าง Flag เก่าทิ้ง
+                ' อัปเดตเสร็จแล้วในระบบ — ล้าง Flag เก่าทิ้ง
                 Managers.LogManager.Info("Versions match. Clearing stale restart flag.")
                 Managers.UpdateFlagManager.SetFlag(computerName, False)
                 Return
@@ -99,6 +105,12 @@ Module Program
             Dim success As Boolean = Managers.InstallerManager.RunInstaller(tester.TesterType)
 
             If success Then
+                ' 5. เปิดโปรแกรมใหม่หลังอัปเดตเสร็จ (หัวข้อ 5.5)
+                Managers.InstallerManager.StartProgramOfRegistryPath()
+
+                ' 6. คัดลอก Shortcut ไปยังโฟลเดอร์ Startup เพื่อให้เปิดอัตโนมัติเมื่อ Windows เริ่มทำงาน (หัวข้อ 5.6)
+                Managers.InstallerManager.CopyShortcutToStartup()
+
                 Managers.UpdateFlagManager.SetFlag(computerName, False)
                 Managers.LogManager.Info("Restart update completed successfully.")
             Else

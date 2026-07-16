@@ -23,23 +23,26 @@ Namespace Managers
         Private Shared ReadOnly Property LogDirectory As String
             Get
                 If _logDirectory Is Nothing Then
-                    _logDirectory = Config.AppSettings.LogPath
-                    Try
-                        If Not Directory.Exists(_logDirectory) Then
-                            Directory.CreateDirectory(_logDirectory)
-                        End If
-                    Catch
-                        ' ใช้โฟลเดอร์โปรแกรมแทน
-                        _logDirectory = AppDomain.CurrentDomain.BaseDirectory
-                    End Try
+                    Dim parentDir As String = Config.AppSettings.LogPath
+                    Dim company As String = Config.AppSettings.CompanyName
+                    If String.IsNullOrEmpty(parentDir) Then
+                        parentDir = AppDomain.CurrentDomain.BaseDirectory
+                    End If
+                    _logDirectory = Path.Combine(parentDir, company)
                 End If
                 Return _logDirectory
             End Get
         End Property
 
-        Private Shared ReadOnly Property LogFilePath As String
+        Private Shared ReadOnly Property LogsFilePath As String
             Get
-                Return Path.Combine(LogDirectory, "AutoUpdate_" & DateTime.Now.ToString("yyyy-MM-dd") & ".log")
+                Return Path.Combine(LogDirectory, "Logs.txt")
+            End Get
+        End Property
+
+        Private Shared ReadOnly Property IPFilePath As String
+            Get
+                Return Path.Combine(LogDirectory, "IP.txt")
             End Get
         End Property
 
@@ -73,12 +76,53 @@ Namespace Managers
                 sb.AppendLine(message)
 
                 SyncLock _lock
-                    File.AppendAllText(LogFilePath, sb.ToString())
+                    Dim dir As String = LogDirectory
+                    If Not Directory.Exists(dir) Then
+                        Directory.CreateDirectory(dir)
+                    End If
+                    File.AppendAllText(LogsFilePath, sb.ToString())
                 End SyncLock
             Catch
                 ' การบันทึก Log ต้องไม่ทำให้แอปพลิเคชันหยุดทำงาน
             End Try
         End Sub
+
+        ''' <summary>
+        ''' บันทึก IP Address ของเครื่องลงใน IP.txt
+        ''' </summary>
+        Public Shared Sub LogIPAddress()
+            Try
+                Dim ipAddress As String = GetLocalIPAddress()
+                Dim sb As New StringBuilder(64)
+                sb.Append("["c)
+                sb.Append(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"))
+                sb.Append("] ")
+                sb.AppendLine(ipAddress)
+
+                SyncLock _lock
+                    Dim dir As String = LogDirectory
+                    If Not Directory.Exists(dir) Then
+                        Directory.CreateDirectory(dir)
+                    End If
+                    File.AppendAllText(IPFilePath, sb.ToString())
+                End SyncLock
+            Catch
+                ' การบันทึก Log ต้องไม่ทำให้แอปพลิเคชันหยุดทำงาน
+            End Try
+        End Sub
+
+        Private Shared Function GetLocalIPAddress() As String
+            Try
+                Dim host = System.Net.Dns.GetHostEntry(System.Net.Dns.GetHostName())
+                For Each ip In host.AddressList
+                    If ip.AddressFamily = System.Net.Sockets.AddressFamily.InterNetwork Then
+                        Return ip.ToString()
+                    End If
+                Next
+            Catch
+            End Try
+            Return "127.0.0.1"
+        End Function
 
         ''' <summary>
         ''' รีเซ็ตตำแหน่งโฟลเดอร์ Log ที่ Cache ไว้ (เช่น หลังโหลด Config ใหม่)

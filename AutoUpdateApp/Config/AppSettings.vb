@@ -104,6 +104,20 @@ Namespace Config
             End Get
         End Property
 
+        ''' <summary>ชื่อ Registry Value สำหรับเส้นทางไฟล์ Executable ของโปรแกรม</summary>
+        Public Shared ReadOnly Property RegistryPathValueName As String
+            Get
+                Return GetSetting("RegistryPathValueName", "Path")
+            End Get
+        End Property
+
+        ''' <summary>ชื่อบริษัทสำหรับจัดกลุ่มโฟลเดอร์ Log</summary>
+        Public Shared ReadOnly Property CompanyName As String
+            Get
+                Return GetSetting("CompanyName", "CompanyName")
+            End Get
+        End Property
+
         ' ───────────────────── การบันทึก Log ─────────────────────
 
         ''' <summary>โฟลเดอร์สำหรับเก็บไฟล์ Log</summary>

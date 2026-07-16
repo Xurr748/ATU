@@ -26,9 +26,11 @@ Namespace Utilities
             For attempt As Integer = 1 To maxRetries
                 Try
                     Return File.ReadAllLines(filePath)
-                Catch ex As IOException When attempt < maxRetries
-                    Thread.Sleep(RetryDelayMs * attempt)
-                Catch ex As UnauthorizedAccessException When attempt < maxRetries
+                Catch ex As Exception
+                    If attempt = maxRetries Then
+                        Managers.LogManager.Warn("Failed to read lines from file: " & filePath & " - " & ex.Message)
+                        Return Nothing
+                    End If
                     Thread.Sleep(RetryDelayMs * attempt)
                 End Try
             Next
@@ -43,9 +45,11 @@ Namespace Utilities
             For attempt As Integer = 1 To maxRetries
                 Try
                     Return File.ReadAllText(filePath)
-                Catch ex As IOException When attempt < maxRetries
-                    Thread.Sleep(RetryDelayMs * attempt)
-                Catch ex As UnauthorizedAccessException When attempt < maxRetries
+                Catch ex As Exception
+                    If attempt = maxRetries Then
+                        Managers.LogManager.Warn("Failed to read text from file: " & filePath & " - " & ex.Message)
+                        Return Nothing
+                    End If
                     Thread.Sleep(RetryDelayMs * attempt)
                 End Try
             Next

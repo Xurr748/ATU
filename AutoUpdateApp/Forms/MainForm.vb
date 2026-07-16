@@ -486,7 +486,7 @@ Namespace Forms
                     _lblStatusValue.ForeColor = Color.FromArgb(149, 165, 166)
                     If _btnUpdateNow IsNot Nothing Then _btnUpdateNow.Enabled = False
                 ElseIf String.Equals(currentVer, serverVer, StringComparison.OrdinalIgnoreCase) Then
-                    _lblStatusValue.Text = "● เวอร์ชันล่าสุดแล้ว"
+                    _lblStatusValue.Text = "● โปรแกรมเป็นเวอร์ชันล่าสุดแล้ว (Up to Date)"
                     _lblStatusValue.ForeColor = Color.FromArgb(46, 204, 113)
                     If _btnUpdateNow IsNot Nothing Then _btnUpdateNow.Enabled = False
                 Else
@@ -508,6 +508,22 @@ Namespace Forms
 
         Protected Overrides Sub OnLoad(ByVal e As EventArgs)
             MyBase.OnLoad(e)
+
+            ' เปิด Double Buffer เพื่อลดการกะพริบและเพิ่มความลื่นไหลของ Typewriter Animation
+            Me.DoubleBuffered = True
+            Me.SetStyle(ControlStyles.OptimizedDoubleBuffer Or ControlStyles.AllPaintingInWmPaint Or ControlStyles.UserPaint, True)
+            Me.UpdateStyles()
+
+            ' เปิด Double Buffer บน Panel ย่อยผ่าน Reflection เพื่อไม่ให้ภาพกะพริบและลื่นไหล 100%
+            Try
+                Dim doubleBufferProp As System.Reflection.PropertyInfo = GetType(Control).GetProperty("DoubleBuffered", System.Reflection.BindingFlags.NonPublic Or System.Reflection.BindingFlags.Instance)
+                If doubleBufferProp IsNot Nothing Then
+                    doubleBufferProp.SetValue(_grpInfo, True, Nothing)
+                    doubleBufferProp.SetValue(_grpVersion, True, Nothing)
+                End If
+            Catch ex As Exception
+                ' ละเว้นหากเกิดข้อผิดพลาดในการตั้งค่ารีเฟลกชัน
+            End Try
 
             ' ซ่อนหน้าต่าง
             Me.Visible = False
@@ -552,10 +568,49 @@ Namespace Forms
             Managers.LogManager.Info("MainForm loaded. Scheduler started.")
         End Sub
 
-        ' ── Timer ครบรอบ → เริ่มตรวจสอบอัปเดต ──
+        Private _lastScheduledRunDate As DateTime = DateTime.MinValue
+
+        ' ── Timer ครบรอบ (ทุก 1 ชั่วโมง) → เริ่มตรวจสอบอัปเดตเมื่อตรงเวลา (หัวข้อ 4) ──
         Private Sub OnSchedulerTick(ByVal sender As Object, ByVal e As EventArgs)
-            If _updateWorker IsNot Nothing AndAlso Not _updateWorker.IsBusy Then
-                _updateWorker.RunAsync()
+            Try
+                Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
+                Dim tester As Models.TesterInfo = Managers.ConfigManager.GetTesterByName(computerName)
+                If tester IsNot Nothing Then
+                    Dim now As DateTime = DateTime.Now
+                    Dim scheduled As TimeSpan = tester.ScheduledTime
+                    
+                    ' ตรวจสอบเวลาปัจจุบันตรงกับชั่วโมงที่กำหนด และยังไม่ได้ทำงานในวันนี้
+                    If now.Hour = scheduled.Hours Then
+                        If _lastScheduledRunDate.Date <> now.Date Then
+                            If _updateWorker IsNot Nothing AndAlso Not _updateWorker.IsBusy Then
+                                _lastScheduledRunDate = now
+                                Managers.LogManager.Info("Scheduler triggered update at: " & now.ToString("HH:mm:ss"))
+                                _updateWorker.RunAsync()
+                            End If
+                        End If
+                    End If
+                End If
+            Catch ex As Exception
+                Managers.LogManager.Error("Error during OnSchedulerTick scheduled check.", ex)
+            End Try
+        End Sub
+
+        ''' <summary>
+        ''' อัปเดตความคืบหน้าของเปอร์เซ็นต์และข้อความสถานะบนหน้าจออย่างปลอดภัยจาก Background Thread (หัวข้อ 1 & 2)
+        ''' </summary>
+        Public Sub UpdateProgressSafe(percent As Integer, statusText As String)
+            If Me.InvokeRequired Then
+                Me.BeginInvoke(New Action(Of Integer, String)(AddressOf UpdateProgressSafe), percent, statusText)
+            Else
+                If _progressBar IsNot Nothing Then
+                    _progressBar.Style = ProgressBarStyle.Blocks
+                    _progressBar.Value = percent
+                    _progressBar.Visible = True
+                End If
+                If _lblProgress IsNot Nothing Then
+                    _lblProgress.Text = String.Format("{0} ({1}%)", statusText, percent)
+                    _lblProgress.Visible = True
+                End If
             End If
         End Sub
 
@@ -764,7 +819,10 @@ Namespace Forms
 
         Private Sub ManualUpdate_DoWork(ByVal sender As Object, ByVal e As System.ComponentModel.DoWorkEventArgs)
             Dim testerType As String = DirectCast(e.Argument, String)
-            e.Result = Managers.InstallerManager.RunInstaller(testerType)
+            e.Result = Managers.InstallerManager.RunInstaller(testerType, _
+                Sub(percent, msg)
+                    Me.UpdateProgressSafe(percent, msg)
+                End Sub)
         End Sub
 
         Private Sub ManualUpdate_Completed(ByVal sender As Object, ByVal e As System.ComponentModel.RunWorkerCompletedEventArgs)

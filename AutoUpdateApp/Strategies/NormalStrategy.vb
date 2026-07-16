@@ -49,7 +49,12 @@ Namespace Strategies
             Select Case choice
                 Case Forms.UpdatePromptResult.UpdateNow
                     Managers.LogManager.Info("User chose: Update Now")
-                    Dim success As Boolean = Managers.InstallerManager.RunInstaller(context.Tester.TesterType)
+                    Dim success As Boolean = Managers.InstallerManager.RunInstaller(context.Tester.TesterType, _
+                        Sub(percent, msg)
+                            If _invokeControl IsNot Nothing AndAlso _invokeControl.IsHandleCreated Then
+                                DirectCast(_invokeControl, Forms.MainForm).UpdateProgressSafe(percent, msg)
+                            End If
+                        End Sub)
                     If success Then
                         ' ล้าง Flag เผื่อมีค้างอยู่
                         Managers.UpdateFlagManager.SetFlag(context.Tester.ComputerName, False)
