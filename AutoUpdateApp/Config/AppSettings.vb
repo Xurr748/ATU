@@ -127,6 +127,16 @@ Namespace Config
             End Get
         End Property
 
+        ''' <summary>
+        ''' รูปแบบชื่อไฟล์ Log — ใช้ {ComputerName} เป็น placeholder แทนชื่อเครื่อง
+        ''' ตัวอย่าง: "{ComputerName}_Logs.txt" → "PC001_Logs.txt"
+        ''' </summary>
+        Public Shared ReadOnly Property LogFileName As String
+            Get
+                Return GetSetting("LogFileName", "{ComputerName}_Logs.txt")
+            End Get
+        End Property
+
         ''' <summary>ระดับการบันทึก Log (Info, Warn, Error)</summary>
         Public Shared ReadOnly Property LogLevel As String
             Get

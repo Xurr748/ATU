@@ -7,9 +7,11 @@ Imports System.Text
 Namespace Managers
 
     ''' <summary>
-    ''' ระบบบันทึก Log แบบไฟล์ ปลอดภัยต่อ Thread พร้อมหมุนเวียนไฟล์รายวัน
-    ''' รูปแบบ Log: [yyyy-MM-dd HH:mm:ss] [LEVEL] message
-    ''' การบันทึก Log ต้องไม่ทำให้แอปพลิเคชันหยุดทำงาน — ดักจับทุก Error ภายใน
+    ''' ระบบบันทึก Log แบบไฟล์ ปลอดภัยต่อ Thread
+    ''' - ชื่อไฟล์ Log กำหนดได้ผ่าน App.config (LogFileName) ค่าเริ่มต้น: {ComputerName}_Logs.txt
+    ''' - IP บันทึกครั้งเดียว ถ้า IP ไม่เปลี่ยนจะไม่เขียนซ้ำ
+    ''' - รูปแบบ Log: [yyyy-MM-dd HH:mm:ss] [LEVEL] message
+    ''' - การบันทึก Log ต้องไม่ทำให้แอปพลิเคชันหยุดทำงาน — ดักจับทุก Error ภายใน
     ''' </summary>
     Public NotInheritable Class LogManager
 
@@ -34,9 +36,14 @@ Namespace Managers
             End Get
         End Property
 
+        ''' <summary>
+        ''' สร้างชื่อไฟล์ Log โดยแทนที่ {ComputerName} ด้วยชื่อเครื่องจริง
+        ''' </summary>
         Private Shared ReadOnly Property LogsFilePath As String
             Get
-                Return Path.Combine(LogDirectory, Utilities.EnvironmentHelper.ComputerName & "_Logs.txt")
+                Dim pattern As String = Config.AppSettings.LogFileName
+                Dim fileName As String = pattern.Replace("{ComputerName}", Utilities.EnvironmentHelper.ComputerName)
+                Return Path.Combine(LogDirectory, fileName)
             End Get
         End Property
 
@@ -89,22 +96,44 @@ Namespace Managers
 
         ''' <summary>
         ''' บันทึก IP Address ของเครื่องลงใน IP.txt
+        ''' บันทึกเฉพาะเมื่อ IP เปลี่ยนจากครั้งก่อน หรือยังไม่เคยบันทึก
         ''' </summary>
         Public Shared Sub LogIPAddress()
             Try
-                Dim ipAddress As String = GetLocalIPAddress()
-                Dim sb As New StringBuilder(64)
-                sb.Append("["c)
-                sb.Append(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"))
-                sb.Append("] ")
-                sb.AppendLine(ipAddress)
+                Dim currentIP As String = GetLocalIPAddress()
 
                 SyncLock _lock
                     Dim dir As String = LogDirectory
                     If Not Directory.Exists(dir) Then
                         Directory.CreateDirectory(dir)
                     End If
-                    File.AppendAllText(IPFilePath, sb.ToString())
+
+                    Dim filePath As String = IPFilePath
+
+                    ' อ่าน IP เดิมจากไฟล์ (ถ้ามี)
+                    Dim lastIP As String = ""
+                    If File.Exists(filePath) Then
+                        Dim content As String = File.ReadAllText(filePath).Trim()
+                        ' ดึง IP จากบรรทัดสุดท้าย (รูปแบบ: [timestamp] IP)
+                        Dim lines As String() = content.Split(New String() {Environment.NewLine}, StringSplitOptions.RemoveEmptyEntries)
+                        If lines.Length > 0 Then
+                            Dim lastLine As String = lines(lines.Length - 1).Trim()
+                            Dim bracketEnd As Integer = lastLine.IndexOf("] ")
+                            If bracketEnd >= 0 AndAlso bracketEnd + 2 < lastLine.Length Then
+                                lastIP = lastLine.Substring(bracketEnd + 2).Trim()
+                            End If
+                        End If
+                    End If
+
+                    ' เขียนเฉพาะเมื่อ IP เปลี่ยน หรือยังไม่เคยมีไฟล์
+                    If Not String.Equals(lastIP, currentIP, StringComparison.OrdinalIgnoreCase) Then
+                        Dim sb As New StringBuilder(64)
+                        sb.Append("["c)
+                        sb.Append(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"))
+                        sb.Append("] ")
+                        sb.AppendLine(currentIP)
+                        File.AppendAllText(filePath, sb.ToString())
+                    End If
                 End SyncLock
             Catch
                 ' การบันทึก Log ต้องไม่ทำให้แอปพลิเคชันหยุดทำงาน
