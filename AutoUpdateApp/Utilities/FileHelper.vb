@@ -70,7 +70,11 @@ Namespace Utilities
                 Try
                     File.WriteAllText(filePath, content)
                     Return
-                Catch ex As IOException When attempt < maxRetries
+                Catch ex As Exception
+                    If attempt = maxRetries Then
+                        Managers.LogManager.Warn("Failed to write text to file: " & filePath & " - " & ex.Message)
+                        Return
+                    End If
                     Thread.Sleep(RetryDelayMs * attempt)
                 End Try
             Next

@@ -117,7 +117,7 @@ Namespace Workers
                 If Not _isManual Then
                     Dim scheduled As TimeSpan = tester.ScheduledTime
                     ' เช็กว่าชั่วโมงตรงกับเวลาที่ผู้ใช้ตั้งไว้หรือไม่ (ป้องกันการรันย้อนหลัง)
-                    If now.Hour <> scheduled.Hours Then
+                    If now.Hour <> scheduled.Hours OrElse now.Minute < scheduled.Minutes Then
                         Managers.LogManager.Info(String.Format("Scheduled hour not matching current hour. Current hour: {0}, Scheduled: {1}. Skipping.", now.Hour, scheduled.Hours))
                         e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.NoAction, "Hour not matching")
                         Return
@@ -149,6 +149,7 @@ Namespace Workers
                 ' จัดการ Flag รีสตาร์ทค้าง (รอการรีสตาร์ทหรือแอปเริ่มทำงานใหม่ ไม่รันอัปเดตทันทีผ่าน Scheduler)
                 If context.HasPendingRestartFlag AndAlso context.NeedsUpdate Then
                     Managers.LogManager.Info("Pending restart update flag is already set. Waiting for restart.")
+                    _lastRunDate = DateTime.Now
                     e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.UpdateScheduledForRestart, _
                                                             "Pending restart update flag is already set. Waiting for restart.")
                     Return
@@ -163,6 +164,7 @@ Namespace Workers
                     End If
 
                     Managers.LogManager.Info("Application is up to date.")
+                    _lastRunDate = DateTime.Now
                     e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.NoAction, "โปรแกรมเป็นเวอร์ชันล่าสุดแล้ว (Up to Date)")
                     Return
                 End If
@@ -213,9 +215,14 @@ Namespace Workers
             If Not _disposed Then
                 If disposing Then
                     If _worker IsNot Nothing Then
-                        RemoveHandler _worker.DoWork, AddressOf DoWork
-                        RemoveHandler _worker.RunWorkerCompleted, AddressOf WorkCompleted
-                        _worker.Dispose()
+                        If _worker.IsBusy Then _worker.CancelAsync()
+                        Try
+                            RemoveHandler _worker.DoWork, AddressOf DoWork
+                            RemoveHandler _worker.RunWorkerCompleted, AddressOf WorkCompleted
+                            _worker.Dispose()
+                        Catch ex As InvalidOperationException
+                            ' Worker was busy during shutdown
+                        End Try
                     End If
                 End If
                 _disposed = True

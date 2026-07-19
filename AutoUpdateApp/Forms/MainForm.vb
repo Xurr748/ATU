@@ -580,7 +580,7 @@ Namespace Forms
                     Dim scheduled As TimeSpan = tester.ScheduledTime
                     
                     ' ตรวจสอบเวลาปัจจุบันตรงกับชั่วโมงที่กำหนด และยังไม่ได้ทำงานในวันนี้
-                    If now.Hour = scheduled.Hours Then
+                    If now.Hour = scheduled.Hours AndAlso now.Minute >= scheduled.Minutes Then
                         If _lastScheduledRunDate.Date <> now.Date Then
                             If _updateWorker IsNot Nothing AndAlso Not _updateWorker.IsBusy Then
                                 _lastScheduledRunDate = now
@@ -599,12 +599,13 @@ Namespace Forms
         ''' อัปเดตความคืบหน้าของเปอร์เซ็นต์และข้อความสถานะบนหน้าจออย่างปลอดภัยจาก Background Thread (หัวข้อ 1 & 2)
         ''' </summary>
         Public Sub UpdateProgressSafe(percent As Integer, statusText As String)
+            If Me.IsDisposed OrElse Not Me.IsHandleCreated Then Return
             If Me.InvokeRequired Then
                 Me.BeginInvoke(New Action(Of Integer, String)(AddressOf UpdateProgressSafe), percent, statusText)
             Else
                 If _progressBar IsNot Nothing Then
                     _progressBar.Style = ProgressBarStyle.Blocks
-                    _progressBar.Value = percent
+                    _progressBar.Value = Math.Max(0, Math.Min(100, percent))
                     _progressBar.Visible = True
                 End If
                 If _lblProgress IsNot Nothing Then
@@ -616,6 +617,10 @@ Namespace Forms
 
         ' ── ตรวจสอบอัปเดตเสร็จแล้ว → รีเฟรช UI + แจ้งผล ──
         Private Sub OnUpdateCompleted(ByVal sender As Object, ByVal e As Workers.UpdateCompletedEventArgs)
+            If Me.InvokeRequired Then
+                Me.BeginInvoke(New Action(Of Object, Workers.UpdateCompletedEventArgs)(AddressOf OnUpdateCompleted), sender, e)
+                Return
+            End If
             LoadInfo()
             ShowProgress(False, "")
             ' คืนค่าปุ่มตรวจสอบ

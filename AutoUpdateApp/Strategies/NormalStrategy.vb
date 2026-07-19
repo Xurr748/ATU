@@ -36,9 +36,8 @@ Namespace Strategies
                 ElseIf _invokeControl IsNot Nothing AndAlso _invokeControl.IsHandleCreated Then
                     choice = ShowPrompt(context)
                 Else
-                    ' ไม่มี Control สำหรับแสดง UI → ลองแสดงตรงๆ
-                    Managers.LogManager.Warn("InvokeControl not ready. Showing prompt directly.")
-                    choice = ShowPrompt(context)
+                    Managers.LogManager.[Error]("InvokeControl not ready. Cannot show prompt on background thread.")
+                    Return UpdateResult.[Error]
                 End If
             Catch ex As Exception
                 Managers.LogManager.[Error]("Failed to show update prompt.", ex)
@@ -52,7 +51,10 @@ Namespace Strategies
                     Dim success As Boolean = Managers.InstallerManager.RunInstaller(context.Tester.TesterType, _
                         Sub(percent, msg)
                             If _invokeControl IsNot Nothing AndAlso _invokeControl.IsHandleCreated Then
-                                DirectCast(_invokeControl, Forms.MainForm).UpdateProgressSafe(percent, msg)
+                                Dim mainForm = TryCast(_invokeControl, Forms.MainForm)
+                                If mainForm IsNot Nothing Then
+                                    mainForm.UpdateProgressSafe(percent, msg)
+                                End If
                             End If
                         End Sub)
                     If success Then

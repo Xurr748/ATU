@@ -23,13 +23,15 @@ Namespace Managers
         ''' คืนค่า Nothing หากไม่พบเครื่องในไฟล์
         ''' </summary>
         Public Shared Function GetFlag(computerName As String) As Boolean?
-            Dim entries As List(Of Models.UpdateFlagEntry) = LoadAll()
-            For Each entry In entries
-                If String.Equals(entry.ComputerName, computerName, StringComparison.OrdinalIgnoreCase) Then
-                    Return entry.UpdateFlag
-                End If
-            Next
-            Return Nothing
+            SyncLock _lock
+                Dim entries As List(Of Models.UpdateFlagEntry) = LoadAll()
+                For Each entry In entries
+                    If String.Equals(entry.ComputerName, computerName, StringComparison.OrdinalIgnoreCase) Then
+                        Return entry.UpdateFlag
+                    End If
+                Next
+                Return Nothing
+            End SyncLock
         End Function
 
         ''' <summary>

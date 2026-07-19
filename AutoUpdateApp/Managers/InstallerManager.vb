@@ -57,68 +57,90 @@ Namespace Managers
 
             ' โฟลเดอร์ปลายทางบนเครื่องที่รัน (หัวข้อ 6)
             Dim localFolder As String = Path.Combine(Path.GetTempPath(), "AutoUpdateApp_LocalInstaller")
-            LogManager.Info(String.Format("Downloading installer folder: {0} -> {1}", installerFolder, localFolder))
-
-            If progressCallback IsNot Nothing Then
-                progressCallback(0, "กำลังเตรียมดาวน์โหลด...")
-            End If
-
-            ' เคลียร์ไฟล์เก่าในเครื่องปลายทาง
-            Try
-                If Directory.Exists(localFolder) Then
-                    Directory.Delete(localFolder, True)
-                End If
-            Catch ex As Exception
-                LogManager.Warn("Could not clear existing local installer folder: " & ex.Message)
-            End Try
-
-            ' คัดลอกทั้งโฟลเดอร์แบบย่อยและอัปเดตความคืบหน้า (หัวข้อ 6)
-            Try
-                CopyDirectoryWithProgress(installerFolder, localFolder, progressCallback)
-            Catch ex As Exception
-                LogManager.[Error]("Failed to copy installer files from server: " & installerFolder, ex)
-                If progressCallback IsNot Nothing Then
-                    progressCallback(0, "ดาวน์โหลดล้มเหลว")
-                End If
-                Return False
-            End Try
-
-            Dim uninstallPath As String = IO.Path.Combine(localFolder, "uninstall.bat")
-            Dim installPath As String = IO.Path.Combine(localFolder, "install.bat")
-
-            ' รัน uninstall.bat (ถ้ามี)
-            If Utilities.FileHelper.FileExistsSafe(uninstallPath) Then
-                If progressCallback IsNot Nothing Then
-                    progressCallback(90, "กำลังดำเนินการถอนการติดตั้ง...")
-                End If
-                If Not RunBatchFile(uninstallPath, "uninstall") Then
-                    LogManager.[Error]("Uninstall process failed.")
-                    Return False
-                End If
-            Else
-                LogManager.Warn("Uninstall script not found: " & uninstallPath & " (Skipping uninstall step)")
-            End If
-
-            ' รัน install.bat
-            If Not Utilities.FileHelper.FileExistsSafe(installPath) Then
-                LogManager.[Error]("Install script not found: " & installPath)
-                Return False
-            End If
-
-            If progressCallback IsNot Nothing Then
-                progressCallback(95, "กำลังดำเนินการติดตั้ง...")
-            End If
+            Dim result As Boolean = False
             
-            If Not RunBatchFile(installPath, "install") Then
-                LogManager.[Error]("Install process failed.")
-                Return False
-            End If
+            Try
+                LogManager.Info(String.Format("Downloading installer folder: {0} -> {1}", installerFolder, localFolder))
 
-            If progressCallback IsNot Nothing Then
-                progressCallback(100, "การอัปเดตเสร็จสมบูรณ์")
-            End If
+                If progressCallback IsNot Nothing Then
+                    progressCallback(0, "กำลังเตรียมดาวน์โหลด...")
+                End If
 
-            Return True
+                ' เคลียร์ไฟล์เก่าในเครื่องปลายทาง
+                Try
+                    If Directory.Exists(localFolder) Then
+                        Directory.Delete(localFolder, True)
+                    End If
+                Catch ex As Exception
+                    LogManager.Warn("Could not clear existing local installer folder: " & ex.Message)
+                End Try
+
+                Dim copySuccess As Boolean = True
+                ' คัดลอกทั้งโฟลเดอร์แบบย่อยและอัปเดตความคืบหน้า (หัวข้อ 6)
+                Try
+                    CopyDirectoryWithProgress(installerFolder, localFolder, progressCallback)
+                Catch ex As Exception
+                    LogManager.[Error]("Failed to copy installer files from server: " & installerFolder, ex)
+                    If progressCallback IsNot Nothing Then
+                        progressCallback(0, "ดาวน์โหลดล้มเหลว")
+                    End If
+                    copySuccess = False
+                End Try
+
+                If copySuccess Then
+                    Dim uninstallPath As String = IO.Path.Combine(localFolder, "uninstall.bat")
+                    Dim installPath As String = IO.Path.Combine(localFolder, "install.bat")
+
+                    Dim uninstallSuccess As Boolean = True
+                    ' รัน uninstall.bat (ถ้ามี)
+                    If Utilities.FileHelper.FileExistsSafe(uninstallPath) Then
+                        If progressCallback IsNot Nothing Then
+                            progressCallback(90, "กำลังดำเนินการถอนการติดตั้ง...")
+                        End If
+                        If Not RunBatchFile(uninstallPath, "uninstall") Then
+                            LogManager.[Error]("Uninstall process failed.")
+                            uninstallSuccess = False
+                        End If
+                    Else
+                        LogManager.Warn("Uninstall script not found: " & uninstallPath & " (Skipping uninstall step)")
+                    End If
+
+                    If uninstallSuccess Then
+                        ' รัน install.bat
+                        If Not Utilities.FileHelper.FileExistsSafe(installPath) Then
+                            LogManager.[Error]("Install script not found: " & installPath)
+                        Else
+                            If progressCallback IsNot Nothing Then
+                                progressCallback(95, "กำลังดำเนินการติดตั้ง...")
+                            End If
+                            
+                            If Not RunBatchFile(installPath, "install") Then
+                                LogManager.[Error]("Install process failed.")
+                            Else
+                                If progressCallback IsNot Nothing Then
+                                    progressCallback(100, "การอัปเดตเสร็จสมบูรณ์")
+                                End If
+
+                                result = True
+                            End If
+                        End If
+                    End If
+                End If
+            Catch ex As Exception
+                LogManager.[Error]("Error during installation process.", ex)
+                result = False
+            Finally
+                ' Cleanup temp folder
+                Try
+                    If Directory.Exists(localFolder) Then
+                        Directory.Delete(localFolder, True)
+                    End If
+                Catch cleanupEx As Exception
+                    LogManager.Warn("Could not clean up temp installer folder: " & cleanupEx.Message)
+                End Try
+            End Try
+
+            Return result
         End Function
 
         Private Shared Function RunBatchFile(batchPath As String, stepName As String) As Boolean

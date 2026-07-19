@@ -24,9 +24,10 @@ Namespace Managers
         ''' </summary>
         Public Shared Function LoadAll() As List(Of Models.TesterInfo)
             Dim filePath As String = Config.AppSettings.TesterTypePath
-            Dim currentModified As DateTime = Utilities.FileHelper.GetLastWriteTimeSafe(filePath)
 
             SyncLock _lock
+                Dim currentModified As DateTime = Utilities.FileHelper.GetLastWriteTimeSafe(filePath)
+
                 ' คืนค่าจาก Cache หากไฟล์ไม่ได้ถูกแก้ไข
                 If _testers IsNot Nothing AndAlso currentModified <= _lastModified Then
                     Return _testers

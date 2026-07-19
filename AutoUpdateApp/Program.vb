@@ -41,6 +41,7 @@ Module Program
                 Application.Run(New Forms.MainForm())
 
                 Managers.LogManager.Info("Application shut down normally.")
+                mutex.ReleaseMutex()
             End Using
 
         Catch ex As Exception

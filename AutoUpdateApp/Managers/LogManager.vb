@@ -36,7 +36,7 @@ Namespace Managers
 
         Private Shared ReadOnly Property LogsFilePath As String
             Get
-                Return Path.Combine(LogDirectory, "Logs.txt")
+                Return Path.Combine(LogDirectory, "Logs_" & DateTime.Now.ToString("yyyyMMdd") & ".txt")
             End Get
         End Property
 

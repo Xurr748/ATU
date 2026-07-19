@@ -69,7 +69,14 @@ Namespace Managers
         End Property
 
         Private Sub OnTimerTick(sender As Object, e As EventArgs)
-            RaiseEvent TickFired(Me, EventArgs.Empty)
+            If _timer IsNot Nothing Then _timer.Stop()
+            Try
+                RaiseEvent TickFired(Me, EventArgs.Empty)
+            Finally
+                If _timer IsNot Nothing AndAlso Not _disposed Then
+                    _timer.Start()
+                End If
+            End Try
         End Sub
 
         Protected Overridable Sub Dispose(disposing As Boolean)
