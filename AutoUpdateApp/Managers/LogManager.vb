@@ -36,13 +36,13 @@ Namespace Managers
 
         Private Shared ReadOnly Property LogsFilePath As String
             Get
-                Return Path.Combine(LogDirectory, "Logs_" & DateTime.Now.ToString("yyyyMMdd") & ".txt")
+                Return Path.Combine(LogDirectory, Utilities.EnvironmentHelper.ComputerName & "_Logs.txt")
             End Get
         End Property
 
         Private Shared ReadOnly Property IPFilePath As String
             Get
-                Return Path.Combine(LogDirectory, "IP.txt")
+                Return Path.Combine(LogDirectory, Utilities.EnvironmentHelper.ComputerName & "_IP.txt")
             End Get
         End Property
 
