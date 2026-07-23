@@ -1,0 +1,30 @@
+; ═══════════════════════════════════════════════════════════════
+; AutoUpdateApp - Config Paths Reference
+; ไฟล์นี้สำหรับอ้างอิง path ที่ต้องกรอกใน App.config
+; ให้กรอก path จริงแล้วนำไปใส่ใน App.config
+; ═══════════════════════════════════════════════════════════════
+
+; ── โฟลเดอร์หลัก (path อื่นที่เป็น relative จะรวมกับอันนี้อัตโนมัติ) ──
+ConfigRoot = ""
+
+; ── ไฟล์ Config ──
+TesterTypePath = ""
+VersionFilePath = ""
+UpdateFlagPath = ""
+
+; ── Installer ──
+InstallerPathHE = ""
+InstallerPathLLE = ""
+
+; ── Registry ──
+RegistryKeyPath = ""
+RegistryValueName = ""
+RegistryPathValueName = ""
+
+; ── Log ──
+LogPath = ""
+CompanyName = ""
+
+; ── เอกสาร PDF (ปุ่ม Details) ──
+DetailInfoPdfPath = ""
+DetailPdfPath = ""
