@@ -137,6 +137,22 @@ Namespace Config
             End Get
         End Property
 
+        ' ───────────────────── เอกสาร (Details) ─────────────────────
+
+        ''' <summary>เส้นทางไฟล์ PDF สำหรับข้อมูลทั่วไป (Info)</summary>
+        Public Shared ReadOnly Property DetailInfoPdfPath As String
+            Get
+                Return ResolvePath(ConfigRoot, GetSetting("DetailInfoPdfPath", ""))
+            End Get
+        End Property
+
+        ''' <summary>เส้นทางไฟล์ PDF สำหรับรายละเอียดเพิ่มเติม (Detail)</summary>
+        Public Shared ReadOnly Property DetailPdfPath As String
+            Get
+                Return ResolvePath(ConfigRoot, GetSetting("DetailPdfPath", ""))
+            End Get
+        End Property
+
         ''' <summary>ระดับการบันทึก Log (Info, Warn, Error)</summary>
         Public Shared ReadOnly Property LogLevel As String
             Get

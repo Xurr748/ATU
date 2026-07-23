@@ -30,7 +30,7 @@ Namespace Managers
                     If String.IsNullOrEmpty(parentDir) Then
                         parentDir = AppDomain.CurrentDomain.BaseDirectory
                     End If
-                    _logDirectory = Path.Combine(parentDir, company)
+                    _logDirectory = Path.Combine(parentDir, company, Utilities.EnvironmentHelper.ComputerShortId)
                 End If
                 Return _logDirectory
             End Get
@@ -42,14 +42,14 @@ Namespace Managers
         Private Shared ReadOnly Property LogsFilePath As String
             Get
                 Dim pattern As String = Config.AppSettings.LogFileName
-                Dim fileName As String = pattern.Replace("{ComputerName}", Utilities.EnvironmentHelper.ComputerName)
+                Dim fileName As String = pattern.Replace("{ComputerName}", Utilities.EnvironmentHelper.ComputerShortId)
                 Return Path.Combine(LogDirectory, fileName)
             End Get
         End Property
 
         Private Shared ReadOnly Property IPFilePath As String
             Get
-                Return Path.Combine(LogDirectory, Utilities.EnvironmentHelper.ComputerName & "_IP.txt")
+                Return Path.Combine(LogDirectory, Utilities.EnvironmentHelper.ComputerShortId & "_IP.txt")
             End Get
         End Property
 

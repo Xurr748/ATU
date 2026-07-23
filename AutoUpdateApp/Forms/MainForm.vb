@@ -50,6 +50,8 @@ Namespace Forms
         Private _btnRefreshInfo As Button
         Private _btnExit As Button
         Private _btnUpdateNow As Button
+        Private _btnDetails As Button
+        Private _detailsMenu As ContextMenuStrip
 
         ' ── Progress Bar + Status ──
         Private _progressBar As ProgressBar
@@ -107,6 +109,8 @@ Namespace Forms
             Me._btnRefreshInfo = New System.Windows.Forms.Button()
             Me._btnExit = New System.Windows.Forms.Button()
             Me._btnUpdateNow = New System.Windows.Forms.Button()
+            Me._btnDetails = New System.Windows.Forms.Button()
+            Me._detailsMenu = New System.Windows.Forms.ContextMenuStrip(Me.components)
             Me._progressBar = New System.Windows.Forms.ProgressBar()
             Me._lblProgress = New System.Windows.Forms.Label()
             Me._fadeTimer = New System.Windows.Forms.Timer(Me.components)
@@ -349,7 +353,7 @@ Namespace Forms
             Me._btnCheckNow.ForeColor = System.Drawing.Color.FromArgb(CType(CType(9, Byte), Integer), CType(CType(132, Byte), Integer), CType(CType(227, Byte), Integer))
             Me._btnCheckNow.Location = New System.Drawing.Point(14, 310)
             Me._btnCheckNow.Name = "_btnCheckNow"
-            Me._btnCheckNow.Size = New System.Drawing.Size(120, 32)
+            Me._btnCheckNow.Size = New System.Drawing.Size(93, 32)
             Me._btnCheckNow.TabIndex = 4
             Me._btnCheckNow.Text = "ตรวจสอบอัปเดต"
             Me._btnCheckNow.UseVisualStyleBackColor = False
@@ -362,9 +366,9 @@ Namespace Forms
             Me._btnRefreshInfo.FlatStyle = System.Windows.Forms.FlatStyle.Flat
             Me._btnRefreshInfo.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
             Me._btnRefreshInfo.ForeColor = System.Drawing.Color.FromArgb(CType(CType(108, Byte), Integer), CType(CType(92, Byte), Integer), CType(CType(231, Byte), Integer))
-            Me._btnRefreshInfo.Location = New System.Drawing.Point(144, 310)
+            Me._btnRefreshInfo.Location = New System.Drawing.Point(111, 310)
             Me._btnRefreshInfo.Name = "_btnRefreshInfo"
-            Me._btnRefreshInfo.Size = New System.Drawing.Size(110, 32)
+            Me._btnRefreshInfo.Size = New System.Drawing.Size(93, 32)
             Me._btnRefreshInfo.TabIndex = 5
             Me._btnRefreshInfo.Text = "รีเฟรชข้อมูล"
             Me._btnRefreshInfo.UseVisualStyleBackColor = False
@@ -377,12 +381,27 @@ Namespace Forms
             Me._btnExit.FlatStyle = System.Windows.Forms.FlatStyle.Flat
             Me._btnExit.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
             Me._btnExit.ForeColor = System.Drawing.Color.FromArgb(CType(CType(235, Byte), Integer), CType(CType(77, Byte), Integer), CType(CType(75, Byte), Integer))
-            Me._btnExit.Location = New System.Drawing.Point(314, 310)
+            Me._btnExit.Location = New System.Drawing.Point(305, 310)
             Me._btnExit.Name = "_btnExit"
-            Me._btnExit.Size = New System.Drawing.Size(70, 32)
+            Me._btnExit.Size = New System.Drawing.Size(79, 32)
             Me._btnExit.TabIndex = 6
             Me._btnExit.Text = "ออก"
             Me._btnExit.UseVisualStyleBackColor = False
+            '
+            '_btnDetails
+            '
+            Me._btnDetails.BackColor = System.Drawing.Color.White
+            Me._btnDetails.Cursor = System.Windows.Forms.Cursors.Hand
+            Me._btnDetails.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(CType(CType(46, Byte), Integer), CType(CType(204, Byte), Integer), CType(CType(113, Byte), Integer))
+            Me._btnDetails.FlatStyle = System.Windows.Forms.FlatStyle.Flat
+            Me._btnDetails.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
+            Me._btnDetails.ForeColor = System.Drawing.Color.FromArgb(CType(CType(46, Byte), Integer), CType(CType(204, Byte), Integer), CType(CType(113, Byte), Integer))
+            Me._btnDetails.Location = New System.Drawing.Point(208, 310)
+            Me._btnDetails.Name = "_btnDetails"
+            Me._btnDetails.Size = New System.Drawing.Size(93, 32)
+            Me._btnDetails.TabIndex = 7
+            Me._btnDetails.Text = "Details"
+            Me._btnDetails.UseVisualStyleBackColor = False
             '
             '_btnUpdateNow
             '
@@ -431,6 +450,7 @@ Namespace Forms
             Me.Controls.Add(Me._progressBar)
             Me.Controls.Add(Me._lblProgress)
             Me.Controls.Add(Me._btnUpdateNow)
+            Me.Controls.Add(Me._btnDetails)
             Me.Controls.Add(Me._grpInfo)
             Me.Controls.Add(Me._grpVersion)
             Me.Controls.Add(Me._btnCheckNow)
@@ -538,11 +558,13 @@ Namespace Forms
             AddButtonAnimHandlers(_btnCheckNow, Color.White, Color.FromArgb(235, 245, 253), Color.FromArgb(70, 130, 180), Color.FromArgb(41, 128, 185))
             AddButtonAnimHandlers(_btnRefreshInfo, Color.White, Color.FromArgb(245, 240, 255), Color.FromArgb(180, 180, 180), Color.FromArgb(108, 92, 231))
             AddButtonAnimHandlers(_btnExit, Color.White, Color.FromArgb(255, 240, 240), Color.FromArgb(220, 80, 80), Color.FromArgb(180, 50, 50))
+            AddButtonAnimHandlers(_btnDetails, Color.White, Color.FromArgb(232, 255, 240), Color.FromArgb(46, 204, 113), Color.FromArgb(39, 174, 96))
 
             AddHandler _btnCheckNow.Click, AddressOf BtnCheckNow_Click
             AddHandler _btnRefreshInfo.Click, AddressOf BtnRefreshInfo_Click
             AddHandler _btnExit.Click, AddressOf BtnExit_Click
             AddHandler _btnUpdateNow.Click, AddressOf BtnUpdateNow_Click
+            AddHandler _btnDetails.Click, AddressOf BtnDetails_Click
 
             ' เริ่มตัวนับเวลาของ Typewriter Effect
             _typewriteTimer = New System.Windows.Forms.Timer()
@@ -787,6 +809,42 @@ Namespace Forms
 
         End Sub
 
+        ' ── ปุ่ม Details: แสดง Dropdown Menu สำหรับเปิดเอกสาร PDF ──
+        Private Sub BtnDetails_Click(ByVal sender As Object, ByVal e As EventArgs)
+            _detailsMenu.Items.Clear()
+
+            Dim mnuInfo As New ToolStripMenuItem("Info")
+            AddHandler mnuInfo.Click, Sub(s, ev)
+                                          OpenPdfFile(Config.AppSettings.DetailInfoPdfPath, "Info PDF")
+                                      End Sub
+
+            Dim mnuDetail As New ToolStripMenuItem("Detail")
+            AddHandler mnuDetail.Click, Sub(s, ev)
+                                            OpenPdfFile(Config.AppSettings.DetailPdfPath, "Detail PDF")
+                                        End Sub
+
+            _detailsMenu.Items.Add(mnuInfo)
+            _detailsMenu.Items.Add(mnuDetail)
+            _detailsMenu.Show(_btnDetails, New System.Drawing.Point(0, _btnDetails.Height))
+        End Sub
+
+        Private Sub OpenPdfFile(pdfPath As String, displayName As String)
+            Try
+                If String.IsNullOrEmpty(pdfPath) Then
+                    MessageBox.Show("ยังไม่ได้กำหนดเส้นทาง " & displayName & " ใน App.config", "ไม่พบเส้นทาง", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+                    Return
+                End If
+                If Not IO.File.Exists(pdfPath) Then
+                    MessageBox.Show("ไม่พบไฟล์: " & pdfPath, "ไม่พบไฟล์", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+                    Return
+                End If
+                Process.Start(pdfPath)
+            Catch ex As Exception
+                Managers.LogManager.[Error]("Failed to open " & displayName & ": " & pdfPath, ex)
+                MessageBox.Show("ไม่สามารถเปิดไฟล์ได้: " & ex.Message, "ข้อผิดพลาด", MessageBoxButtons.OK, MessageBoxIcon.[Error])
+            End Try
+        End Sub
+
         ' ── ปุ่ม: อัปเดตทันที (รันบน BackgroundWorker) ──
         Private Sub BtnUpdateNow_Click(ByVal sender As Object, ByVal e As EventArgs)
             Try
@@ -914,6 +972,8 @@ Namespace Forms
                 If _btnRefreshInfo IsNot Nothing Then RemoveHandler _btnRefreshInfo.Click, AddressOf BtnRefreshInfo_Click
                 If _btnExit IsNot Nothing Then RemoveHandler _btnExit.Click, AddressOf BtnExit_Click
                 If _btnUpdateNow IsNot Nothing Then RemoveHandler _btnUpdateNow.Click, AddressOf BtnUpdateNow_Click
+                If _btnDetails IsNot Nothing Then RemoveHandler _btnDetails.Click, AddressOf BtnDetails_Click
+                If _detailsMenu IsNot Nothing Then _detailsMenu.Dispose()
                 If _manualUpdateWorker IsNot Nothing Then
                     RemoveHandler _manualUpdateWorker.DoWork, AddressOf ManualUpdate_DoWork
                     RemoveHandler _manualUpdateWorker.RunWorkerCompleted, AddressOf ManualUpdate_Completed
