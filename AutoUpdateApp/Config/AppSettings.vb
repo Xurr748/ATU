@@ -63,6 +63,15 @@ Namespace Config
         End Sub
 
         Private Shared Function GetConfigFilePath() As String
+            ' อ่าน path จาก App.config ก่อน (key เดียวที่เก็บใน App.config)
+            Try
+                Dim customPath As String = System.Configuration.ConfigurationManager.AppSettings("ConfigFilePath")
+                If Not String.IsNullOrWhiteSpace(customPath) Then
+                    Return customPath
+                End If
+            Catch
+            End Try
+            ' ค่าเริ่มต้น: config.txt ข้างๆ exe
             Return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.txt")
         End Function
 
