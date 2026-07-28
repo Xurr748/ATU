@@ -346,41 +346,161 @@ Namespace Managers
         End Sub
 
         ''' <summary>
-        ''' คัดลอก/สร้าง Shortcut ไปยังโฟลเดอร์ Startup เพื่อเปิดอัตโนมัติเมื่อเปิดเครื่อง (หัวข้อ 5.6)
+        ''' คัดลอก/สร้าง Shortcut ไปยังโฟลเดอร์ Startup เพื่อเปิดอัตโนมัติเมื่อเปิดเครื่อง
+        ''' ตรวจสอบค่า EnableTargetStartup ก่อนทำงาน
         ''' </summary>
         Public Shared Sub CopyShortcutToStartup()
             Try
+                If Not Config.AppSettings.EnableTargetStartup Then
+                    LogManager.Info("Target startup shortcut is disabled in config.")
+                    Return
+                End If
+
                 Dim keyPath As String = Config.AppSettings.RegistryKeyPath
                 Dim pathValueName As String = Config.AppSettings.RegistryPathValueName
                 Dim targetPath As String = Utilities.RegistryHelper.ReadValue(keyPath, pathValueName)
                 
-                If String.IsNullOrEmpty(targetPath) OrElse Not File.Exists(targetPath) Then
+                If String.IsNullOrEmpty(targetPath) Then
+                    LogManager.Warn("Cannot find program executable to create shortcut: (empty registry value)")
+                    Return
+                End If
+
+                targetPath = targetPath.Trim()
+
+                ' ถ้า registry ชี้ไปที่โฟลเดอร์ ให้หา exe ข้างใน
+                If Directory.Exists(targetPath) AndAlso Not File.Exists(targetPath) Then
+                    Dim exes As String() = Directory.GetFiles(targetPath, "*.exe")
+                    If exes.Length > 0 Then
+                        targetPath = exes(0)
+                    Else
+                        LogManager.Warn("No executable found in directory: " & targetPath)
+                        Return
+                    End If
+                End If
+
+                If Not File.Exists(targetPath) Then
                     LogManager.Warn("Cannot find program executable to create shortcut: " & targetPath)
                     Return
                 End If
-                
+
+                ' ลบ shortcut เก่าก่อน (ถ้าเปิดใช้งาน)
+                If Config.AppSettings.RemoveOldStartupShortcut Then
+                    Dim nameToRemove As String = Config.AppSettings.StartupShortcutName
+                    If String.IsNullOrEmpty(nameToRemove) Then
+                        nameToRemove = Path.GetFileNameWithoutExtension(targetPath)
+                    End If
+                    RemoveStartupShortcut(nameToRemove)
+                End If
+
                 Dim startupFolder As String = Environment.GetFolderPath(Environment.SpecialFolder.Startup)
-                Dim shortcutName As String = Path.GetFileNameWithoutExtension(targetPath) & ".lnk"
-                Dim shortcutPath As String = Path.Combine(startupFolder, shortcutName)
+                Dim shortcutBaseName As String = Config.AppSettings.StartupShortcutName
+                If String.IsNullOrEmpty(shortcutBaseName) Then
+                    shortcutBaseName = Path.GetFileNameWithoutExtension(targetPath)
+                End If
+                Dim shortcutPath As String = Path.Combine(startupFolder, shortcutBaseName & ".lnk")
                 
                 LogManager.Info("Creating startup shortcut at: " & shortcutPath)
-                
-                ' ใช้ WScript.Shell ผ่าน COM Reflection เพื่อสร้าง Lnk Shortcut โดยไม่ต้องแอด Reference .vbproj
-                Dim shellType As Type = Type.GetTypeFromProgID("WScript.Shell")
-                Dim shell As Object = Activator.CreateInstance(shellType)
-                Dim shortcut As Object = shellType.InvokeMember("CreateShortcut", System.Reflection.BindingFlags.InvokeMethod, Nothing, shell, New Object() {shortcutPath})
-                
-                Dim shortcutType As Type = shortcut.GetType()
-                shortcutType.InvokeMember("TargetPath", System.Reflection.BindingFlags.SetProperty, Nothing, shortcut, New Object() {targetPath})
-                shortcutType.InvokeMember("WorkingDirectory", System.Reflection.BindingFlags.SetProperty, Nothing, shortcut, New Object() {Path.GetDirectoryName(targetPath)})
-                shortcutType.InvokeMember("Save", System.Reflection.BindingFlags.InvokeMethod, Nothing, shortcut, Nothing)
-                
+                CreateShortcut(shortcutPath, targetPath)
                 LogManager.Info("Startup shortcut created successfully.")
             Catch ex As Exception
                 LogManager.Error("Error creating startup shortcut.", ex)
             End Try
         End Sub
 
+        ''' <summary>
+        ''' ใส่ตัว AutoUpdateApp เองไปที่ Startup folder
+        ''' ตรวจสอบค่า EnableSelfStartup ก่อนทำงาน
+        ''' </summary>
+        Public Shared Sub AddSelfToStartup()
+            Try
+                If Not Config.AppSettings.EnableSelfStartup Then
+                    LogManager.Info("Self startup is disabled in config.")
+                    Return
+                End If
+
+                Dim selfExePath As String = System.Reflection.Assembly.GetExecutingAssembly().Location
+                If String.IsNullOrEmpty(selfExePath) OrElse Not File.Exists(selfExePath) Then
+                    LogManager.Warn("Cannot determine self executable path for startup.")
+                    Return
+                End If
+
+                Dim startupFolder As String = Environment.GetFolderPath(Environment.SpecialFolder.Startup)
+                Dim shortcutName As String = Path.GetFileNameWithoutExtension(selfExePath) & ".lnk"
+                Dim shortcutPath As String = Path.Combine(startupFolder, shortcutName)
+
+                ' ถ้ามี shortcut อยู่แล้ว ไม่ต้องสร้างซ้ำ
+                If File.Exists(shortcutPath) Then
+                    Return
+                End If
+
+                LogManager.Info("Adding self to startup: " & shortcutPath)
+                CreateShortcut(shortcutPath, selfExePath)
+                LogManager.Info("Self startup shortcut created successfully.")
+            Catch ex As Exception
+                LogManager.Error("Error adding self to startup.", ex)
+            End Try
+        End Sub
+
+        ''' <summary>
+        ''' ลบ Shortcut ที่ชื่อตรงกันออกจาก Startup folder
+        ''' </summary>
+        Public Shared Sub RemoveStartupShortcut(shortcutBaseName As String)
+            Try
+                If String.IsNullOrEmpty(shortcutBaseName) Then Return
+
+                Dim startupFolder As String = Environment.GetFolderPath(Environment.SpecialFolder.Startup)
+                Dim shortcutPath As String = Path.Combine(startupFolder, shortcutBaseName & ".lnk")
+
+                If File.Exists(shortcutPath) Then
+                    File.Delete(shortcutPath)
+                    LogManager.Info("Removed old startup shortcut: " & shortcutPath)
+                End If
+            Catch ex As Exception
+                LogManager.Warn("Could not remove startup shortcut: " & ex.Message)
+            End Try
+        End Sub
+
+        ''' <summary>
+        ''' ตรวจสอบว่าการติดตั้งสำเร็จจริงหรือไม่ โดยเปรียบเทียบ Registry Version กับ version.txt
+        ''' </summary>
+        Public Shared Function VerifyInstallation() As Boolean
+            Try
+                Dim currentVersion As String = VersionManager.ReadRegistryVersion()
+                Dim latestVersion As String = VersionManager.ReadLatestVersion()
+
+                If String.IsNullOrEmpty(currentVersion) OrElse String.IsNullOrEmpty(latestVersion) Then
+                    LogManager.Warn("Cannot verify installation: version info unavailable. Current=" & currentVersion & " Latest=" & latestVersion)
+                    Return False
+                End If
+
+                If String.Equals(currentVersion, latestVersion, StringComparison.OrdinalIgnoreCase) Then
+                    LogManager.Info("Installation verified successfully. Version: " & currentVersion)
+                    Return True
+                Else
+                    LogManager.Warn("Installation verification failed. Registry=" & currentVersion & " Expected=" & latestVersion)
+                    Return False
+                End If
+            Catch ex As Exception
+                LogManager.Error("Error during installation verification.", ex)
+                Return False
+            End Try
+        End Function
+
+        ''' <summary>
+        ''' สร้าง Windows Shortcut (.lnk) ด้วย WScript.Shell COM
+        ''' </summary>
+        Private Shared Sub CreateShortcut(shortcutPath As String, targetExePath As String)
+            Dim shellType As Type = Type.GetTypeFromProgID("WScript.Shell")
+            Dim shell As Object = Activator.CreateInstance(shellType)
+            Dim shortcut As Object = shellType.InvokeMember("CreateShortcut", System.Reflection.BindingFlags.InvokeMethod, Nothing, shell, New Object() {shortcutPath})
+
+            Dim shortcutType As Type = shortcut.GetType()
+            shortcutType.InvokeMember("TargetPath", System.Reflection.BindingFlags.SetProperty, Nothing, shortcut, New Object() {targetExePath})
+            shortcutType.InvokeMember("WorkingDirectory", System.Reflection.BindingFlags.SetProperty, Nothing, shortcut, New Object() {Path.GetDirectoryName(targetExePath)})
+            shortcutType.InvokeMember("Save", System.Reflection.BindingFlags.InvokeMethod, Nothing, shortcut, Nothing)
+        End Sub
+
     End Class
 
 End Namespace
+

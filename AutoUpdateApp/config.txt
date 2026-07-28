@@ -1,0 +1,51 @@
+; ═══════════════════════════════════════════════════════════════
+; AutoUpdateApp Configuration
+; แก้ไขไฟล์นี้แทน App.config — ไม่ต้องคอมไพล์ใหม่
+; รูปแบบ: Key = Value (บรรทัด ; หรือ # เป็น comment)
+; ═══════════════════════════════════════════════════════════════
+
+; ── โฟลเดอร์หลัก (path อื่นที่เป็น relative จะรวมกับ ConfigRoot อัตโนมัติ) ──
+ConfigRoot = 
+
+; ── ไฟล์ Config ──
+TesterTypePath = TesterType.csv
+VersionFilePath = version.txt
+UpdateFlagPath = updateflag.txt
+
+; ── Installer ──
+InstallerPathHE = 
+InstallerPathLLE = 
+InstallerArgs = /silent /norestart
+
+; ── Registry (อ่านเวอร์ชันโปรแกรมปัจจุบัน) ──
+RegistryKeyPath = HKEY_LOCAL_MACHINE\SOFTWARE\Spandnix\RSX5000
+RegistryValueName = Version
+RegistryPathValueName = Path
+
+; ── ข้อมูลบริษัท ──
+CompanyName = CompanyName
+
+; ── Log (โครงสร้าง: LogPath\CompanyName\{ShortId}\) ──
+LogPath = 
+LogFileName = {ComputerName}_Logs.txt
+LogLevel = Info
+
+; ── ตัวตั้งเวลาตรวจสอบอัปเดต (นาที) ──
+PollingIntervalMinutes = 60
+
+; ── เอกสาร PDF (ปุ่ม Details) ──
+DetailInfoPdfPath = 
+DetailPdfPath = 
+
+; ── Startup Management ──
+; ใส่ตัว AutoUpdateApp เองไปที่ Startup (True/False)
+EnableSelfStartup = True
+
+; ใส่ Target App ไปที่ Startup หลังอัปเดตสำเร็จ (True/False)
+EnableTargetStartup = True
+
+; ลบ Shortcut เดิมที่ชื่อตรงกันก่อนสร้างใหม่ (True/False)
+RemoveOldStartupShortcut = True
+
+; ชื่อ Shortcut (ว่าง = ใช้ชื่อ exe จาก registry อัตโนมัติ)
+StartupShortcutName = 

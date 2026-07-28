@@ -34,6 +34,9 @@ Module Program
                 Managers.LogManager.Info("Application starting.")
                 Managers.LogManager.Info("═══════════════════════════════════════")
 
+                ' ── ใส่ตัวเองไปที่ Startup (ถ้าเปิดใช้ใน config) ──
+                Managers.InstallerManager.AddSelfToStartup()
+
                 ' ── ตรวจสอบการอัปเดตที่ค้างรอรีสตาร์ทตอนเริ่มโปรแกรม ──
                 CheckPendingRestartUpdate()
 
@@ -106,14 +109,21 @@ Module Program
             Dim success As Boolean = Managers.InstallerManager.RunInstaller(tester.TesterType)
 
             If success Then
-                ' 5. เปิดโปรแกรมใหม่หลังอัปเดตเสร็จ (หัวข้อ 5.5)
-                Managers.InstallerManager.StartProgramOfRegistryPath()
+                ' ตรวจสอบว่าติดตั้งสำเร็จจริงหรือไม่
+                Dim verified As Boolean = Managers.InstallerManager.VerifyInstallation()
 
-                ' 6. คัดลอก Shortcut ไปยังโฟลเดอร์ Startup เพื่อให้เปิดอัตโนมัติเมื่อ Windows เริ่มทำงาน (หัวข้อ 5.6)
-                Managers.InstallerManager.CopyShortcutToStartup()
+                If verified Then
+                    ' เปิดโปรแกรมใหม่หลังอัปเดตเสร็จ
+                    Managers.InstallerManager.StartProgramOfRegistryPath()
 
-                Managers.UpdateFlagManager.SetFlag(computerName, False)
-                Managers.LogManager.Info("Restart update completed successfully.")
+                    ' คัดลอก Shortcut ไปยังโฟลเดอร์ Startup
+                    Managers.InstallerManager.CopyShortcutToStartup()
+
+                    Managers.UpdateFlagManager.SetFlag(computerName, False)
+                    Managers.LogManager.Info("Restart update completed and verified successfully.")
+                Else
+                    Managers.LogManager.Warn("Install script ran but version not yet updated. Flag remains for retry.")
+                End If
             Else
                 Managers.LogManager.[Error]("Restart update failed. Flag will remain for retry.")
             End If

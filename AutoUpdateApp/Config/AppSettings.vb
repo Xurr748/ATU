@@ -1,28 +1,89 @@
 Option Strict On
 Option Explicit On
 
-Imports System.Configuration
 Imports System.IO
 
 Namespace Config
 
     ''' <summary>
-    ''' ศูนย์กลางการอ่านค่าตั้งต่าง (Settings) จาก App.config
-    ''' ทุกเส้นทาง (Path) ตั้งค่าได้ — ไม่มี Hardcode ในโค้ด
-    ''' เส้นทางสัมพัทธ์จะถูกรวมกับ ConfigRoot อัตโนมัติ
+    ''' ศูนย์กลางการอ่านค่าตั้งต่าง (Settings) จากไฟล์ config.txt
+    ''' ไฟล์อยู่ข้างๆ .exe — แก้ไขจาก Server ได้โดยไม่ต้องคอมไพล์ใหม่
+    ''' รูปแบบ: Key = Value (1 บรรทัดต่อ 1 ค่า, ; เป็น comment)
     ''' </summary>
     Public NotInheritable Class AppSettings
+
+        Private Shared ReadOnly _lock As New Object
+        Private Shared _settings As Dictionary(Of String, String)
 
         Private Sub New()
             ' คลาสแบบ Static เท่านั้น ไม่ต้องสร้าง Instance
         End Sub
 
+        ''' <summary>
+        ''' โหลดค่าทั้งหมดจาก config.txt เข้า Dictionary (เรียกครั้งเดียว หรือเมื่อ Reload)
+        ''' </summary>
+        Private Shared Sub EnsureLoaded()
+            If _settings IsNot Nothing Then Return
+
+            SyncLock _lock
+                If _settings IsNot Nothing Then Return
+
+                _settings = New Dictionary(Of String, String)(StringComparer.OrdinalIgnoreCase)
+                Dim configPath As String = GetConfigFilePath()
+
+                If Not File.Exists(configPath) Then Return
+
+                Try
+                    Dim lines As String() = File.ReadAllLines(configPath)
+                    For Each line As String In lines
+                        Dim trimmed As String = line.Trim()
+
+                        ' ข้ามบรรทัดว่างและ comment
+                        If String.IsNullOrEmpty(trimmed) Then Continue For
+                        If trimmed.StartsWith(";") OrElse trimmed.StartsWith("#") Then Continue For
+
+                        ' แยก Key = Value
+                        Dim eqIndex As Integer = trimmed.IndexOf("="c)
+                        If eqIndex > 0 Then
+                            Dim key As String = trimmed.Substring(0, eqIndex).Trim()
+                            Dim value As String = trimmed.Substring(eqIndex + 1).Trim()
+
+                            ' ลบ quotes ถ้ามี
+                            If value.Length >= 2 AndAlso value.StartsWith("""") AndAlso value.EndsWith("""") Then
+                                value = value.Substring(1, value.Length - 2)
+                            End If
+
+                            _settings(key) = value
+                        End If
+                    Next
+                Catch
+                    ' ถ้าอ่านไฟล์ไม่ได้ ใช้ค่าเริ่มต้น
+                End Try
+            End SyncLock
+        End Sub
+
+        Private Shared Function GetConfigFilePath() As String
+            Return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.txt")
+        End Function
+
         Private Shared Function GetSetting(key As String, Optional defaultValue As String = "") As String
-            Dim value As String = ConfigurationManager.AppSettings(key)
-            If String.IsNullOrWhiteSpace(value) Then
-                Return defaultValue
+            EnsureLoaded()
+            Dim value As String = Nothing
+            If _settings.TryGetValue(key, value) Then
+                If Not String.IsNullOrWhiteSpace(value) Then
+                    Return value
+                End If
             End If
-            Return value
+            Return defaultValue
+        End Function
+
+        Private Shared Function GetBoolSetting(key As String, Optional defaultValue As Boolean = True) As Boolean
+            Dim value As String = GetSetting(key, defaultValue.ToString())
+            Dim result As Boolean
+            If Boolean.TryParse(value, result) Then
+                Return result
+            End If
+            Return defaultValue
         End Function
 
         Private Shared Function ResolvePath(configRoot As String, path As String) As String
@@ -129,7 +190,6 @@ Namespace Config
 
         ''' <summary>
         ''' รูปแบบชื่อไฟล์ Log — ใช้ {ComputerName} เป็น placeholder แทนชื่อเครื่อง
-        ''' ตัวอย่าง: "{ComputerName}_Logs.txt" → "PC001_Logs.txt"
         ''' </summary>
         Public Shared ReadOnly Property LogFileName As String
             Get
@@ -173,13 +233,45 @@ Namespace Config
             End Get
         End Property
 
+        ' ───────────────────── Startup Management ─────────────────────
+
+        ''' <summary>เปิด/ปิด การใส่ตัว AutoUpdateApp เองไปที่ Startup</summary>
+        Public Shared ReadOnly Property EnableSelfStartup As Boolean
+            Get
+                Return GetBoolSetting("EnableSelfStartup", True)
+            End Get
+        End Property
+
+        ''' <summary>เปิด/ปิด การใส่ Target App ไปที่ Startup หลังอัปเดต</summary>
+        Public Shared ReadOnly Property EnableTargetStartup As Boolean
+            Get
+                Return GetBoolSetting("EnableTargetStartup", True)
+            End Get
+        End Property
+
+        ''' <summary>เปิด/ปิด การลบ Shortcut เดิมที่ชื่อตรงกันก่อนสร้างใหม่</summary>
+        Public Shared ReadOnly Property RemoveOldStartupShortcut As Boolean
+            Get
+                Return GetBoolSetting("RemoveOldStartupShortcut", True)
+            End Get
+        End Property
+
+        ''' <summary>ชื่อ Shortcut ที่ต้องการลบ/สร้าง (ว่าง = ใช้ชื่อ exe จาก registry)</summary>
+        Public Shared ReadOnly Property StartupShortcutName As String
+            Get
+                Return GetSetting("StartupShortcutName", "")
+            End Get
+        End Property
+
         ' ───────────────────── โหลดใหม่ ─────────────────────
 
         ''' <summary>
-        ''' บังคับให้อ่านค่า app.config ใหม่ในครั้งถัดไป
+        ''' บังคับให้อ่านค่า config.txt ใหม่ในครั้งถัดไป
         ''' </summary>
         Public Shared Sub Reload()
-            ConfigurationManager.RefreshSection("appSettings")
+            SyncLock _lock
+                _settings = Nothing
+            End SyncLock
         End Sub
 
     End Class
