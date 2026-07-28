@@ -355,7 +355,7 @@ Namespace Forms
             Me._btnCheckNow.Name = "_btnCheckNow"
             Me._btnCheckNow.Size = New System.Drawing.Size(93, 32)
             Me._btnCheckNow.TabIndex = 4
-            Me._btnCheckNow.Text = "ตรวจสอบอัปเดต"
+            Me._btnCheckNow.Text = "ตรวจสอบ"
             Me._btnCheckNow.UseVisualStyleBackColor = False
             '
             '_btnRefreshInfo
@@ -370,7 +370,7 @@ Namespace Forms
             Me._btnRefreshInfo.Name = "_btnRefreshInfo"
             Me._btnRefreshInfo.Size = New System.Drawing.Size(93, 32)
             Me._btnRefreshInfo.TabIndex = 5
-            Me._btnRefreshInfo.Text = "รีเฟรชข้อมูล"
+            Me._btnRefreshInfo.Text = "รีเฟรช"
             Me._btnRefreshInfo.UseVisualStyleBackColor = False
             '
             '_btnExit
@@ -648,7 +648,7 @@ Namespace Forms
             ' คืนค่าปุ่มตรวจสอบ
             If _btnCheckNow IsNot Nothing Then
                 _btnCheckNow.Enabled = True
-                _btnCheckNow.Text = "ตรวจสอบอัปเดต"
+                _btnCheckNow.Text = "ตรวจสอบ"
             End If
             ' แจ้งผลเฉพาะตอนหน้าต่างเปิดอยู่
             If Me.Visible AndAlso Me.WindowState <> FormWindowState.Minimized Then
