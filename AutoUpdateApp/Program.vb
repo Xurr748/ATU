@@ -32,9 +32,24 @@ Module Program
 
                 Managers.LogManager.Info("═══════════════════════════════════════")
                 Managers.LogManager.Info("Application starting.")
-                Managers.LogManager.Info("Base directory: " & AppDomain.CurrentDomain.BaseDirectory)
-                Managers.LogManager.Info("RegistryKeyPath: " & Config.AppSettings.RegistryKeyPath)
-                Managers.LogManager.Info("ConfigRoot: " & Config.AppSettings.ConfigRoot)
+                Managers.LogManager.Info("Exe directory: " & AppDomain.CurrentDomain.BaseDirectory)
+
+                ' ── ตรวจสอบ Config ──
+                If Not Config.AppSettings.IsLoaded Then
+                    Dim msg As String = "ไม่สามารถโหลด config.txt ได้!" & Environment.NewLine & _
+                                        Config.AppSettings.LoadStatus & Environment.NewLine & Environment.NewLine & _
+                                        "กรุณาตรวจสอบว่า:" & Environment.NewLine & _
+                                        "1) config.txt อยู่ข้างๆ exe  หรือ" & Environment.NewLine & _
+                                        "2) ตั้ง ConfigFilePath ใน AutoUpdateApp.exe.config"
+                    Managers.LogManager.[Error](msg)
+                    MessageBox.Show(msg, "Config Error", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+                End If
+
+                ' ── Log ค่า Config ทั้งหมด ──
+                For Each issue As String In Config.AppSettings.ValidateConfig()
+                    Managers.LogManager.Info(issue)
+                Next
+
                 Managers.LogManager.Info("═══════════════════════════════════════")
 
                 ' ── ใส่ตัวเองไปที่ Startup (ถ้าเปิดใช้ใน config) ──

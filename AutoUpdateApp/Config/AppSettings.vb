@@ -7,17 +7,49 @@ Namespace Config
 
     ''' <summary>
     ''' ศูนย์กลางการอ่านค่าตั้งต่าง (Settings) จากไฟล์ config.txt
-    ''' ไฟล์อยู่ข้างๆ .exe — แก้ไขจาก Server ได้โดยไม่ต้องคอมไพล์ใหม่
+    ''' ไฟล์อยู่ข้างๆ .exe หรือกำหนด path ผ่าน App.config (ConfigFilePath)
     ''' รูปแบบ: Key = Value (1 บรรทัดต่อ 1 ค่า, ; เป็น comment)
     ''' </summary>
     Public NotInheritable Class AppSettings
 
         Private Shared ReadOnly _lock As New Object
         Private Shared _settings As Dictionary(Of String, String)
+        Private Shared _configLoadedPath As String = ""
+        Private Shared _configLoadStatus As String = ""
 
         Private Sub New()
             ' คลาสแบบ Static เท่านั้น ไม่ต้องสร้าง Instance
         End Sub
+
+        ''' <summary>
+        ''' path ของ config.txt ที่โหลดสำเร็จ (ว่าง = ไม่ได้โหลด)
+        ''' </summary>
+        Public Shared ReadOnly Property LoadedConfigPath As String
+            Get
+                EnsureLoaded()
+                Return _configLoadedPath
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' สถานะการโหลด config (ข้อความสำหรับ log/แจ้งผู้ใช้)
+        ''' </summary>
+        Public Shared ReadOnly Property LoadStatus As String
+            Get
+                EnsureLoaded()
+                Return _configLoadStatus
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' config.txt ถูกโหลดสำเร็จหรือไม่
+        ''' </summary>
+        Public Shared ReadOnly Property IsLoaded As Boolean
+            Get
+                EnsureLoaded()
+                Return Not String.IsNullOrEmpty(_configLoadedPath)
+            End Get
+        End Property
 
         ''' <summary>
         ''' โหลดค่าทั้งหมดจาก config.txt เข้า Dictionary (เรียกครั้งเดียว หรือเมื่อ Reload)
@@ -29,24 +61,25 @@ Namespace Config
                 If _settings IsNot Nothing Then Return
 
                 _settings = New Dictionary(Of String, String)(StringComparer.OrdinalIgnoreCase)
+                _configLoadedPath = ""
+                _configLoadStatus = ""
+
+                ' ── หา config.txt ──
                 Dim configPath As String = GetConfigFilePath()
 
-                ' Debug: แสดง path ที่พยายามอ่าน
-                System.Diagnostics.Debug.WriteLine("[AppSettings] Config path: " & configPath)
-
                 If Not File.Exists(configPath) Then
-                    System.Diagnostics.Debug.WriteLine("[AppSettings] WARNING: config.txt NOT FOUND at: " & configPath)
                     ' ลองหา config.txt ข้างๆ exe เป็น fallback
                     Dim fallbackPath As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.txt")
                     If Not String.Equals(configPath, fallbackPath, StringComparison.OrdinalIgnoreCase) AndAlso File.Exists(fallbackPath) Then
                         configPath = fallbackPath
-                        System.Diagnostics.Debug.WriteLine("[AppSettings] Using fallback: " & configPath)
+                        _configLoadStatus = "ไม่พบ config.txt ที่ตั้งไว้ ใช้ fallback: " & configPath
                     Else
-                        System.Diagnostics.Debug.WriteLine("[AppSettings] No config.txt found. Using defaults.")
+                        _configLoadStatus = "ไม่พบไฟล์ config.txt ที่: " & configPath & " (ใช้ค่าเริ่มต้นทั้งหมด)"
                         Return
                     End If
                 End If
 
+                ' ── อ่านไฟล์ ──
                 Try
                     Dim lines As String() = File.ReadAllLines(configPath)
                     For Each line As String In lines
@@ -71,9 +104,10 @@ Namespace Config
                         End If
                     Next
 
-                    System.Diagnostics.Debug.WriteLine("[AppSettings] Loaded " & _settings.Count & " settings from: " & configPath)
+                    _configLoadedPath = configPath
+                    _configLoadStatus = "โหลดสำเร็จ " & _settings.Count & " ค่า จาก: " & configPath
                 Catch ex As Exception
-                    System.Diagnostics.Debug.WriteLine("[AppSettings] ERROR reading config: " & ex.Message)
+                    _configLoadStatus = "อ่านไฟล์ config.txt ล้มเหลว: " & ex.Message & " (path: " & configPath & ")"
                 End Try
             End SyncLock
         End Sub
@@ -120,6 +154,55 @@ Namespace Config
             End If
             Return IO.Path.Combine(configRoot, path)
         End Function
+
+        ''' <summary>
+        ''' ตรวจสอบค่าที่จำเป็นใน config แล้วคืนรายการปัญหา (ว่าง = ไม่มีปัญหา)
+        ''' </summary>
+        Public Shared Function ValidateConfig() As List(Of String)
+            EnsureLoaded()
+            Dim issues As New List(Of String)
+
+            ' ── ตรวจว่าโหลดได้หรือไม่ ──
+            If Not IsLoaded Then
+                issues.Add("[CONFIG] " & _configLoadStatus)
+                Return issues
+            End If
+
+            issues.Add("[CONFIG] " & _configLoadStatus)
+
+            ' ── ตรวจค่าสำคัญ ──
+            CheckKey(issues, "RegistryKeyPath", RegistryKeyPath, "HKEY_LOCAL_MACHINE\SOFTWARE\MyApp")
+            CheckKey(issues, "RegistryValueName", RegistryValueName, "")
+            CheckKey(issues, "RegistryPathValueName", RegistryPathValueName, "")
+            CheckKey(issues, "TesterTypePath", TesterTypePath, "")
+            CheckKey(issues, "VersionFilePath", VersionFilePath, "")
+            CheckKey(issues, "LogPath", LogPath, "C:\Logs\AutoUpdate\")
+            CheckKey(issues, "InstallerPathHE", InstallerPathHE, "")
+            CheckKey(issues, "InstallerPathLLE", InstallerPathLLE, "")
+
+            ' ── ตรวจ path ที่เป็นไฟล์/โฟลเดอร์ว่ามีจริงหรือไม่ ──
+            CheckPathExists(issues, "TesterTypePath", TesterTypePath)
+            CheckPathExists(issues, "VersionFilePath", VersionFilePath)
+
+            Return issues
+        End Function
+
+        Private Shared Sub CheckKey(issues As List(Of String), keyName As String, currentValue As String, defaultValue As String)
+            If String.IsNullOrEmpty(currentValue) Then
+                issues.Add("[ค่าว่าง] " & keyName & " = (ไม่มีค่า)")
+            ElseIf Not String.IsNullOrEmpty(defaultValue) AndAlso String.Equals(currentValue, defaultValue, StringComparison.OrdinalIgnoreCase) Then
+                issues.Add("[ค่าเริ่มต้น] " & keyName & " = " & currentValue & " (อาจยังไม่ได้ตั้งค่าจริง)")
+            Else
+                issues.Add("[OK] " & keyName & " = " & currentValue)
+            End If
+        End Sub
+
+        Private Shared Sub CheckPathExists(issues As List(Of String), keyName As String, pathValue As String)
+            If String.IsNullOrEmpty(pathValue) Then Return
+            If Not File.Exists(pathValue) AndAlso Not IO.Directory.Exists(pathValue) Then
+                issues.Add("[หาไม่เจอ] " & keyName & " path ไม่มีอยู่จริง: " & pathValue)
+            End If
+        End Sub
 
         ' ───────────────────── เส้นทางหลัก ─────────────────────
 
@@ -296,6 +379,8 @@ Namespace Config
         Public Shared Sub Reload()
             SyncLock _lock
                 _settings = Nothing
+                _configLoadedPath = ""
+                _configLoadStatus = ""
             End SyncLock
         End Sub
 
