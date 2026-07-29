@@ -31,7 +31,21 @@ Namespace Config
                 _settings = New Dictionary(Of String, String)(StringComparer.OrdinalIgnoreCase)
                 Dim configPath As String = GetConfigFilePath()
 
-                If Not File.Exists(configPath) Then Return
+                ' Debug: แสดง path ที่พยายามอ่าน
+                System.Diagnostics.Debug.WriteLine("[AppSettings] Config path: " & configPath)
+
+                If Not File.Exists(configPath) Then
+                    System.Diagnostics.Debug.WriteLine("[AppSettings] WARNING: config.txt NOT FOUND at: " & configPath)
+                    ' ลองหา config.txt ข้างๆ exe เป็น fallback
+                    Dim fallbackPath As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.txt")
+                    If Not String.Equals(configPath, fallbackPath, StringComparison.OrdinalIgnoreCase) AndAlso File.Exists(fallbackPath) Then
+                        configPath = fallbackPath
+                        System.Diagnostics.Debug.WriteLine("[AppSettings] Using fallback: " & configPath)
+                    Else
+                        System.Diagnostics.Debug.WriteLine("[AppSettings] No config.txt found. Using defaults.")
+                        Return
+                    End If
+                End If
 
                 Try
                     Dim lines As String() = File.ReadAllLines(configPath)
@@ -56,8 +70,10 @@ Namespace Config
                             _settings(key) = value
                         End If
                     Next
-                Catch
-                    ' ถ้าอ่านไฟล์ไม่ได้ ใช้ค่าเริ่มต้น
+
+                    System.Diagnostics.Debug.WriteLine("[AppSettings] Loaded " & _settings.Count & " settings from: " & configPath)
+                Catch ex As Exception
+                    System.Diagnostics.Debug.WriteLine("[AppSettings] ERROR reading config: " & ex.Message)
                 End Try
             End SyncLock
         End Sub

@@ -32,6 +32,9 @@ Module Program
 
                 Managers.LogManager.Info("═══════════════════════════════════════")
                 Managers.LogManager.Info("Application starting.")
+                Managers.LogManager.Info("Base directory: " & AppDomain.CurrentDomain.BaseDirectory)
+                Managers.LogManager.Info("RegistryKeyPath: " & Config.AppSettings.RegistryKeyPath)
+                Managers.LogManager.Info("ConfigRoot: " & Config.AppSettings.ConfigRoot)
                 Managers.LogManager.Info("═══════════════════════════════════════")
 
                 ' ── ใส่ตัวเองไปที่ Startup (ถ้าเปิดใช้ใน config) ──
