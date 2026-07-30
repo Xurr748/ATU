@@ -895,6 +895,9 @@ Namespace Forms
                 Dim sb As New System.Text.StringBuilder()
 
                 ' สถานะการโหลด
+                sb.AppendLine("══════ ตำแหน่ง EXE ══════")
+                sb.AppendLine(System.Reflection.Assembly.GetExecutingAssembly().Location)
+                sb.AppendLine()
                 sb.AppendLine("══════ สถานะ Config ══════")
                 sb.AppendLine(Config.AppSettings.LoadStatus)
                 sb.AppendLine()
