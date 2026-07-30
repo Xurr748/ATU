@@ -52,6 +52,7 @@ Namespace Forms
         Private _btnUpdateNow As Button
         Private _btnDetails As Button
         Private _detailsMenu As ContextMenuStrip
+        Private _btnConfigDebug As Button
 
         ' ── Progress Bar + Status ──
         Private _progressBar As ProgressBar
@@ -110,6 +111,7 @@ Namespace Forms
             Me._btnExit = New System.Windows.Forms.Button()
             Me._btnUpdateNow = New System.Windows.Forms.Button()
             Me._btnDetails = New System.Windows.Forms.Button()
+            Me._btnConfigDebug = New System.Windows.Forms.Button()
             Me._detailsMenu = New System.Windows.Forms.ContextMenuStrip(Me.components)
             Me._progressBar = New System.Windows.Forms.ProgressBar()
             Me._lblProgress = New System.Windows.Forms.Label()
@@ -445,8 +447,25 @@ Namespace Forms
             '
             'MainForm
             '
+            '
+            '_btnConfigDebug (ปุ่มชั่วคราว)
+            '
+            Me._btnConfigDebug.BackColor = System.Drawing.Color.FromArgb(255, 193, 7)
+            Me._btnConfigDebug.Cursor = System.Windows.Forms.Cursors.Hand
+            Me._btnConfigDebug.FlatAppearance.BorderSize = 0
+            Me._btnConfigDebug.FlatStyle = System.Windows.Forms.FlatStyle.Flat
+            Me._btnConfigDebug.Font = New System.Drawing.Font("Segoe UI", 8.0!, System.Drawing.FontStyle.Bold)
+            Me._btnConfigDebug.ForeColor = System.Drawing.Color.Black
+            Me._btnConfigDebug.Location = New System.Drawing.Point(14, 350)
+            Me._btnConfigDebug.Name = "_btnConfigDebug"
+            Me._btnConfigDebug.Size = New System.Drawing.Size(370, 28)
+            Me._btnConfigDebug.TabIndex = 8
+            Me._btnConfigDebug.Text = "[Debug] ดู Config ที่โหลดแล้ว"
+            Me._btnConfigDebug.UseVisualStyleBackColor = False
+            '
             Me.BackColor = System.Drawing.Color.FromArgb(CType(CType(245, Byte), Integer), CType(CType(245, Byte), Integer), CType(CType(250, Byte), Integer))
             Me.ClientSize = New System.Drawing.Size(400, 398)
+            Me.Controls.Add(Me._btnConfigDebug)
             Me.Controls.Add(Me._progressBar)
             Me.Controls.Add(Me._lblProgress)
             Me.Controls.Add(Me._btnUpdateNow)
@@ -565,6 +584,7 @@ Namespace Forms
             AddHandler _btnExit.Click, AddressOf BtnExit_Click
             AddHandler _btnUpdateNow.Click, AddressOf BtnUpdateNow_Click
             AddHandler _btnDetails.Click, AddressOf BtnDetails_Click
+            AddHandler _btnConfigDebug.Click, AddressOf BtnConfigDebug_Click
 
             ' เริ่มตัวนับเวลาของ Typewriter Effect
             _typewriteTimer = New System.Windows.Forms.Timer()
@@ -828,20 +848,66 @@ Namespace Forms
             _detailsMenu.Show(_btnDetails, New System.Drawing.Point(0, _btnDetails.Height))
         End Sub
 
+        ''' <summary>
+        ''' เปิดไฟล์ PDF — ถ้า path เป็นโฟลเดอร์จะเลือกไฟล์ PDF ที่ใหม่ที่สุดอัตโนมัติ
+        ''' </summary>
         Private Sub OpenPdfFile(pdfPath As String, displayName As String)
             Try
                 If String.IsNullOrEmpty(pdfPath) Then
-                    MessageBox.Show("ยังไม่ได้กำหนดเส้นทาง " & displayName & " ใน App.config", "ไม่พบเส้นทาง", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+                    MessageBox.Show("ยังไม่ได้กำหนดเส้นทาง " & displayName & " ใน config.txt", "ไม่พบเส้นทาง", MessageBoxButtons.OK, MessageBoxIcon.Warning)
                     Return
                 End If
-                If Not IO.File.Exists(pdfPath) Then
-                    MessageBox.Show("ไม่พบไฟล์: " & pdfPath, "ไม่พบไฟล์", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+
+                Dim fileToOpen As String = pdfPath
+
+                ' ถ้า path เป็นโฟลเดอร์ → หา PDF ที่ใหม่ที่สุด
+                If IO.Directory.Exists(pdfPath) Then
+                    Dim pdfFiles = New IO.DirectoryInfo(pdfPath).GetFiles("*.pdf")
+                    If pdfFiles.Length = 0 Then
+                        MessageBox.Show("ไม่พบไฟล์ PDF ในโฟลเดอร์: " & pdfPath, "ไม่พบไฟล์", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+                        Return
+                    End If
+                    ' เลือกไฟล์ที่แก้ไขล่าสุด
+                    Dim latestPdf As IO.FileInfo = pdfFiles(0)
+                    For Each f In pdfFiles
+                        If f.LastWriteTime > latestPdf.LastWriteTime Then
+                            latestPdf = f
+                        End If
+                    Next
+                    fileToOpen = latestPdf.FullName
+                    Managers.LogManager.Info("เปิด PDF ล่าสุดจากโฟลเดอร์: " & fileToOpen)
+                End If
+
+                If Not IO.File.Exists(fileToOpen) Then
+                    MessageBox.Show("ไม่พบไฟล์: " & fileToOpen, "ไม่พบไฟล์", MessageBoxButtons.OK, MessageBoxIcon.Warning)
                     Return
                 End If
-                Process.Start(pdfPath)
+                Process.Start(fileToOpen)
             Catch ex As Exception
                 Managers.LogManager.[Error]("Failed to open " & displayName & ": " & pdfPath, ex)
                 MessageBox.Show("ไม่สามารถเปิดไฟล์ได้: " & ex.Message, "ข้อผิดพลาด", MessageBoxButtons.OK, MessageBoxIcon.[Error])
+            End Try
+        End Sub
+
+        ' ── ปุ่ม [Debug] ดู Config ที่โหลดแล้ว ──
+        Private Sub BtnConfigDebug_Click(ByVal sender As Object, ByVal e As EventArgs)
+            Try
+                Dim sb As New System.Text.StringBuilder()
+
+                ' สถานะการโหลด
+                sb.AppendLine("══════ สถานะ Config ══════")
+                sb.AppendLine(Config.AppSettings.LoadStatus)
+                sb.AppendLine()
+
+                ' ค่าทั้งหมด
+                sb.AppendLine("══════ ค่าที่อ่านได้ ══════")
+                For Each issue As String In Config.AppSettings.ValidateConfig()
+                    sb.AppendLine(issue)
+                Next
+
+                MessageBox.Show(sb.ToString(), "Config Debug", MessageBoxButtons.OK, MessageBoxIcon.Information)
+            Catch ex As Exception
+                MessageBox.Show("Error: " & ex.Message, "Config Debug", MessageBoxButtons.OK, MessageBoxIcon.[Error])
             End Try
         End Sub
 
