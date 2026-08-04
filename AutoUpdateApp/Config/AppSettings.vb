@@ -257,6 +257,13 @@ Namespace Config
             End Get
         End Property
 
+        ''' <summary>โฟลเดอร์ Local สำหรับก็อป Installer มาจาก Server (ว่าง = ใช้ %TEMP%)</summary>
+        Public Shared ReadOnly Property LocalInstallerPath As String
+            Get
+                Return GetSetting("LocalInstallerPath", "")
+            End Get
+        End Property
+
         ' ───────────────────── Registry ─────────────────────
 
         ''' <summary>เส้นทาง Registry Key สำหรับอ่านเวอร์ชันปัจจุบัน</summary>

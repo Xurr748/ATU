@@ -833,19 +833,97 @@ Namespace Forms
         Private Sub BtnDetails_Click(ByVal sender As Object, ByVal e As EventArgs)
             _detailsMenu.Items.Clear()
 
-            Dim mnuInfo As New ToolStripMenuItem("Info")
-            AddHandler mnuInfo.Click, Sub(s, ev)
-                                          OpenPdfFile(Config.AppSettings.DetailInfoPdfPath, "Info PDF")
-                                      End Sub
+            ' สร้างเมนูจากโฟลเดอร์ Info
+            AddPdfFolderMenu(_detailsMenu, "Info", Config.AppSettings.DetailInfoPdfPath)
 
-            Dim mnuDetail As New ToolStripMenuItem("Detail")
-            AddHandler mnuDetail.Click, Sub(s, ev)
-                                            OpenPdfFile(Config.AppSettings.DetailPdfPath, "Detail PDF")
-                                        End Sub
+            _detailsMenu.Items.Add(New ToolStripSeparator())
 
-            _detailsMenu.Items.Add(mnuInfo)
-            _detailsMenu.Items.Add(mnuDetail)
+            ' สร้างเมนูจากโฟลเดอร์ Detail
+            AddPdfFolderMenu(_detailsMenu, "Detail", Config.AppSettings.DetailPdfPath)
+
             _detailsMenu.Show(_btnDetails, New System.Drawing.Point(0, _btnDetails.Height))
+        End Sub
+
+        ''' <summary>
+        ''' สแกนโฟลเดอร์หา PDF ทั้งหมด แล้วเพิ่มเป็น menu items (เรียงใหม่สุดก่อน)
+        ''' ถ้ามี 1 ไฟล์ → เพิ่มตรงๆ, ถ้ามีหลายไฟล์ → สร้าง submenu
+        ''' </summary>
+        Private Sub AddPdfFolderMenu(menu As ContextMenuStrip, groupName As String, folderPath As String)
+            If String.IsNullOrEmpty(folderPath) Then
+                Dim mnu As New ToolStripMenuItem(groupName & "  (ยังไม่ได้ตั้ง path)")
+                mnu.Enabled = False
+                menu.Items.Add(mnu)
+                Return
+            End If
+
+            ' ถ้าเป็นไฟล์ตรงๆ (ไม่ใช่โฟลเดอร์)
+            If IO.File.Exists(folderPath) Then
+                Dim filePath As String = folderPath
+                Dim mnu As New ToolStripMenuItem(groupName & "  —  " & IO.Path.GetFileName(filePath))
+                AddHandler mnu.Click, Sub(s, ev)
+                                          OpenSinglePdf(filePath)
+                                      End Sub
+                menu.Items.Add(mnu)
+                Return
+            End If
+
+            ' ถ้าโฟลเดอร์ไม่มีอยู่
+            If Not IO.Directory.Exists(folderPath) Then
+                Dim mnu As New ToolStripMenuItem(groupName & "  (หาโฟลเดอร์ไม่เจอ)")
+                mnu.Enabled = False
+                menu.Items.Add(mnu)
+                Return
+            End If
+
+            ' สแกน PDF ทั้งหมดในโฟลเดอร์ เรียงใหม่สุดก่อน
+            Dim pdfFiles = New IO.DirectoryInfo(folderPath).GetFiles("*.pdf")
+            If pdfFiles.Length = 0 Then
+                Dim mnu As New ToolStripMenuItem(groupName & "  (ไม่มีไฟล์ PDF)")
+                mnu.Enabled = False
+                menu.Items.Add(mnu)
+                Return
+            End If
+
+            ' เรียงจากใหม่ไปเก่า
+            Array.Sort(pdfFiles, Function(a, b) b.LastWriteTime.CompareTo(a.LastWriteTime))
+
+            If pdfFiles.Length = 1 Then
+                ' ไฟล์เดียว → เพิ่มตรงๆ
+                Dim f As IO.FileInfo = pdfFiles(0)
+                Dim filePath As String = f.FullName
+                Dim mnu As New ToolStripMenuItem(groupName & "  —  " & f.Name)
+                AddHandler mnu.Click, Sub(s, ev)
+                                          OpenSinglePdf(filePath)
+                                      End Sub
+                menu.Items.Add(mnu)
+            Else
+                ' หลายไฟล์ → สร้าง submenu
+                Dim parent As New ToolStripMenuItem(groupName & "  (" & pdfFiles.Length & " ไฟล์)")
+                For Each f As IO.FileInfo In pdfFiles
+                    Dim filePath As String = f.FullName
+                    Dim label As String = f.Name & "  [" & f.LastWriteTime.ToString("dd/MM/yy HH:mm") & "]"
+                    Dim child As New ToolStripMenuItem(label)
+                    AddHandler child.Click, Sub(s, ev)
+                                                OpenSinglePdf(filePath)
+                                            End Sub
+                    parent.DropDownItems.Add(child)
+                Next
+                menu.Items.Add(parent)
+            End If
+        End Sub
+
+        Private Sub OpenSinglePdf(filePath As String)
+            Try
+                If Not IO.File.Exists(filePath) Then
+                    MessageBox.Show("ไม่พบไฟล์: " & filePath, "ไม่พบไฟล์", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+                    Return
+                End If
+                Managers.LogManager.Info("เปิด PDF: " & filePath)
+                Process.Start(filePath)
+            Catch ex As Exception
+                Managers.LogManager.[Error]("Failed to open PDF: " & filePath, ex)
+                MessageBox.Show("ไม่สามารถเปิดไฟล์ได้: " & ex.Message, "ข้อผิดพลาด", MessageBoxButtons.OK, MessageBoxIcon.[Error])
+            End Try
         End Sub
 
         ''' <summary>

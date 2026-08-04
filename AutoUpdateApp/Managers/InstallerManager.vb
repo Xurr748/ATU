@@ -56,7 +56,13 @@ Namespace Managers
             LogManager.LogIPAddress()
 
             ' โฟลเดอร์ปลายทางบนเครื่องที่รัน (หัวข้อ 6)
-            Dim localFolder As String = Path.Combine(Path.GetTempPath(), "AutoUpdateApp_LocalInstaller")
+            Dim configLocalPath As String = Config.AppSettings.LocalInstallerPath
+            Dim localFolder As String
+            If Not String.IsNullOrEmpty(configLocalPath) Then
+                localFolder = configLocalPath
+            Else
+                localFolder = Path.Combine(Path.GetTempPath(), "AutoUpdateApp_LocalInstaller")
+            End If
             Dim result As Boolean = False
             
             Try
