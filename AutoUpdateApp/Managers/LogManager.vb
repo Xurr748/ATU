@@ -26,7 +26,7 @@ Namespace Managers
             Get
                 If _logDirectory Is Nothing Then
                     Dim parentDir As String = Config.AppSettings.LogPath
-                    Dim company As String = Config.AppSettings.CompanyName
+                    Dim company As String = Config.AppSettings.FolderName
                     If String.IsNullOrEmpty(parentDir) Then
                         parentDir = AppDomain.CurrentDomain.BaseDirectory
                     End If

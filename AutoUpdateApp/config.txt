@@ -25,9 +25,9 @@ RegistryValueName = Version
 RegistryPathValueName = Path
 
 ; ── ข้อมูลบริษัท ──
-CompanyName = CompanyName
+FolderName = Logs
 
-; ── Log (โครงสร้าง: LogPath\CompanyName\{ShortId}\) ──
+; ── Log (โครงสร้าง: LogPath\FolderName\{ShortId}\) ──
 LogPath = 
 LogFileName = {ComputerName}_Logs.txt
 LogLevel = Info

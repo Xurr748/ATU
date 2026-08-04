@@ -287,10 +287,10 @@ Namespace Config
             End Get
         End Property
 
-        ''' <summary>ชื่อบริษัทสำหรับจัดกลุ่มโฟลเดอร์ Log</summary>
-        Public Shared ReadOnly Property CompanyName As String
+        ''' <summary>ชื่อโฟลเดอร์สำหรับจัดกลุ่ม Log</summary>
+        Public Shared ReadOnly Property FolderName As String
             Get
-                Return GetSetting("CompanyName", "CompanyName")
+                Return GetSetting("FolderName", "Logs")
             End Get
         End Property
 
