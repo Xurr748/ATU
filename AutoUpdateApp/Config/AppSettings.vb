@@ -264,6 +264,13 @@ Namespace Config
             End Get
         End Property
 
+        ''' <summary>ชื่อโปรแกรมสำหรับค้นหา GUID ถอนการติดตั้ง (ใช้ใน uninstall.bat)</summary>
+        Public Shared ReadOnly Property UninstallProductName As String
+            Get
+                Return GetSetting("UninstallProductName", "")
+            End Get
+        End Property
+
         ' ───────────────────── Registry ─────────────────────
 
         ''' <summary>เส้นทาง Registry Key สำหรับอ่านเวอร์ชันปัจจุบัน</summary>

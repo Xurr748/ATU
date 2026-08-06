@@ -98,8 +98,39 @@ Namespace Managers
                     Dim installPath As String = IO.Path.Combine(localFolder, "install.bat")
 
                     Dim uninstallSuccess As Boolean = True
-                    ' รัน uninstall.bat (ถ้ามี)
-                    If Utilities.FileHelper.FileExistsSafe(uninstallPath) Then
+                    ' รัน uninstall — ถ้ามี UninstallProductName จะสร้าง smart uninstall อัตโนมัติ
+                    Dim productName As String = Config.AppSettings.UninstallProductName
+
+                    If Not String.IsNullOrEmpty(productName) Then
+                        ' ── ค้นหา GUID จากชื่อโปรแกรมอัตโนมัติ ──
+                        If progressCallback IsNot Nothing Then
+                            progressCallback(85, "กำลังค้นหาโปรแกรมที่ติดตั้ง...")
+                        End If
+                        Dim guid As String = FindUninstallGuid(productName)
+
+                        If String.IsNullOrEmpty(guid) Then
+                            LogManager.Warn("ไม่พบโปรแกรม '" & productName & "' ใน Registry (ข้ามขั้นตอน Uninstall)")
+                        Else
+                            LogManager.Info("พบ GUID: " & guid & " สำหรับ '" & productName & "'")
+                            If progressCallback IsNot Nothing Then
+                                progressCallback(90, "กำลังถอนการติดตั้ง " & productName & "...")
+                            End If
+
+                            ' สร้าง smart uninstall.bat
+                            Dim smartBatPath As String = IO.Path.Combine(localFolder, "uninstall.bat")
+                            Dim batContent As String = "@echo off" & Environment.NewLine &
+                                                       "msiexec.exe /x " & guid & " /quiet /norestart" & Environment.NewLine &
+                                                       "exit /b %ERRORLEVEL%"
+                            IO.File.WriteAllText(smartBatPath, batContent)
+                            LogManager.Info("สร้าง uninstall.bat: msiexec /x " & guid & " /quiet /norestart")
+
+                            If Not RunBatchFile(smartBatPath, "uninstall") Then
+                                LogManager.[Error]("Uninstall process failed for GUID: " & guid)
+                                uninstallSuccess = False
+                            End If
+                        End If
+                    ElseIf Utilities.FileHelper.FileExistsSafe(uninstallPath) Then
+                        ' ── ใช้ uninstall.bat ที่มีอยู่ (แบบเดิม) ──
                         If progressCallback IsNot Nothing Then
                             progressCallback(90, "กำลังดำเนินการถอนการติดตั้ง...")
                         End If
@@ -108,7 +139,7 @@ Namespace Managers
                             uninstallSuccess = False
                         End If
                     Else
-                        LogManager.Warn("Uninstall script not found: " & uninstallPath & " (Skipping uninstall step)")
+                        LogManager.Warn("Uninstall script not found and UninstallProductName not set. (Skipping uninstall step)")
                     End If
 
                     If uninstallSuccess Then
@@ -147,6 +178,48 @@ Namespace Managers
             End Try
 
             Return result
+        End Function
+
+        ''' <summary>
+        ''' ค้นหา GUID ของโปรแกรมจาก Registry Uninstall keys (ค้นทั้ง 64-bit และ 32-bit)
+        ''' </summary>
+        Private Shared Function FindUninstallGuid(productName As String) As String
+            Dim registryPaths As String() = {
+                "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
+                "SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"
+            }
+
+            For Each regPath As String In registryPaths
+                Try
+                    Using baseKey As Microsoft.Win32.RegistryKey = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(regPath)
+                        If baseKey Is Nothing Then Continue For
+
+                        For Each subKeyName As String In baseKey.GetSubKeyNames()
+                            Try
+                                Using subKey As Microsoft.Win32.RegistryKey = baseKey.OpenSubKey(subKeyName)
+                                    If subKey Is Nothing Then Continue For
+
+                                    Dim displayName As Object = subKey.GetValue("DisplayName")
+                                    If displayName IsNot Nothing Then
+                                        Dim name As String = displayName.ToString()
+                                        If name.IndexOf(productName, StringComparison.OrdinalIgnoreCase) >= 0 Then
+                                            ' subKeyName คือ GUID เช่น {4772073D-714A-40AE-B120-0561D01099B6}
+                                            LogManager.Info("Registry match: " & name & " → " & subKeyName & " (in " & regPath & ")")
+                                            Return subKeyName
+                                        End If
+                                    End If
+                                End Using
+                            Catch
+                                ' ข้ามถ้าอ่าน subkey ไม่ได้
+                            End Try
+                        Next
+                    End Using
+                Catch ex As Exception
+                    LogManager.Warn("Error reading registry path: " & regPath & " - " & ex.Message)
+                End Try
+            Next
+
+            Return Nothing
         End Function
 
         Private Shared Function RunBatchFile(batchPath As String, stepName As String) As Boolean
