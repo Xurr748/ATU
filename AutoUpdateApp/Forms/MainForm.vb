@@ -53,7 +53,6 @@ Namespace Forms
         Private _btnDetails As Button
         Private _detailsMenu As ContextMenuStrip
         Private _btnConfigDebug As Button
-        Private _lblStatusBar As Label
 
         ' ── Progress Bar + Status ──
         Private _progressBar As ProgressBar
@@ -467,20 +466,8 @@ Namespace Forms
             Me._btnConfigDebug.Text = "[Debug] ดู Config ที่โหลดแล้ว"
             Me._btnConfigDebug.UseVisualStyleBackColor = False
             '
-            '_lblStatusBar
-            Me._lblStatusBar = New System.Windows.Forms.Label()
-            Me._lblStatusBar.BackColor = System.Drawing.Color.FromArgb(52, 73, 94)
-            Me._lblStatusBar.Dock = System.Windows.Forms.DockStyle.Bottom
-            Me._lblStatusBar.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
-            Me._lblStatusBar.ForeColor = System.Drawing.Color.White
-            Me._lblStatusBar.Name = "_lblStatusBar"
-            Me._lblStatusBar.Size = New System.Drawing.Size(400, 28)
-            Me._lblStatusBar.Text = "  สถานะ: กำลังโหลด..."
-            Me._lblStatusBar.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
-            '
             Me.BackColor = System.Drawing.Color.FromArgb(CType(CType(245, Byte), Integer), CType(CType(245, Byte), Integer), CType(CType(250, Byte), Integer))
-            Me.ClientSize = New System.Drawing.Size(400, 426)
-            Me.Controls.Add(Me._lblStatusBar)
+            Me.ClientSize = New System.Drawing.Size(400, 398)
             Me.Controls.Add(Me._btnConfigDebug)
             Me.Controls.Add(Me._progressBar)
             Me.Controls.Add(Me._lblProgress)
@@ -536,17 +523,27 @@ Namespace Forms
                 _lblServerValue.Text = If(String.IsNullOrEmpty(serverVer), "(อ่านไม่ได้)", serverVer)
 
                 ' ── สถานะ ──
-                If String.IsNullOrEmpty(currentVer) OrElse String.IsNullOrEmpty(serverVer) Then
-                    _lblStatusValue.Text = "● ไม่สามารถตรวจสอบได้"
+                Dim hasPendingUpdate As Boolean = Managers.UpdateFlagManager.GetFlag(computerName).GetValueOrDefault(False)
+
+                If hasPendingUpdate Then
+                    _lblStatusValue.Text = "● รอรีสตาร์ทเพื่ออัปเดต"
+                    _lblStatusValue.ForeColor = Color.FromArgb(230, 126, 34)
+                    If _btnUpdateNow IsNot Nothing Then _btnUpdateNow.Enabled = False
+                ElseIf String.IsNullOrEmpty(currentVer) Then
+                    _lblStatusValue.Text = "● ไม่พบโปรแกรมที่ติดตั้ง"
+                    _lblStatusValue.ForeColor = Color.FromArgb(155, 89, 182)
+                    If _btnUpdateNow IsNot Nothing Then _btnUpdateNow.Enabled = True
+                ElseIf String.IsNullOrEmpty(serverVer) Then
+                    _lblStatusValue.Text = "● ไม่สามารถอ่านเวอร์ชัน Server ได้"
                     _lblStatusValue.ForeColor = Color.FromArgb(149, 165, 166)
                     If _btnUpdateNow IsNot Nothing Then _btnUpdateNow.Enabled = False
                 ElseIf String.Equals(currentVer, serverVer, StringComparison.OrdinalIgnoreCase) Then
-                    _lblStatusValue.Text = "● โปรแกรมเป็นเวอร์ชันล่าสุดแล้ว (Up to Date)"
+                    _lblStatusValue.Text = "● เป็นเวอร์ชันล่าสุดแล้ว"
                     _lblStatusValue.ForeColor = Color.FromArgb(46, 204, 113)
                     If _btnUpdateNow IsNot Nothing Then _btnUpdateNow.Enabled = False
                 Else
-                    _lblStatusValue.Text = "● มีอัปเดตใหม่"
-                    _lblStatusValue.ForeColor = Color.FromArgb(231, 76, 60)
+                    _lblStatusValue.Text = "● มีอัปเดตใหม่ (" & serverVer & ")"
+                    _lblStatusValue.ForeColor = Color.FromArgb(41, 128, 185)
                     If _btnUpdateNow IsNot Nothing Then _btnUpdateNow.Enabled = True
                 End If
 
@@ -555,37 +552,13 @@ Namespace Forms
                 _lblStatusValue.Text = "Error: " & ex.Message
                 _lblStatusValue.ForeColor = Color.Red
             End Try
-            UpdateStatusBar()
         End Sub
 
         ''' <summary>
-        ''' อัปเดตแถบสถานะตามสถานะปัจจุบันของเครื่อง
+        ''' อัปเดตสถานะตามข้อมูลล่าสุด
         ''' </summary>
         Private Sub UpdateStatusBar()
-            Try
-                Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
-                Dim hasPendingUpdate As Boolean = Managers.UpdateFlagManager.GetFlag(computerName).GetValueOrDefault(False)
-                Dim currentVersion As String = Utilities.RegistryHelper.ReadValue(
-                    Config.AppSettings.RegistryKeyPath, Config.AppSettings.RegistryValueName)
-                Dim latestVersion As String = Managers.VersionManager.ReadLatestVersion()
-
-                If hasPendingUpdate Then
-                    _lblStatusBar.BackColor = Color.FromArgb(230, 126, 34)
-                    _lblStatusBar.Text = "  สถานะ: รอรีสตาร์ทเพื่ออัปเดต"
-                ElseIf String.IsNullOrEmpty(currentVersion) Then
-                    _lblStatusBar.BackColor = Color.FromArgb(155, 89, 182)
-                    _lblStatusBar.Text = "  สถานะ: ไม่พบโปรแกรมที่ติดตั้ง"
-                ElseIf String.Equals(currentVersion, latestVersion, StringComparison.OrdinalIgnoreCase) Then
-                    _lblStatusBar.BackColor = Color.FromArgb(39, 174, 96)
-                    _lblStatusBar.Text = "  สถานะ: เป็นเวอร์ชันล่าสุด ✓"
-                Else
-                    _lblStatusBar.BackColor = Color.FromArgb(41, 128, 185)
-                    _lblStatusBar.Text = "  สถานะ: มีเวอร์ชันใหม่ (" & latestVersion & ")"
-                End If
-            Catch
-                _lblStatusBar.BackColor = Color.FromArgb(52, 73, 94)
-                _lblStatusBar.Text = "  สถานะ: ไม่สามารถตรวจสอบได้"
-            End Try
+            LoadInfo()
         End Sub
 
         ' ══════════════════════════════════════════════
