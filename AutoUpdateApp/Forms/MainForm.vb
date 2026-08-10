@@ -564,10 +564,10 @@ Namespace Forms
         Private Sub UpdateStatusBar()
             Try
                 Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
-                Dim hasPendingUpdate As Boolean = Managers.UpdateFlagManager.GetFlag(computerName)
-                Dim currentVersion As String = Utilities.RegistryHelper.GetRegistryValue(
+                Dim hasPendingUpdate As Boolean = Managers.UpdateFlagManager.GetFlag(computerName).GetValueOrDefault(False)
+                Dim currentVersion As String = Utilities.RegistryHelper.ReadValue(
                     Config.AppSettings.RegistryKeyPath, Config.AppSettings.RegistryValueName)
-                Dim latestVersion As String = Managers.VersionManager.GetLatestVersion()
+                Dim latestVersion As String = Managers.VersionManager.ReadLatestVersion()
 
                 If hasPendingUpdate Then
                     _lblStatusBar.BackColor = Color.FromArgb(230, 126, 34)
@@ -743,7 +743,7 @@ Namespace Forms
         Private Sub CheckAndTrackUpdateFlag()
             Try
                 Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
-                Dim hasPendingUpdate As Boolean = Managers.UpdateFlagManager.GetFlag(computerName)
+                Dim hasPendingUpdate As Boolean = Managers.UpdateFlagManager.GetFlag(computerName).GetValueOrDefault(False)
 
                 If hasPendingUpdate Then
                     If _flagSetTime = DateTime.MinValue Then
@@ -751,7 +751,13 @@ Namespace Forms
                         Managers.LogManager.Info("Update flag detected. Tracking start: " & _flagSetTime.ToString("HH:mm:ss"))
 
                         ' เอา target app ออกจาก Startup เมื่อ flag = true
-                        Managers.InstallerManager.RemoveStartupShortcut()
+                        Dim shortcutName As String = Config.AppSettings.StartupShortcutName
+                        If String.IsNullOrEmpty(shortcutName) Then
+                            shortcutName = Config.AppSettings.UninstallProductName
+                        End If
+                        If Not String.IsNullOrEmpty(shortcutName) Then
+                            Managers.InstallerManager.RemoveStartupShortcut(shortcutName)
+                        End If
                         Managers.LogManager.Info("Removed target app from Startup (flag is true)")
                     End If
                 Else
