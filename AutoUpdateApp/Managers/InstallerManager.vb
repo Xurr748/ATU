@@ -143,23 +143,47 @@ Namespace Managers
                     End If
 
                     If uninstallSuccess Then
-                        ' รัน install.bat
-                        If Not Utilities.FileHelper.FileExistsSafe(installPath) Then
-                            LogManager.[Error]("Install script not found: " & installPath)
-                        Else
+                        ' ── Install: ค้นหา .msi จากโฟลเดอร์ Installer อัตโนมัติ ──
+                        Dim msiFile As String = FindLatestMsi(installerFolder)
+                        Dim installerArgs As String = Config.AppSettings.InstallerArgs
+
+                        If Not String.IsNullOrEmpty(msiFile) Then
+                            ' สร้าง smart install.bat
+                            LogManager.Info("พบ MSI: " & msiFile)
+                            If progressCallback IsNot Nothing Then
+                                progressCallback(95, "กำลังติดตั้ง " & IO.Path.GetFileName(msiFile) & "...")
+                            End If
+
+                            Dim smartInstallPath As String = IO.Path.Combine(localFolder, "install.bat")
+                            Dim batContent As String = "@echo off" & Environment.NewLine &
+                                                       "msiexec.exe /i """ & msiFile & """ " & installerArgs & Environment.NewLine &
+                                                       "exit /b %ERRORLEVEL%"
+                            IO.File.WriteAllText(smartInstallPath, batContent)
+                            LogManager.Info("สร้าง install.bat: msiexec /i """ & msiFile & """ " & installerArgs)
+
+                            If Not RunBatchFile(smartInstallPath, "install") Then
+                                LogManager.[Error]("Install process failed.")
+                            Else
+                                If progressCallback IsNot Nothing Then
+                                    progressCallback(100, "การอัปเดตเสร็จสมบูรณ์")
+                                End If
+                                result = True
+                            End If
+                        ElseIf Utilities.FileHelper.FileExistsSafe(installPath) Then
+                            ' ── ใช้ install.bat ที่มีอยู่ (แบบเดิม) ──
                             If progressCallback IsNot Nothing Then
                                 progressCallback(95, "กำลังดำเนินการติดตั้ง...")
                             End If
-                            
                             If Not RunBatchFile(installPath, "install") Then
                                 LogManager.[Error]("Install process failed.")
                             Else
                                 If progressCallback IsNot Nothing Then
                                     progressCallback(100, "การอัปเดตเสร็จสมบูรณ์")
                                 End If
-
                                 result = True
                             End If
+                        Else
+                            LogManager.[Error]("ไม่พบไฟล์ .msi ในโฟลเดอร์ " & installerFolder & " และไม่มี install.bat")
                         End If
                     End If
                 End If
@@ -183,6 +207,35 @@ Namespace Managers
         ''' <summary>
         ''' ค้นหา GUID ของโปรแกรมจาก Registry Uninstall keys (ค้นทั้ง 64-bit และ 32-bit)
         ''' </summary>
+        ''' <summary>
+        ''' ค้นหาไฟล์ .msi ล่าสุดในโฟลเดอร์ Installer
+        ''' </summary>
+        Private Shared Function FindLatestMsi(folderPath As String) As String
+            Try
+                If String.IsNullOrEmpty(folderPath) OrElse Not Directory.Exists(folderPath) Then
+                    Return Nothing
+                End If
+
+                Dim msiFiles = New IO.DirectoryInfo(folderPath).GetFiles("*.msi")
+                If msiFiles.Length = 0 Then
+                    Return Nothing
+                End If
+
+                ' เรียงจากใหม่ไปเก่า เลือกอันใหม่ที่สุด
+                Dim latest As IO.FileInfo = msiFiles(0)
+                For Each f In msiFiles
+                    If f.LastWriteTime > latest.LastWriteTime Then
+                        latest = f
+                    End If
+                Next
+
+                Return latest.FullName
+            Catch ex As Exception
+                LogManager.Warn("Error searching for .msi files: " & ex.Message)
+                Return Nothing
+            End Try
+        End Function
+
         Private Shared Function FindUninstallGuid(productName As String) As String
             Dim registryPaths As String() = {
                 "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
