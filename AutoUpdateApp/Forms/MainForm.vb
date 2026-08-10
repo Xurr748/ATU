@@ -53,6 +53,7 @@ Namespace Forms
         Private _btnDetails As Button
         Private _detailsMenu As ContextMenuStrip
         Private _btnConfigDebug As Button
+        Private _lblStatusBar As Label
 
         ' ── Progress Bar + Status ──
         Private _progressBar As ProgressBar
@@ -66,6 +67,9 @@ Namespace Forms
         Private _btnTargets As New System.Collections.Generic.Dictionary(Of Button, Color)
         Private _btnBorders As New System.Collections.Generic.Dictionary(Of Button, Color)
         Private _btnTargetBorders As New System.Collections.Generic.Dictionary(Of Button, Color)
+        Private _flagSetTime As DateTime = DateTime.MinValue
+        Private _restartPromptShown As Boolean = False  
+        Private WithEvents _restartCheckTimer As Timer
 
         ' ── ตัวแปรเก็บค่าข้อความชั่วคราวระหว่างรอ Fade-in เสร็จ ──
         Private _tempComName As String = ""
@@ -463,8 +467,20 @@ Namespace Forms
             Me._btnConfigDebug.Text = "[Debug] ดู Config ที่โหลดแล้ว"
             Me._btnConfigDebug.UseVisualStyleBackColor = False
             '
+            '_lblStatusBar
+            Me._lblStatusBar = New System.Windows.Forms.Label()
+            Me._lblStatusBar.BackColor = System.Drawing.Color.FromArgb(52, 73, 94)
+            Me._lblStatusBar.Dock = System.Windows.Forms.DockStyle.Bottom
+            Me._lblStatusBar.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
+            Me._lblStatusBar.ForeColor = System.Drawing.Color.White
+            Me._lblStatusBar.Name = "_lblStatusBar"
+            Me._lblStatusBar.Size = New System.Drawing.Size(400, 28)
+            Me._lblStatusBar.Text = "  สถานะ: กำลังโหลด..."
+            Me._lblStatusBar.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
+            '
             Me.BackColor = System.Drawing.Color.FromArgb(CType(CType(245, Byte), Integer), CType(CType(245, Byte), Integer), CType(CType(250, Byte), Integer))
-            Me.ClientSize = New System.Drawing.Size(400, 398)
+            Me.ClientSize = New System.Drawing.Size(400, 426)
+            Me.Controls.Add(Me._lblStatusBar)
             Me.Controls.Add(Me._btnConfigDebug)
             Me.Controls.Add(Me._progressBar)
             Me.Controls.Add(Me._lblProgress)
@@ -539,6 +555,37 @@ Namespace Forms
                 _lblStatusValue.Text = "Error: " & ex.Message
                 _lblStatusValue.ForeColor = Color.Red
             End Try
+            UpdateStatusBar()
+        End Sub
+
+        ''' <summary>
+        ''' อัปเดตแถบสถานะตามสถานะปัจจุบันของเครื่อง
+        ''' </summary>
+        Private Sub UpdateStatusBar()
+            Try
+                Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
+                Dim hasPendingUpdate As Boolean = Managers.UpdateFlagManager.GetFlag(computerName)
+                Dim currentVersion As String = Utilities.RegistryHelper.GetRegistryValue(
+                    Config.AppSettings.RegistryKeyPath, Config.AppSettings.RegistryValueName)
+                Dim latestVersion As String = Managers.VersionManager.GetLatestVersion()
+
+                If hasPendingUpdate Then
+                    _lblStatusBar.BackColor = Color.FromArgb(230, 126, 34)
+                    _lblStatusBar.Text = "  สถานะ: รอรีสตาร์ทเพื่ออัปเดต"
+                ElseIf String.IsNullOrEmpty(currentVersion) Then
+                    _lblStatusBar.BackColor = Color.FromArgb(155, 89, 182)
+                    _lblStatusBar.Text = "  สถานะ: ไม่พบโปรแกรมที่ติดตั้ง"
+                ElseIf String.Equals(currentVersion, latestVersion, StringComparison.OrdinalIgnoreCase) Then
+                    _lblStatusBar.BackColor = Color.FromArgb(39, 174, 96)
+                    _lblStatusBar.Text = "  สถานะ: เป็นเวอร์ชันล่าสุด ✓"
+                Else
+                    _lblStatusBar.BackColor = Color.FromArgb(41, 128, 185)
+                    _lblStatusBar.Text = "  สถานะ: มีเวอร์ชันใหม่ (" & latestVersion & ")"
+                End If
+            Catch
+                _lblStatusBar.BackColor = Color.FromArgb(52, 73, 94)
+                _lblStatusBar.Text = "  สถานะ: ไม่สามารถตรวจสอบได้"
+            End Try
         End Sub
 
         ' ══════════════════════════════════════════════
@@ -603,6 +650,15 @@ Namespace Forms
             _scheduler = New Managers.SchedulerManager()
             AddHandler _scheduler.TickFired, AddressOf OnSchedulerTick
             _scheduler.Start()
+
+            ' Timer ตรวจสอบว่า updateflag = true เกิน 1 ชม หรือไม่
+            _restartCheckTimer = New System.Windows.Forms.Timer()
+            _restartCheckTimer.Interval = 60000 ' ตรวจทุก 1 นาที
+            AddHandler _restartCheckTimer.Tick, AddressOf RestartCheckTimer_Tick
+            _restartCheckTimer.Start()
+
+            ' ตรวจ flag ตอนเริ่มต้น
+            CheckAndTrackUpdateFlag()
 
             ' โหลดข้อมูลครั้งแรก
             LoadInfo()
@@ -681,6 +737,65 @@ Namespace Forms
                         MessageBox.Show("เกิดข้อผิดพลาด: " & e.Message, "ผลการตรวจสอบ", MessageBoxButtons.OK, MessageBoxIcon.Error)
                 End Select
             End If
+            UpdateStatusBar()
+        End Sub
+
+        Private Sub CheckAndTrackUpdateFlag()
+            Try
+                Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
+                Dim hasPendingUpdate As Boolean = Managers.UpdateFlagManager.GetFlag(computerName)
+
+                If hasPendingUpdate Then
+                    If _flagSetTime = DateTime.MinValue Then
+                        _flagSetTime = DateTime.Now
+                        Managers.LogManager.Info("Update flag detected. Tracking start: " & _flagSetTime.ToString("HH:mm:ss"))
+
+                        ' เอา target app ออกจาก Startup เมื่อ flag = true
+                        Managers.InstallerManager.RemoveStartupShortcut()
+                        Managers.LogManager.Info("Removed target app from Startup (flag is true)")
+                    End If
+                Else
+                    _flagSetTime = DateTime.MinValue
+                    _restartPromptShown = False
+                End If
+            Catch ex As Exception
+                Managers.LogManager.Warn("Error checking update flag: " & ex.Message)
+            End Try
+        End Sub
+
+        Private Sub RestartCheckTimer_Tick(ByVal sender As Object, ByVal e As EventArgs)
+            Try
+                CheckAndTrackUpdateFlag()
+
+                ' ถ้า flag = true เกิน 1 ชม และยังไม่ได้แจ้งเตือน
+                If _flagSetTime <> DateTime.MinValue AndAlso Not _restartPromptShown Then
+                    Dim elapsed As TimeSpan = DateTime.Now - _flagSetTime
+                    If elapsed.TotalMinutes >= 60 Then
+                        _restartPromptShown = True
+                        Managers.LogManager.Info("Update flag has been set for " & elapsed.TotalMinutes.ToString("F0") & " minutes. Prompting restart.")
+
+                        Dim result As DialogResult = MessageBox.Show(
+                            "ระบบรอการอัปเดตมานานกว่า 1 ชั่วโมงแล้ว" & Environment.NewLine &
+                            "กรุณารีสตาร์ทเครื่องเพื่อทำการอัปเดต System" & Environment.NewLine & Environment.NewLine &
+                            "ต้องการรีสตาร์ทตอนนี้หรือไม่?",
+                            "แจ้งเตือนอัปเดต",
+                            MessageBoxButtons.YesNo,
+                            MessageBoxIcon.Warning)
+
+                        If result = DialogResult.Yes Then
+                            Managers.LogManager.Info("User confirmed restart.")
+                            Try
+                                Process.Start("shutdown", "/r /t 30 /c """"System will restart in 30 seconds for update.""""")
+                            Catch ex As Exception
+                                Managers.LogManager.[Error]("Failed to initiate restart: " & ex.Message)
+                                MessageBox.Show("ไม่สามารถรีสตาร์ทได้: " & ex.Message, "ข้อผิดพลาด", MessageBoxButtons.OK, MessageBoxIcon.[Error])
+                            End Try
+                        End If
+                    End If
+                End If
+            Catch ex As Exception
+                Managers.LogManager.Warn("RestartCheckTimer error: " & ex.Message)
+            End Try
         End Sub
 
         ' ── ไอคอน Tray: ดับเบิลคลิกเพื่อเปิดหน้าต่าง ──
