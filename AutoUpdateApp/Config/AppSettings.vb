@@ -407,6 +407,59 @@ Namespace Config
             End Get
         End Property
 
+        ''' <summary>
+        ''' อัปเดตภาษาลงใน Dictionary ในหน่วยความจำ และเขียนทับลงไฟล์ config.txt เพื่อให้มีผลถาวรทั้งระบบ
+        ''' </summary>
+        Public Shared Sub UpdateLanguage(lang As String)
+            EnsureLoaded()
+            If String.IsNullOrEmpty(lang) Then Return
+
+            SyncLock _lock
+                ' 1. อัปเดตใน memory dictionary
+                _settings("Language") = lang.ToLower()
+
+                ' 2. เขียนลงไฟล์ config.txt
+                Dim configPath As String = _configLoadedPath
+                If String.IsNullOrEmpty(configPath) Then
+                    configPath = GetConfigFilePath()
+                End If
+
+                Try
+                    Dim lines As New List(Of String)()
+                    Dim found As Boolean = False
+
+                    If File.Exists(configPath) Then
+                        Dim fileLines As String() = File.ReadAllLines(configPath)
+                        For Each line As String In fileLines
+                            Dim trimmed As String = line.Trim()
+                            ' ตรวจจับ key "Language"
+                            If Not trimmed.StartsWith(";") AndAlso Not trimmed.StartsWith("#") AndAlso trimmed.Contains("=") Then
+                                Dim eqIndex As Integer = trimmed.IndexOf("="c)
+                                Dim key As String = trimmed.Substring(0, eqIndex).Trim()
+                                If String.Equals(key, "Language", StringComparison.OrdinalIgnoreCase) Then
+                                    lines.Add("Language = " & lang.ToLower())
+                                    found = True
+                                    Continue For
+                                End If
+                            End If
+                            lines.Add(line)
+                        Next
+                    End If
+
+                    If Not found Then
+                        lines.Add("")
+                        lines.Add("; ── ภาษาที่บันทึกจากการเปลี่ยนภาษา ──")
+                        lines.Add("Language = " & lang.ToLower())
+                    End If
+
+                    File.WriteAllLines(configPath, lines.ToArray())
+                Catch ex As Exception
+                    ' ล็อกข้อผิดพลาดแต่ไม่ให้แอปแครช
+                    Managers.LogManager.Warn("ไม่สามารถบันทึกภาษาลง config.txt ได้: " & ex.Message)
+                End Try
+            End SyncLock
+        End Sub
+
         ' ───────────────────── Target App ─────────────────────
 
         ''' <summary>เส้นทาง exe ของแอปเป้าหมายที่จะเปิดหลังอัปเดต (ว่าง = ดึงจาก Registry)</summary>

@@ -41,7 +41,8 @@ Namespace Forms
 
         Public Sub New(currentVersion As String, latestVersion As String)
             InitializeComponent()
-            lblVersionInfo.Text = "ปัจจุบัน: " & currentVersion & "  →  ล่าสุด: " & latestVersion
+            Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
+            lblVersionInfo.Text = L("PromptCurrent") & ": " & currentVersion & "  →  " & L("PromptLatest") & ": " & latestVersion
         End Sub
 
         Private Sub InitializeComponent()
@@ -49,7 +50,7 @@ Namespace Forms
 
             ' ── lblMessage ──
             lblMessage = New Label()
-            lblMessage.Text = "พบเวอร์ชันใหม่พร้อมอัปเดต!"
+            lblMessage.Text = Config.LanguageManager.GetText("PromptNewVersion")
             lblMessage.Font = New Drawing.Font("Segoe UI", 10.0F, Drawing.FontStyle.Bold)
             lblMessage.Location = New Drawing.Point(20, 20)
             lblMessage.Size = New Drawing.Size(340, 25)
@@ -65,7 +66,7 @@ Namespace Forms
 
             ' ── btnUpdateNow ──
             btnUpdateNow = New Button()
-            btnUpdateNow.Text = "อัปเดตตอนนี้"
+            btnUpdateNow.Text = Config.LanguageManager.GetText("PromptUpdateNow")
             btnUpdateNow.Location = New Drawing.Point(20, 90)
             btnUpdateNow.Size = New Drawing.Size(105, 35)
             btnUpdateNow.Font = New Drawing.Font("Segoe UI", 9.0F, Drawing.FontStyle.Bold)
@@ -78,7 +79,7 @@ Namespace Forms
 
             ' ── btnAfterRestart ──
             btnAfterRestart = New Button()
-            btnAfterRestart.Text = "หลังรีสตาร์ท"
+            btnAfterRestart.Text = Config.LanguageManager.GetText("PromptAfterRestart")
             btnAfterRestart.Location = New Drawing.Point(135, 90)
             btnAfterRestart.Size = New Drawing.Size(110, 35)
             btnAfterRestart.FlatStyle = FlatStyle.Flat
@@ -89,7 +90,7 @@ Namespace Forms
 
             ' ── btnRemindLater ──
             btnRemindLater = New Button()
-            btnRemindLater.Text = "เตือนทีหลัง"
+            btnRemindLater.Text = Config.LanguageManager.GetText("PromptRemindLater")
             btnRemindLater.Location = New Drawing.Point(255, 90)
             btnRemindLater.Size = New Drawing.Size(105, 35)
             btnRemindLater.FlatStyle = FlatStyle.Flat
@@ -99,7 +100,7 @@ Namespace Forms
             AddHandler btnRemindLater.Click, AddressOf BtnRemindLater_Click
 
             ' ── Form ──
-            Me.Text = "แจ้งเตือนอัปเดต"
+            Me.Text = Config.LanguageManager.GetText("PromptTitle")
             Me.ClientSize = New Drawing.Size(380, 145)
             Me.FormBorderStyle = FormBorderStyle.FixedDialog
             Me.StartPosition = FormStartPosition.CenterScreen

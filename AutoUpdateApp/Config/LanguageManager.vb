@@ -101,6 +101,21 @@ Namespace Config
             AddString("RestartPromptMsg", "ระบบรอการอัปเดตมานานกว่า 1 ชั่วโมงแล้ว" & Environment.NewLine & "กรุณารีสตาร์ทเครื่องเพื่อทำการอัปเดต System" & Environment.NewLine & Environment.NewLine & "ต้องการรีสตาร์ทตอนนี้หรือไม่?", "System has been waiting for update for over 1 hour." & Environment.NewLine & "Please restart to update the system." & Environment.NewLine & Environment.NewLine & "Restart now?", "システムは1時間以上更新を待っています。" & Environment.NewLine & "システムを更新するために再起動してください。" & Environment.NewLine & Environment.NewLine & "今すぐ再起動しますか?")
             AddString("RestartPromptTitle", "แจ้งเตือนอัปเดต", "Update Notice", "更新通知")
 
+            ' ── Update Prompt Form ──
+            AddString("PromptTitle", "แจ้งเตือนอัปเดต", "Update Alert", "アップデート通知")
+            AddString("PromptNewVersion", "พบเวอร์ชันใหม่พร้อมอัปเดต!", "New version found and ready to update!", "新しいバージョンが見つかりました！")
+            AddString("PromptCurrent", "ปัจจุบัน", "Current", "現在")
+            AddString("PromptLatest", "ล่าสุด", "Latest", "最新")
+            AddString("PromptUpdateNow", "อัปเดตตอนนี้", "Update Now", "今すぐ更新")
+            AddString("PromptAfterRestart", "หลังรีสตาร์ท", "After Restart", "再起動後")
+            AddString("PromptRemindLater", "เตือนทีหลัง", "Remind Later", "後で通知")
+
+            AddString("PromptSuccess", "อัปเดตสำเร็จเรียบร้อยแล้ว", "Update completed successfully", "更新が正常に完了しました")
+            AddString("PromptFailed", "อัปเดตไม่สำเร็จ กรุณาตรวจสอบ Log", "Update failed. Please check the log.", "更新に失敗しました。ログを確認してください")
+            AddString("TitleSuccess", "สำเร็จ", "Success", "成功")
+            AddString("CantRestart", "ไม่สามารถรีสตาร์ทได้: ", "Unable to restart: ", "再起動できません: ")
+            AddString("TitleError", "ข้อผิดพลาด", "Error", "エラー")
+
             ' ── Language ──
             AddString("LangTH", "TH", "TH", "TH")
             AddString("LangEN", "EN", "EN", "EN")

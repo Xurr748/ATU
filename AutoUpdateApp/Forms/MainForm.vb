@@ -609,9 +609,10 @@ Namespace Forms
         ''' </summary>
         Private Sub SwitchLanguage(lang As String)
             Config.LanguageManager.CurrentLanguage = lang
+            Config.AppSettings.UpdateLanguage(lang)
             ApplyLanguage()
             LoadInfo()
-            Managers.LogManager.Info("Language switched to: " & lang)
+            Managers.LogManager.Info("Language switched and persisted: " & lang)
         End Sub
 
 
@@ -812,11 +813,10 @@ Namespace Forms
                         _restartPromptShown = True
                         Managers.LogManager.Info("Update flag has been set for " & elapsed.TotalMinutes.ToString("F0") & " minutes. Prompting restart.")
 
+                        Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
                         Dim result As DialogResult = MessageBox.Show(
-                            "ระบบรอการอัปเดตมานานกว่า 1 ชั่วโมงแล้ว" & Environment.NewLine &
-                            "กรุณารีสตาร์ทเครื่องเพื่อทำการอัปเดต System" & Environment.NewLine & Environment.NewLine &
-                            "ต้องการรีสตาร์ทตอนนี้หรือไม่?",
-                            "แจ้งเตือนอัปเดต",
+                            L("RestartPromptMsg"),
+                            L("RestartPromptTitle"),
                             MessageBoxButtons.YesNo,
                             MessageBoxIcon.Warning)
 
@@ -826,7 +826,7 @@ Namespace Forms
                                 Process.Start("shutdown", "/r /t 30 /c """"System will restart in 30 seconds for update.""""")
                             Catch ex As Exception
                                 Managers.LogManager.[Error]("Failed to initiate restart: " & ex.Message)
-                                MessageBox.Show("ไม่สามารถรีสตาร์ทได้: " & ex.Message, "ข้อผิดพลาด", MessageBoxButtons.OK, MessageBoxIcon.[Error])
+                                MessageBox.Show(L("CantRestart") & ex.Message, L("TitleError"), MessageBoxButtons.OK, MessageBoxIcon.[Error])
                             End Try
                         End If
                     End If
@@ -1148,19 +1148,20 @@ Namespace Forms
         ' ── ปุ่ม: อัปเดตทันที (รันบน BackgroundWorker) ──
         Private Sub BtnUpdateNow_Click(ByVal sender As Object, ByVal e As EventArgs)
             Try
+                Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
                 Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
                 Dim tester As Models.TesterInfo = Managers.ConfigManager.GetTesterByName(computerName)
 
                 If tester Is Nothing Then
-                    MessageBox.Show("เครื่องนี้ไม่อยู่ในระบบ (TesterType.csv)", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                    MessageBox.Show(L("MachineNotInSystem"), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
                     Return
                 End If
 
-                Dim result = MessageBox.Show("ต้องการอัปเดตแอปพลิเคชันเดี๋ยวนี้หรือไม่?", "ยืนยัน", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
+                Dim result = MessageBox.Show(L("ConfirmUpdate"), L("ConfirmTitle"), MessageBoxButtons.YesNo, MessageBoxIcon.Question)
                 If result = DialogResult.Yes Then
                     _btnUpdateNow.Enabled = False
-                    _btnUpdateNow.Text = "กำลังอัปเดต..."
-                    ShowProgress(True, "กำลังรัน uninstall / install ...")
+                    _btnUpdateNow.Text = L("Updating")
+                    ShowProgress(True, L("Updating"))
 
                     ' รันบน BackgroundWorker เพื่อไม่บล็อก UI
                     If _manualUpdateWorker IsNot Nothing Then
@@ -1197,14 +1198,15 @@ Namespace Forms
                 Return
             End If
 
+            Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
             Dim success As Boolean = DirectCast(e.Result, Boolean)
             If success Then
-                MessageBox.Show("อัปเดตสำเร็จเรียบร้อยแล้ว", "สำเร็จ", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                MessageBox.Show(L("PromptSuccess"), L("TitleSuccess"), MessageBoxButtons.OK, MessageBoxIcon.Information)
                 Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
                 Managers.UpdateFlagManager.SetFlag(computerName, False)
                 LoadInfo()
             Else
-                MessageBox.Show("อัปเดตไม่สำเร็จ กรุณาตรวจสอบ Log", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                MessageBox.Show(L("PromptFailed"), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End If
             ResetUpdateButton()
         End Sub
