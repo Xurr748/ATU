@@ -398,6 +398,24 @@ Namespace Config
             End SyncLock
         End Sub
 
+        ' ───────────────────── ภาษา ─────────────────────
+
+        ''' <summary>ภาษาของ UI (th, en, jp)</summary>
+        Public Shared ReadOnly Property Language As String
+            Get
+                Return GetSetting("Language", "th")
+            End Get
+        End Property
+
+        ' ───────────────────── Target App ─────────────────────
+
+        ''' <summary>เส้นทาง exe ของแอปเป้าหมายที่จะเปิดหลังอัปเดต (ว่าง = ดึงจาก Registry)</summary>
+        Public Shared ReadOnly Property TargetAppExePath As String
+            Get
+                Return GetSetting("TargetAppExePath", "")
+            End Get
+        End Property
+
     End Class
 
 End Namespace

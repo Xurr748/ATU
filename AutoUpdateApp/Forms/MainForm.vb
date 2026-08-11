@@ -53,6 +53,9 @@ Namespace Forms
         Private _btnDetails As Button
         Private _detailsMenu As ContextMenuStrip
         Private _btnConfigDebug As Button
+        Private _btnLangTH As Button
+        Private _btnLangEN As Button
+        Private _btnLangJP As Button
 
         ' ── Progress Bar + Status ──
         Private _progressBar As ProgressBar
@@ -466,8 +469,51 @@ Namespace Forms
             Me._btnConfigDebug.Text = "[Debug] ดู Config ที่โหลดแล้ว"
             Me._btnConfigDebug.UseVisualStyleBackColor = False
             '
+            ' ── Language Selector Buttons ──
+            Me._btnLangTH = New System.Windows.Forms.Button()
+            Me._btnLangTH.FlatStyle = FlatStyle.Flat
+            Me._btnLangTH.FlatAppearance.BorderSize = 1
+            Me._btnLangTH.FlatAppearance.BorderColor = Color.FromArgb(200, 200, 200)
+            Me._btnLangTH.Font = New System.Drawing.Font("Segoe UI", 7.5!, FontStyle.Bold)
+            Me._btnLangTH.Location = New System.Drawing.Point(297, 4)
+            Me._btnLangTH.Size = New System.Drawing.Size(32, 22)
+            Me._btnLangTH.Text = "TH"
+            Me._btnLangTH.Cursor = Cursors.Hand
+            Me._btnLangTH.BackColor = Color.FromArgb(52, 152, 219)
+            Me._btnLangTH.ForeColor = Color.White
+            Me._btnLangTH.TabStop = False
+            '
+            Me._btnLangEN = New System.Windows.Forms.Button()
+            Me._btnLangEN.FlatStyle = FlatStyle.Flat
+            Me._btnLangEN.FlatAppearance.BorderSize = 1
+            Me._btnLangEN.FlatAppearance.BorderColor = Color.FromArgb(200, 200, 200)
+            Me._btnLangEN.Font = New System.Drawing.Font("Segoe UI", 7.5!, FontStyle.Bold)
+            Me._btnLangEN.Location = New System.Drawing.Point(331, 4)
+            Me._btnLangEN.Size = New System.Drawing.Size(32, 22)
+            Me._btnLangEN.Text = "EN"
+            Me._btnLangEN.Cursor = Cursors.Hand
+            Me._btnLangEN.BackColor = Color.White
+            Me._btnLangEN.ForeColor = Color.FromArgb(100, 100, 100)
+            Me._btnLangEN.TabStop = False
+            '
+            Me._btnLangJP = New System.Windows.Forms.Button()
+            Me._btnLangJP.FlatStyle = FlatStyle.Flat
+            Me._btnLangJP.FlatAppearance.BorderSize = 1
+            Me._btnLangJP.FlatAppearance.BorderColor = Color.FromArgb(200, 200, 200)
+            Me._btnLangJP.Font = New System.Drawing.Font("Segoe UI", 7.5!, FontStyle.Bold)
+            Me._btnLangJP.Location = New System.Drawing.Point(365, 4)
+            Me._btnLangJP.Size = New System.Drawing.Size(32, 22)
+            Me._btnLangJP.Text = "JP"
+            Me._btnLangJP.Cursor = Cursors.Hand
+            Me._btnLangJP.BackColor = Color.White
+            Me._btnLangJP.ForeColor = Color.FromArgb(100, 100, 100)
+            Me._btnLangJP.TabStop = False
+            '
             Me.BackColor = System.Drawing.Color.FromArgb(CType(CType(245, Byte), Integer), CType(CType(245, Byte), Integer), CType(CType(250, Byte), Integer))
             Me.ClientSize = New System.Drawing.Size(400, 398)
+            Me.Controls.Add(Me._btnLangTH)
+            Me.Controls.Add(Me._btnLangEN)
+            Me.Controls.Add(Me._btnLangJP)
             Me.Controls.Add(Me._btnConfigDebug)
             Me.Controls.Add(Me._progressBar)
             Me.Controls.Add(Me._lblProgress)
@@ -500,6 +546,8 @@ Namespace Forms
         ' ══════════════════════════════════════════════
         Private Sub LoadInfo()
             Try
+                Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
+
                 ' ── ข้อมูลเครื่อง ──
                 Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
                 _lblComNameValue.Text = computerName
@@ -510,7 +558,7 @@ Namespace Forms
                     _lblModeValue.Text = tester.Mode
                     _lblTimeValue.Text = tester.ScheduledTime.ToString("hh\:mm\:ss")
                 Else
-                    _lblTypeValue.Text = "(ไม่พบใน Config)"
+                    _lblTypeValue.Text = L("NotFoundInConfig")
                     _lblModeValue.Text = "-"
                     _lblTimeValue.Text = "-"
                 End If
@@ -519,30 +567,30 @@ Namespace Forms
                 Dim currentVer As String = Managers.VersionManager.ReadRegistryVersion()
                 Dim serverVer As String = Managers.VersionManager.ReadLatestVersion()
 
-                _lblCurrentValue.Text = If(String.IsNullOrEmpty(currentVer), "(ไม่พบ)", currentVer)
-                _lblServerValue.Text = If(String.IsNullOrEmpty(serverVer), "(อ่านไม่ได้)", serverVer)
+                _lblCurrentValue.Text = If(String.IsNullOrEmpty(currentVer), L("VersionNotFound"), currentVer)
+                _lblServerValue.Text = If(String.IsNullOrEmpty(serverVer), L("VersionReadError"), serverVer)
 
                 ' ── สถานะ ──
                 Dim hasPendingUpdate As Boolean = Managers.UpdateFlagManager.GetFlag(computerName).GetValueOrDefault(False)
 
                 If hasPendingUpdate Then
-                    _lblStatusValue.Text = "● รอรีสตาร์ทเพื่ออัปเดต"
+                    _lblStatusValue.Text = L("StatusPendingRestart")
                     _lblStatusValue.ForeColor = Color.FromArgb(230, 126, 34)
                     If _btnUpdateNow IsNot Nothing Then _btnUpdateNow.Enabled = False
                 ElseIf String.IsNullOrEmpty(currentVer) Then
-                    _lblStatusValue.Text = "● ไม่พบโปรแกรมที่ติดตั้ง"
+                    _lblStatusValue.Text = L("StatusNotInstalled")
                     _lblStatusValue.ForeColor = Color.FromArgb(155, 89, 182)
                     If _btnUpdateNow IsNot Nothing Then _btnUpdateNow.Enabled = True
                 ElseIf String.IsNullOrEmpty(serverVer) Then
-                    _lblStatusValue.Text = "● ไม่สามารถอ่านเวอร์ชัน Server ได้"
+                    _lblStatusValue.Text = L("StatusServerError")
                     _lblStatusValue.ForeColor = Color.FromArgb(149, 165, 166)
                     If _btnUpdateNow IsNot Nothing Then _btnUpdateNow.Enabled = False
                 ElseIf String.Equals(currentVer, serverVer, StringComparison.OrdinalIgnoreCase) Then
-                    _lblStatusValue.Text = "● เป็นเวอร์ชันล่าสุดแล้ว"
+                    _lblStatusValue.Text = L("StatusUpToDate")
                     _lblStatusValue.ForeColor = Color.FromArgb(46, 204, 113)
                     If _btnUpdateNow IsNot Nothing Then _btnUpdateNow.Enabled = False
                 Else
-                    _lblStatusValue.Text = "● มีอัปเดตใหม่ (" & serverVer & ")"
+                    _lblStatusValue.Text = L("StatusUpdateAvailable") & " (" & serverVer & ")"
                     _lblStatusValue.ForeColor = Color.FromArgb(41, 128, 185)
                     If _btnUpdateNow IsNot Nothing Then _btnUpdateNow.Enabled = True
                 End If
@@ -560,6 +608,70 @@ Namespace Forms
         Private Sub UpdateStatusBar()
             LoadInfo()
         End Sub
+
+        ''' <summary>
+        ''' ปรับข้อความ UI ทั้งหมดตามภาษาปัจจุบัน
+        ''' </summary>
+        Private Sub ApplyLanguage()
+            Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
+
+            ' Title
+            Me.Text = L("AppTitle")
+
+            ' Info Card
+            _lblInfoTitle.Text = L("InfoTitle")
+            _lblComNameLabel.Text = L("ComputerName")
+            _lblTypeLabel.Text = L("Type")
+            _lblModeLabel.Text = L("Mode")
+            _lblTimeLabel.Text = L("ScheduleTime")
+
+            ' Version Card
+            _lblVersionTitle.Text = L("VersionTitle")
+            _lblCurrentLabel.Text = L("CurrentVersion")
+            _lblServerLabel.Text = L("ServerVersion")
+            _lblStatusLabel.Text = L("Status")
+
+            ' Buttons
+            _btnUpdateNow.Text = L("BtnUpdateNow")
+            _btnCheckNow.Text = L("BtnCheck")
+            _btnRefreshInfo.Text = L("BtnRefresh")
+            _btnExit.Text = L("BtnExit")
+            _btnDetails.Text = L("BtnDetails")
+            _btnConfigDebug.Text = L("BtnDebugConfig")
+
+            ' Context Menu
+            _mnuCheckNow.Text = L("MenuCheckNow")
+            _mnuExit.Text = L("MenuExit")
+
+            ' Highlight active language button
+            Dim currentLang As String = Config.LanguageManager.CurrentLanguage
+            For Each btn In {_btnLangTH, _btnLangEN, _btnLangJP}
+                btn.BackColor = Color.White
+                btn.ForeColor = Color.FromArgb(100, 100, 100)
+            Next
+            Select Case currentLang
+                Case "th"
+                    _btnLangTH.BackColor = Color.FromArgb(52, 152, 219)
+                    _btnLangTH.ForeColor = Color.White
+                Case "en"
+                    _btnLangEN.BackColor = Color.FromArgb(52, 152, 219)
+                    _btnLangEN.ForeColor = Color.White
+                Case "jp"
+                    _btnLangJP.BackColor = Color.FromArgb(52, 152, 219)
+                    _btnLangJP.ForeColor = Color.White
+            End Select
+        End Sub
+
+        ''' <summary>
+        ''' เปลี่ยนภาษาและรีเฟรช UI
+        ''' </summary>
+        Private Sub SwitchLanguage(lang As String)
+            Config.LanguageManager.CurrentLanguage = lang
+            ApplyLanguage()
+            LoadInfo()
+            Managers.LogManager.Info("Language switched to: " & lang)
+        End Sub
+
 
         ' ══════════════════════════════════════════════
         ' Events
@@ -606,6 +718,11 @@ Namespace Forms
             AddHandler _btnDetails.Click, AddressOf BtnDetails_Click
             AddHandler _btnConfigDebug.Click, AddressOf BtnConfigDebug_Click
 
+            ' ผูก Event ปุ่มเปลี่ยนภาษา
+            AddHandler _btnLangTH.Click, Sub(s, ev) SwitchLanguage("th")
+            AddHandler _btnLangEN.Click, Sub(s, ev) SwitchLanguage("en")
+            AddHandler _btnLangJP.Click, Sub(s, ev) SwitchLanguage("jp")
+
             ' เริ่มตัวนับเวลาของ Typewriter Effect
             _typewriteTimer = New System.Windows.Forms.Timer()
             _typewriteTimer.Interval = 35 ' ความเร็วพิมพ์ตัวอักษร 35ms
@@ -633,10 +750,14 @@ Namespace Forms
             ' ตรวจ flag ตอนเริ่มต้น
             CheckAndTrackUpdateFlag()
 
+            ' ตั้งค่าภาษาจาก config
+            Config.LanguageManager.CurrentLanguage = Config.AppSettings.Language
+
             ' โหลดข้อมูลครั้งแรก
+            ApplyLanguage()
             LoadInfo()
 
-            Managers.LogManager.Info("MainForm loaded. Scheduler started.")
+            Managers.LogManager.Info("MainForm loaded. Scheduler started. Language=" & Config.LanguageManager.CurrentLanguage)
         End Sub
 
         Private _lastScheduledRunDate As DateTime = DateTime.MinValue

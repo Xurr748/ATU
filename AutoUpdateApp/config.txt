@@ -55,3 +55,9 @@ RemoveOldStartupShortcut = True
 
 ; ชื่อ Shortcut (ว่าง = ใช้ชื่อ exe จาก registry อัตโนมัติ)
 StartupShortcutName = 
+
+; ── ภาษา (th, en, jp) ──
+Language = th
+
+; ── เปิดแอพหลังอัปเดตสำเร็จ (ว่าง = ดึง path จาก Registry อัตโนมัติ) ──
+TargetAppExePath = 

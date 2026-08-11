@@ -69,6 +69,7 @@
     <Compile Include="Models\UpdateContext.vb" />
     <!-- Config -->
     <Compile Include="Config\AppSettings.vb" />
+    <Compile Include="Config\LanguageManager.vb" />
     <!-- Managers -->
     <Compile Include="Managers\LogManager.vb" />
     <Compile Include="Managers\ConfigManager.vb" />

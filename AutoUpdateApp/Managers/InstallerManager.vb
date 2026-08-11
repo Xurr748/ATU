@@ -201,6 +201,11 @@ Namespace Managers
                 End Try
             End Try
 
+            ' ── เปิดแอพเป้าหมายหลังอัปเดตสำเร็จ ──
+            If result Then
+                LaunchTargetApp()
+            End If
+
             Return result
         End Function
 
@@ -210,6 +215,47 @@ Namespace Managers
         ''' <summary>
         ''' ค้นหาไฟล์ .msi ล่าสุดในโฟลเดอร์ Installer
         ''' </summary>
+        ''' <summary>
+        ''' เปิดแอพเป้าหมายหลังอัปเดตสำเร็จ (ดึง path จาก config หรือ Registry)
+        ''' </summary>
+        Public Shared Sub LaunchTargetApp()
+            Try
+                Dim appPath As String = Config.AppSettings.TargetAppExePath
+
+                ' ถ้าไม่ได้ตั้ง path → ดึงจาก Registry
+                If String.IsNullOrEmpty(appPath) Then
+                    appPath = Utilities.RegistryHelper.ReadValue(
+                        Config.AppSettings.RegistryKeyPath, Config.AppSettings.RegistryPathValueName)
+                End If
+
+                If String.IsNullOrEmpty(appPath) Then
+                    LogManager.Warn("TargetAppExePath is empty and could not find path from Registry. Skipping app launch.")
+                    Return
+                End If
+
+                ' ถ้า path เป็นโฟลเดอร์ → หาไฟล์ .exe
+                If IO.Directory.Exists(appPath) Then
+                    Dim exeFiles = IO.Directory.GetFiles(appPath, "*.exe")
+                    If exeFiles.Length > 0 Then
+                        appPath = exeFiles(0)
+                    Else
+                        LogManager.Warn("No .exe found in directory: " & appPath)
+                        Return
+                    End If
+                End If
+
+                If Not IO.File.Exists(appPath) Then
+                    LogManager.Warn("Target app not found: " & appPath & ". Skipping app launch.")
+                    Return
+                End If
+
+                LogManager.Info("Launching target app: " & appPath)
+                Process.Start(appPath)
+            Catch ex As Exception
+                LogManager.Warn("Failed to launch target app: " & ex.Message)
+            End Try
+        End Sub
+
         Private Shared Function FindLatestMsi(folderPath As String) As String
             Try
                 If String.IsNullOrEmpty(folderPath) OrElse Not Directory.Exists(folderPath) Then
