@@ -48,14 +48,11 @@ Namespace Forms
 
         Private _btnCheckNow As Button
         Private _btnRefreshInfo As Button
-        Private _btnExit As Button
         Private _btnUpdateNow As Button
         Private _btnDetails As Button
         Private _detailsMenu As ContextMenuStrip
         Private _btnConfigDebug As Button
-        Private _btnLangTH As Button
-        Private _btnLangEN As Button
-        Private _btnLangJP As Button
+        Private _btnLang As Button
 
         ' ── Progress Bar + Status ──
         Private _progressBar As ProgressBar
@@ -114,10 +111,10 @@ Namespace Forms
             Me._lblStatusValue = New System.Windows.Forms.Label()
             Me._btnCheckNow = New System.Windows.Forms.Button()
             Me._btnRefreshInfo = New System.Windows.Forms.Button()
-            Me._btnExit = New System.Windows.Forms.Button()
             Me._btnUpdateNow = New System.Windows.Forms.Button()
             Me._btnDetails = New System.Windows.Forms.Button()
             Me._btnConfigDebug = New System.Windows.Forms.Button()
+            Me._btnLang = New System.Windows.Forms.Button()
             Me._detailsMenu = New System.Windows.Forms.ContextMenuStrip(Me.components)
             Me._progressBar = New System.Windows.Forms.ProgressBar()
             Me._lblProgress = New System.Windows.Forms.Label()
@@ -381,20 +378,20 @@ Namespace Forms
             Me._btnRefreshInfo.Text = "รีเฟรช"
             Me._btnRefreshInfo.UseVisualStyleBackColor = False
             '
-            '_btnExit
+            '_btnLang
             '
-            Me._btnExit.BackColor = System.Drawing.Color.White
-            Me._btnExit.Cursor = System.Windows.Forms.Cursors.Hand
-            Me._btnExit.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(CType(CType(235, Byte), Integer), CType(CType(77, Byte), Integer), CType(CType(75, Byte), Integer))
-            Me._btnExit.FlatStyle = System.Windows.Forms.FlatStyle.Flat
-            Me._btnExit.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
-            Me._btnExit.ForeColor = System.Drawing.Color.FromArgb(CType(CType(235, Byte), Integer), CType(CType(77, Byte), Integer), CType(CType(75, Byte), Integer))
-            Me._btnExit.Location = New System.Drawing.Point(305, 310)
-            Me._btnExit.Name = "_btnExit"
-            Me._btnExit.Size = New System.Drawing.Size(79, 32)
-            Me._btnExit.TabIndex = 6
-            Me._btnExit.Text = "ออก"
-            Me._btnExit.UseVisualStyleBackColor = False
+            Me._btnLang.BackColor = System.Drawing.Color.FromArgb(52, 73, 94)
+            Me._btnLang.Cursor = System.Windows.Forms.Cursors.Hand
+            Me._btnLang.FlatAppearance.BorderSize = 0
+            Me._btnLang.FlatStyle = System.Windows.Forms.FlatStyle.Flat
+            Me._btnLang.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
+            Me._btnLang.ForeColor = System.Drawing.Color.White
+            Me._btnLang.Location = New System.Drawing.Point(305, 310)
+            Me._btnLang.Name = "_btnLang"
+            Me._btnLang.Size = New System.Drawing.Size(79, 32)
+            Me._btnLang.TabIndex = 6
+            Me._btnLang.Text = "🌐 TH"
+            Me._btnLang.UseVisualStyleBackColor = False
             '
             '_btnDetails
             '
@@ -469,51 +466,9 @@ Namespace Forms
             Me._btnConfigDebug.Text = "[Debug] ดู Config ที่โหลดแล้ว"
             Me._btnConfigDebug.UseVisualStyleBackColor = False
             '
-            ' ── Language Selector Buttons ──
-            Me._btnLangTH = New System.Windows.Forms.Button()
-            Me._btnLangTH.FlatStyle = FlatStyle.Flat
-            Me._btnLangTH.FlatAppearance.BorderSize = 1
-            Me._btnLangTH.FlatAppearance.BorderColor = Color.FromArgb(200, 200, 200)
-            Me._btnLangTH.Font = New System.Drawing.Font("Segoe UI", 7.5!, FontStyle.Bold)
-            Me._btnLangTH.Location = New System.Drawing.Point(297, 4)
-            Me._btnLangTH.Size = New System.Drawing.Size(32, 22)
-            Me._btnLangTH.Text = "TH"
-            Me._btnLangTH.Cursor = Cursors.Hand
-            Me._btnLangTH.BackColor = Color.FromArgb(52, 152, 219)
-            Me._btnLangTH.ForeColor = Color.White
-            Me._btnLangTH.TabStop = False
-            '
-            Me._btnLangEN = New System.Windows.Forms.Button()
-            Me._btnLangEN.FlatStyle = FlatStyle.Flat
-            Me._btnLangEN.FlatAppearance.BorderSize = 1
-            Me._btnLangEN.FlatAppearance.BorderColor = Color.FromArgb(200, 200, 200)
-            Me._btnLangEN.Font = New System.Drawing.Font("Segoe UI", 7.5!, FontStyle.Bold)
-            Me._btnLangEN.Location = New System.Drawing.Point(331, 4)
-            Me._btnLangEN.Size = New System.Drawing.Size(32, 22)
-            Me._btnLangEN.Text = "EN"
-            Me._btnLangEN.Cursor = Cursors.Hand
-            Me._btnLangEN.BackColor = Color.White
-            Me._btnLangEN.ForeColor = Color.FromArgb(100, 100, 100)
-            Me._btnLangEN.TabStop = False
-            '
-            Me._btnLangJP = New System.Windows.Forms.Button()
-            Me._btnLangJP.FlatStyle = FlatStyle.Flat
-            Me._btnLangJP.FlatAppearance.BorderSize = 1
-            Me._btnLangJP.FlatAppearance.BorderColor = Color.FromArgb(200, 200, 200)
-            Me._btnLangJP.Font = New System.Drawing.Font("Segoe UI", 7.5!, FontStyle.Bold)
-            Me._btnLangJP.Location = New System.Drawing.Point(365, 4)
-            Me._btnLangJP.Size = New System.Drawing.Size(32, 22)
-            Me._btnLangJP.Text = "JP"
-            Me._btnLangJP.Cursor = Cursors.Hand
-            Me._btnLangJP.BackColor = Color.White
-            Me._btnLangJP.ForeColor = Color.FromArgb(100, 100, 100)
-            Me._btnLangJP.TabStop = False
             '
             Me.BackColor = System.Drawing.Color.FromArgb(CType(CType(245, Byte), Integer), CType(CType(245, Byte), Integer), CType(CType(250, Byte), Integer))
             Me.ClientSize = New System.Drawing.Size(400, 398)
-            Me.Controls.Add(Me._btnLangTH)
-            Me.Controls.Add(Me._btnLangEN)
-            Me.Controls.Add(Me._btnLangJP)
             Me.Controls.Add(Me._btnConfigDebug)
             Me.Controls.Add(Me._progressBar)
             Me.Controls.Add(Me._lblProgress)
@@ -523,7 +478,7 @@ Namespace Forms
             Me.Controls.Add(Me._grpVersion)
             Me.Controls.Add(Me._btnCheckNow)
             Me.Controls.Add(Me._btnRefreshInfo)
-            Me.Controls.Add(Me._btnExit)
+            Me.Controls.Add(Me._btnLang)
             Me.Font = New System.Drawing.Font("Segoe UI", 9.0!)
             Me.MaximizeBox = False
             Me.Name = "MainForm"
@@ -635,7 +590,6 @@ Namespace Forms
             _btnUpdateNow.Text = L("BtnUpdateNow")
             _btnCheckNow.Text = L("BtnCheck")
             _btnRefreshInfo.Text = L("BtnRefresh")
-            _btnExit.Text = L("BtnExit")
             _btnDetails.Text = L("BtnDetails")
             _btnConfigDebug.Text = L("BtnDebugConfig")
 
@@ -643,23 +597,11 @@ Namespace Forms
             _mnuCheckNow.Text = L("MenuCheckNow")
             _mnuExit.Text = L("MenuExit")
 
-            ' Highlight active language button
+            ' Language Button Text (แสดงภาษาปัจจุบัน)
             Dim currentLang As String = Config.LanguageManager.CurrentLanguage
-            For Each btn In {_btnLangTH, _btnLangEN, _btnLangJP}
-                btn.BackColor = Color.White
-                btn.ForeColor = Color.FromArgb(100, 100, 100)
-            Next
-            Select Case currentLang
-                Case "th"
-                    _btnLangTH.BackColor = Color.FromArgb(52, 152, 219)
-                    _btnLangTH.ForeColor = Color.White
-                Case "en"
-                    _btnLangEN.BackColor = Color.FromArgb(52, 152, 219)
-                    _btnLangEN.ForeColor = Color.White
-                Case "jp"
-                    _btnLangJP.BackColor = Color.FromArgb(52, 152, 219)
-                    _btnLangJP.ForeColor = Color.White
-            End Select
+            If _btnLang IsNot Nothing Then
+                _btnLang.Text = "🌐 " & currentLang.ToUpper()
+            End If
         End Sub
 
         ''' <summary>
@@ -708,20 +650,16 @@ Namespace Forms
             AddButtonAnimHandlers(_btnUpdateNow, Color.FromArgb(41, 128, 185), Color.FromArgb(52, 152, 219), Color.FromArgb(41, 128, 185), Color.FromArgb(52, 152, 219))
             AddButtonAnimHandlers(_btnCheckNow, Color.White, Color.FromArgb(235, 245, 253), Color.FromArgb(70, 130, 180), Color.FromArgb(41, 128, 185))
             AddButtonAnimHandlers(_btnRefreshInfo, Color.White, Color.FromArgb(245, 240, 255), Color.FromArgb(180, 180, 180), Color.FromArgb(108, 92, 231))
-            AddButtonAnimHandlers(_btnExit, Color.White, Color.FromArgb(255, 240, 240), Color.FromArgb(220, 80, 80), Color.FromArgb(180, 50, 50))
             AddButtonAnimHandlers(_btnDetails, Color.White, Color.FromArgb(232, 255, 240), Color.FromArgb(46, 204, 113), Color.FromArgb(39, 174, 96))
 
             AddHandler _btnCheckNow.Click, AddressOf BtnCheckNow_Click
             AddHandler _btnRefreshInfo.Click, AddressOf BtnRefreshInfo_Click
-            AddHandler _btnExit.Click, AddressOf BtnExit_Click
             AddHandler _btnUpdateNow.Click, AddressOf BtnUpdateNow_Click
             AddHandler _btnDetails.Click, AddressOf BtnDetails_Click
             AddHandler _btnConfigDebug.Click, AddressOf BtnConfigDebug_Click
 
-            ' ผูก Event ปุ่มเปลี่ยนภาษา
-            AddHandler _btnLangTH.Click, Sub(s, ev) SwitchLanguage("th")
-            AddHandler _btnLangEN.Click, Sub(s, ev) SwitchLanguage("en")
-            AddHandler _btnLangJP.Click, Sub(s, ev) SwitchLanguage("jp")
+            ' ปุ่มเปลี่ยนภาษา (กดวนรอบ TH→EN→JP→TH)
+            AddHandler _btnLang.Click, AddressOf BtnLang_Click
 
             ' เริ่มตัวนับเวลาของ Typewriter Effect
             _typewriteTimer = New System.Windows.Forms.Timer()
@@ -1288,6 +1226,21 @@ Namespace Forms
         End Sub
 
 
+        Private Sub BtnLang_Click(ByVal sender As Object, ByVal e As EventArgs)
+            Dim currentLang As String = Config.LanguageManager.CurrentLanguage.ToLower()
+            Dim nextLang As String = "th"
+            If currentLang = "th" Then
+                nextLang = "en"
+            ElseIf currentLang = "en" Then
+                nextLang = "jp"
+            ElseIf currentLang = "jp" Then
+                nextLang = "th"
+            End If
+
+            SwitchLanguage(nextLang)
+        End Sub
+
+
         Private Sub BtnExit_Click(ByVal sender As Object, ByVal e As EventArgs)
             CleanupAndExit()
         End Sub
@@ -1332,7 +1285,7 @@ Namespace Forms
             If disposing Then
                 If _btnCheckNow IsNot Nothing Then RemoveHandler _btnCheckNow.Click, AddressOf BtnCheckNow_Click
                 If _btnRefreshInfo IsNot Nothing Then RemoveHandler _btnRefreshInfo.Click, AddressOf BtnRefreshInfo_Click
-                If _btnExit IsNot Nothing Then RemoveHandler _btnExit.Click, AddressOf BtnExit_Click
+                If _btnLang IsNot Nothing Then RemoveHandler _btnLang.Click, AddressOf BtnLang_Click
                 If _btnUpdateNow IsNot Nothing Then RemoveHandler _btnUpdateNow.Click, AddressOf BtnUpdateNow_Click
                 If _btnDetails IsNot Nothing Then RemoveHandler _btnDetails.Click, AddressOf BtnDetails_Click
                 If _detailsMenu IsNot Nothing Then _detailsMenu.Dispose()
