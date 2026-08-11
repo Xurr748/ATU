@@ -63,13 +63,14 @@ Namespace Managers
             Else
                 localFolder = Path.Combine(Path.GetTempPath(), "AutoUpdateApp_LocalInstaller")
             End If
+            Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
             Dim result As Boolean = False
             
             Try
                 LogManager.Info(String.Format("Downloading installer folder: {0} -> {1}", installerFolder, localFolder))
 
                 If progressCallback IsNot Nothing Then
-                    progressCallback(0, "กำลังเตรียมดาวน์โหลด...")
+                    progressCallback(0, L("ProgressDownloading"))
                 End If
 
                 ' เคลียร์ไฟล์เก่าในเครื่องปลายทาง
@@ -88,7 +89,7 @@ Namespace Managers
                 Catch ex As Exception
                     LogManager.[Error]("Failed to copy installer files from server: " & installerFolder, ex)
                     If progressCallback IsNot Nothing Then
-                        progressCallback(0, "ดาวน์โหลดล้มเหลว")
+                        progressCallback(0, L("ProgressFailed"))
                     End If
                     copySuccess = False
                 End Try
@@ -104,7 +105,7 @@ Namespace Managers
                     If Not String.IsNullOrEmpty(productName) Then
                         ' ── ค้นหา GUID จากชื่อโปรแกรมอัตโนมัติ ──
                         If progressCallback IsNot Nothing Then
-                            progressCallback(85, "กำลังค้นหาโปรแกรมที่ติดตั้ง...")
+                            progressCallback(85, L("ProgressSearching"))
                         End If
                         Dim guid As String = FindUninstallGuid(productName)
 
@@ -113,7 +114,7 @@ Namespace Managers
                         Else
                             LogManager.Info("พบ GUID: " & guid & " สำหรับ '" & productName & "'")
                             If progressCallback IsNot Nothing Then
-                                progressCallback(90, "กำลังถอนการติดตั้ง " & productName & "...")
+                                progressCallback(90, String.Format(L("ProgressUninstallingProduct"), productName))
                             End If
 
                             ' สร้าง smart uninstall.bat
@@ -132,7 +133,7 @@ Namespace Managers
                     ElseIf Utilities.FileHelper.FileExistsSafe(uninstallPath) Then
                         ' ── ใช้ uninstall.bat ที่มีอยู่ (แบบเดิม) ──
                         If progressCallback IsNot Nothing Then
-                            progressCallback(90, "กำลังดำเนินการถอนการติดตั้ง...")
+                            progressCallback(90, L("ProgressUninstalling"))
                         End If
                         If Not RunBatchFile(uninstallPath, "uninstall") Then
                             LogManager.[Error]("Uninstall process failed.")
@@ -151,7 +152,7 @@ Namespace Managers
                             ' สร้าง smart install.bat
                             LogManager.Info("พบ MSI: " & msiFile)
                             If progressCallback IsNot Nothing Then
-                                progressCallback(95, "กำลังติดตั้ง " & IO.Path.GetFileName(msiFile) & "...")
+                                progressCallback(95, String.Format(L("ProgressInstallingProduct"), IO.Path.GetFileName(msiFile)))
                             End If
 
                             Dim smartInstallPath As String = IO.Path.Combine(localFolder, "install.bat")
@@ -165,20 +166,20 @@ Namespace Managers
                                 LogManager.[Error]("Install process failed.")
                             Else
                                 If progressCallback IsNot Nothing Then
-                                    progressCallback(100, "การอัปเดตเสร็จสมบูรณ์")
+                                    progressCallback(100, L("ProgressComplete"))
                                 End If
                                 result = True
                             End If
                         ElseIf Utilities.FileHelper.FileExistsSafe(installPath) Then
                             ' ── ใช้ install.bat ที่มีอยู่ (แบบเดิม) ──
                             If progressCallback IsNot Nothing Then
-                                progressCallback(95, "กำลังดำเนินการติดตั้ง...")
+                                progressCallback(95, L("ProgressInstalling"))
                             End If
                             If Not RunBatchFile(installPath, "install") Then
                                 LogManager.[Error]("Install process failed.")
                             Else
                                 If progressCallback IsNot Nothing Then
-                                    progressCallback(100, "การอัปเดตเสร็จสมบูรณ์")
+                                    progressCallback(100, L("ProgressComplete"))
                                 End If
                                 result = True
                             End If
@@ -413,7 +414,8 @@ Namespace Managers
                             If percent > 100 Then percent = 100
 
                             If progressCallback IsNot Nothing Then
-                                Dim statusMsg As String = String.Format("กำลังดาวน์โหลด: {0} ({1}/{2} ไฟล์)", file.Name, currentFileIndex + 1, fileCount)
+                                Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
+                                Dim statusMsg As String = String.Format(L("ProgressDownloadingFile"), file.Name, currentFileIndex + 1, fileCount)
                                 progressCallback(percent, statusMsg)
                             End If
 

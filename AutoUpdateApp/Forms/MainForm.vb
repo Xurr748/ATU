@@ -572,6 +572,9 @@ Namespace Forms
 
             ' Title
             Me.Text = L("AppTitle")
+            If _notifyIcon IsNot Nothing Then
+                _notifyIcon.Text = L("AppTitle")
+            End If
 
             ' Info Card
             _lblInfoTitle.Text = L("InfoTitle")
@@ -755,23 +758,52 @@ Namespace Forms
             LoadInfo()
             ShowProgress(False, "")
             ' คืนค่าปุ่มตรวจสอบ
+            Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
             If _btnCheckNow IsNot Nothing Then
                 _btnCheckNow.Enabled = True
-                _btnCheckNow.Text = "ตรวจสอบ"
+                _btnCheckNow.Text = L("BtnCheck")
             End If
             ' แจ้งผลเฉพาะตอนหน้าต่างเปิดอยู่
             If Me.Visible AndAlso Me.WindowState <> FormWindowState.Minimized Then
                 Select Case e.Result
                     Case Strategies.UpdateResult.NoAction
-                        MessageBox.Show("ตรวจสอบเสร็จ: " & e.Message, "ผลการตรวจสอบ", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                        Dim translatedMsg As String = TranslateMessage(e.Message)
+                        MessageBox.Show(L("PromptCheckDone") & ": " & translatedMsg, L("TitleCheckResult"), MessageBoxButtons.OK, MessageBoxIcon.Information)
                     Case Strategies.UpdateResult.UpdateCompleted
-                        MessageBox.Show("อัปเดตสำเร็จเรียบร้อย!", "ผลการตรวจสอบ", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                        MessageBox.Show(L("PromptSuccessCompleted"), L("TitleCheckResult"), MessageBoxButtons.OK, MessageBoxIcon.Information)
                     Case Strategies.UpdateResult.[Error]
-                        MessageBox.Show("เกิดข้อผิดพลาด: " & e.Message, "ผลการตรวจสอบ", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                        Dim translatedMsg As String = TranslateMessage(e.Message)
+                        MessageBox.Show(L("TitleError") & ": " & translatedMsg, L("TitleCheckResult"), MessageBoxButtons.OK, MessageBoxIcon.Error)
                 End Select
             End If
             UpdateStatusBar()
         End Sub
+
+        ''' <summary>
+        ''' แปลผลลัพธ์หรือข้อความสถานะภาษาจากระบบเป็นภาษาปัจจุบัน
+        ''' </summary>
+        Private Function TranslateMessage(msg As String) As String
+            If String.IsNullOrEmpty(msg) Then Return ""
+            Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
+
+            ' 1. ตรวจสอบคีย์ตรงตัวจากการแปลง format
+            Dim cleanKey As String = msg.Replace(" ", "").Replace("(", "").Replace(")", "").Replace(".", "")
+            Dim translated As String = L("Msg" & cleanKey)
+            If Not String.Equals(translated, "Msg" & cleanKey, StringComparison.OrdinalIgnoreCase) Then
+                Return translated
+            End If
+
+            ' 2. แมปกรณีคำอธิบายแบบยาว/เก่า
+            If msg.Contains("Not in config") Then Return L("MsgNotInConfig")
+            If msg.Contains("Hour not matching") Then Return L("MsgHourNotMatching")
+            If msg.Contains("Already checked today") Then Return L("MsgAlreadyCheckedToday")
+            If msg.Contains("Up to Date") OrElse msg.Contains("เวอร์ชันล่าสุด") Then Return L("MsgUpToDate")
+            If msg.Contains("Waiting for restart") OrElse msg.Contains("Pending restart") Then Return L("MsgPendingRestart")
+            If msg.Contains("ไม่พบไฟล์อัปเดต") OrElse msg.Contains("Installer folder not found") Then Return L("MsgInstallerNotFound")
+            If msg.Contains("Cancelled") Then Return L("MsgCancelled")
+
+            Return msg
+        End Function
 
         Private Sub CheckAndTrackUpdateFlag()
             Try
@@ -952,14 +984,15 @@ Namespace Forms
 
         ' ── ปุ่ม: ตรวจสอบอัปเดต ──
         Private Sub BtnCheckNow_Click(ByVal sender As Object, ByVal e As EventArgs)
+            Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
             If _updateWorker IsNot Nothing AndAlso Not _updateWorker.IsBusy Then
                 Managers.LogManager.Info("Manual check triggered by user (button).")
                 _btnCheckNow.Enabled = False
-                _btnCheckNow.Text = "กำลังตรวจสอบ..."
-                ShowProgress(True, "กำลังตรวจสอบอัปเดต...")
+                _btnCheckNow.Text = L("PromptChecking")
+                ShowProgress(True, L("PromptCheckingUpdate"))
                 _updateWorker.RunAsync(True)
             Else
-                MessageBox.Show("กำลังตรวจสอบอยู่แล้ว กรุณารอสักครู่", "แจ้งเตือน", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                MessageBox.Show(L("PromptAlreadyChecking"), L("PromptNotice"), MessageBoxButtons.OK, MessageBoxIcon.Information)
             End If
         End Sub
 
@@ -1067,15 +1100,17 @@ Namespace Forms
 
         Private Sub OpenSinglePdf(filePath As String)
             Try
+                Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
                 If Not IO.File.Exists(filePath) Then
-                    MessageBox.Show("ไม่พบไฟล์: " & filePath, "ไม่พบไฟล์", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+                    MessageBox.Show(L("PromptFileNotFound") & filePath, L("PromptFileNotFoundTitle"), MessageBoxButtons.OK, MessageBoxIcon.Warning)
                     Return
                 End If
                 Managers.LogManager.Info("เปิด PDF: " & filePath)
                 Process.Start(filePath)
             Catch ex As Exception
+                Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
                 Managers.LogManager.[Error]("Failed to open PDF: " & filePath, ex)
-                MessageBox.Show("ไม่สามารถเปิดไฟล์ได้: " & ex.Message, "ข้อผิดพลาด", MessageBoxButtons.OK, MessageBoxIcon.[Error])
+                MessageBox.Show(L("PromptCantOpenFile") & ex.Message, L("TitleError"), MessageBoxButtons.OK, MessageBoxIcon.[Error])
             End Try
         End Sub
 
@@ -1084,8 +1119,10 @@ Namespace Forms
         ''' </summary>
         Private Sub OpenPdfFile(pdfPath As String, displayName As String)
             Try
+                Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
                 If String.IsNullOrEmpty(pdfPath) Then
-                    MessageBox.Show("ยังไม่ได้กำหนดเส้นทาง " & displayName & " ใน config.txt", "ไม่พบเส้นทาง", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+                    Dim msg As String = String.Format(L("PromptPathNotConfigured"), displayName)
+                    MessageBox.Show(msg, L("PromptPathNotFoundTitle"), MessageBoxButtons.OK, MessageBoxIcon.Warning)
                     Return
                 End If
 
@@ -1095,7 +1132,7 @@ Namespace Forms
                 If IO.Directory.Exists(pdfPath) Then
                     Dim pdfFiles = New IO.DirectoryInfo(pdfPath).GetFiles("*.pdf")
                     If pdfFiles.Length = 0 Then
-                        MessageBox.Show("ไม่พบไฟล์ PDF ในโฟลเดอร์: " & pdfPath, "ไม่พบไฟล์", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+                        MessageBox.Show(L("PromptNoPdfInFolder") & pdfPath, L("PromptFileNotFoundTitle"), MessageBoxButtons.OK, MessageBoxIcon.Warning)
                         Return
                     End If
                     ' เลือกไฟล์ที่แก้ไขล่าสุด
@@ -1110,38 +1147,41 @@ Namespace Forms
                 End If
 
                 If Not IO.File.Exists(fileToOpen) Then
-                    MessageBox.Show("ไม่พบไฟล์: " & fileToOpen, "ไม่พบไฟล์", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+                    MessageBox.Show(L("PromptFileNotFound") & fileToOpen, L("PromptFileNotFoundTitle"), MessageBoxButtons.OK, MessageBoxIcon.Warning)
                     Return
                 End If
                 Process.Start(fileToOpen)
             Catch ex As Exception
+                Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
                 Managers.LogManager.[Error]("Failed to open " & displayName & ": " & pdfPath, ex)
-                MessageBox.Show("ไม่สามารถเปิดไฟล์ได้: " & ex.Message, "ข้อผิดพลาด", MessageBoxButtons.OK, MessageBoxIcon.[Error])
+                MessageBox.Show(L("PromptCantOpenFile") & ex.Message, L("TitleError"), MessageBoxButtons.OK, MessageBoxIcon.[Error])
             End Try
         End Sub
 
         ' ── ปุ่ม [Debug] ดู Config ที่โหลดแล้ว ──
         Private Sub BtnConfigDebug_Click(ByVal sender As Object, ByVal e As EventArgs)
             Try
+                Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
                 Dim sb As New System.Text.StringBuilder()
 
                 ' สถานะการโหลด
-                sb.AppendLine("══════ ตำแหน่ง EXE ══════")
+                sb.AppendLine(L("DebugExeLocation"))
                 sb.AppendLine(System.Reflection.Assembly.GetExecutingAssembly().Location)
                 sb.AppendLine()
-                sb.AppendLine("══════ สถานะ Config ══════")
+                sb.AppendLine(L("DebugConfigStatus"))
                 sb.AppendLine(Config.AppSettings.LoadStatus)
                 sb.AppendLine()
 
                 ' ค่าทั้งหมด
-                sb.AppendLine("══════ ค่าที่อ่านได้ ══════")
+                sb.AppendLine(L("DebugReadValues"))
                 For Each issue As String In Config.AppSettings.ValidateConfig()
                     sb.AppendLine(issue)
                 Next
 
-                MessageBox.Show(sb.ToString(), "Config Debug", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                MessageBox.Show(sb.ToString(), L("DebugTitle"), MessageBoxButtons.OK, MessageBoxIcon.Information)
             Catch ex As Exception
-                MessageBox.Show("Error: " & ex.Message, "Config Debug", MessageBoxButtons.OK, MessageBoxIcon.[Error])
+                Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
+                MessageBox.Show("Error: " & ex.Message, L("DebugTitle"), MessageBoxButtons.OK, MessageBoxIcon.[Error])
             End Try
         End Sub
 
