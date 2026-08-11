@@ -86,20 +86,24 @@ Namespace Managers
                 Return result
             End If
 
-            Dim rows As List(Of String()) = Utilities.CsvParser.ParseFile(filePath, hasHeader:=True)
-            For Each row In rows
-                If row.Length >= 2 Then
-                    Dim entry As New Models.UpdateFlagEntry()
-                    entry.ComputerName = row(0)
+            Try
+                Dim rows As List(Of String()) = Utilities.CsvParser.ParseFile(filePath, hasHeader:=True)
+                For Each row In rows
+                    If row.Length >= 2 Then
+                        Dim entry As New Models.UpdateFlagEntry()
+                        entry.ComputerName = row(0)
 
-                    Dim flag As Boolean
-                    If Boolean.TryParse(row(1), flag) Then
-                        entry.UpdateFlag = flag
+                        Dim flag As Boolean
+                        If Boolean.TryParse(row(1), flag) Then
+                            entry.UpdateFlag = flag
+                        End If
+
+                        result.Add(entry)
                     End If
-
-                    result.Add(entry)
-                End If
-            Next
+                Next
+            Catch ex As Exception
+                LogManager.Warn("Failed to read updateflag.txt (possibly locked): " & ex.Message)
+            End Try
 
             Return result
         End Function

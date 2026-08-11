@@ -67,7 +67,8 @@ Namespace Forms
         Private _btnBorders As New System.Collections.Generic.Dictionary(Of Button, Color)
         Private _btnTargetBorders As New System.Collections.Generic.Dictionary(Of Button, Color)
         Private _flagSetTime As DateTime = DateTime.MinValue
-        Private _restartPromptShown As Boolean = False  
+        Private _restartPromptShown As Boolean = False
+        Private _falseCount As Integer = 0
         Private WithEvents _restartCheckTimer As Timer
 
         ' ── ตัวแปรเก็บค่าข้อความชั่วคราวระหว่างรอ Fade-in เสร็จ ──
@@ -808,9 +809,11 @@ Namespace Forms
         Private Sub CheckAndTrackUpdateFlag()
             Try
                 Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
-                Dim hasPendingUpdate As Boolean = Managers.UpdateFlagManager.GetFlag(computerName).GetValueOrDefault(False)
+                Dim flagResult As Boolean? = Managers.UpdateFlagManager.GetFlag(computerName)
 
-                If hasPendingUpdate Then
+                If flagResult.HasValue AndAlso flagResult.Value Then
+                    ' เมื่อพบ flag = True
+                    _falseCount = 0 ' รีเซ็ตตัวนับความผิดพลาด
                     If _flagSetTime = DateTime.MinValue Then
                         _flagSetTime = DateTime.Now
                         Managers.LogManager.Info("Update flag detected. Tracking start: " & _flagSetTime.ToString("HH:mm:ss"))
@@ -826,8 +829,14 @@ Namespace Forms
                         Managers.LogManager.Info("Removed target app from Startup (flag is true)")
                     End If
                 Else
-                    _flagSetTime = DateTime.MinValue
-                    _restartPromptShown = False
+                    ' หากอ่านได้เป็น False หรือหาไม่พบ (Nothing) ให้บวกตัวนับความผิดพลาด
+                    ' ป้องกันกรณีที่ไฟล์โดน lock หรือเขียนทับชั่วคราวแล้วทำให้เวลารีเซ็ต
+                    _falseCount += 1
+                    If _falseCount >= 3 Then
+                        _flagSetTime = DateTime.MinValue
+                        _restartPromptShown = False
+                        _falseCount = 0
+                    End If
                 End If
             Catch ex As Exception
                 Managers.LogManager.Warn("Error checking update flag: " & ex.Message)
@@ -844,6 +853,13 @@ Namespace Forms
                     If elapsed.TotalMinutes >= 60 Then
                         _restartPromptShown = True
                         Managers.LogManager.Info("Update flag has been set for " & elapsed.TotalMinutes.ToString("F0") & " minutes. Prompting restart.")
+
+                        ' ปลุก/แสดงหน้าต่างหลักขึ้นมาเพื่อให้ป๊อปอัปเด้งแสดงอย่างชัดเจน ไม่หลบหลังแอปอื่น
+                        If Me.InvokeRequired Then
+                            Me.BeginInvoke(New Action(AddressOf ShowForm))
+                        Else
+                            ShowForm()
+                        End If
 
                         Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
                         Dim result As DialogResult = MessageBox.Show(
