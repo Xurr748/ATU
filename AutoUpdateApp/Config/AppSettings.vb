@@ -468,6 +468,17 @@ Namespace Config
                 Return GetSetting("TargetAppExePath", "")
             End Get
         End Property
+        ' ───────────────────── Kill Process ─────────────────────
+
+        ''' <summary>
+        ''' รายชื่อ process ที่ต้องปิดก่อนอัปเดต (คั่นด้วย , เช่น RSX5000,notepad,calc)
+        ''' ค่าว่าง = ใช้ชื่อจาก UninstallProductName อย่างเดียว
+        ''' </summary>
+        Public Shared ReadOnly Property KillProcessList As String
+            Get
+                Return GetSetting("KillProcessList", "")
+            End Get
+        End Property
 
     End Class
 

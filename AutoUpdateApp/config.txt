@@ -61,3 +61,8 @@ Language = th
 
 ; ── เปิดแอพหลังอัปเดตสำเร็จ (ว่าง = ดึง path จาก Registry อัตโนมัติ) ──
 TargetAppExePath = 
+
+; ── รายชื่อ Process ที่ต้องปิดก่อนอัปเดต (คั่นด้วย , ไม่ต้องใส่ .exe) ──
+; ว่าง = ใช้ชื่อจาก UninstallProductName อย่างเดียว
+; ตัวอย่าง: RSX5000,RSX5000_Helper,SomeOtherApp
+KillProcessList = RSX5000

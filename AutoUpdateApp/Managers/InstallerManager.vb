@@ -442,40 +442,105 @@ Namespace Managers
         End Sub
 
         ''' <summary>
-        ''' ปิดโปรแกรมเป้าหมาย (RSX5000 หรือชื่อที่ตั้งใน UninstallProductName) ก่อนทำการอัปเดต
+        ''' ปิดโปรแกรมเป้าหมายทั้งหมดก่อนทำการอัปเดต
+        ''' อ่านรายชื่อจาก KillProcessList (คั่นด้วย ,) + UninstallProductName
+        ''' ใช้ Force Kill เพื่อข้าม Confirmation Dialog ของแอพ
         ''' </summary>
         Public Shared Sub KillTargetProcess()
             Try
+                ' รวบรวมรายชื่อ process ที่ต้องปิด
+                Dim processNames As New List(Of String)()
+
+                ' 1. จาก KillProcessList config (คั่นด้วย ,)
+                Dim killList As String = Config.AppSettings.KillProcessList
+                If Not String.IsNullOrEmpty(killList) Then
+                    For Each name As String In killList.Split(","c)
+                        Dim trimmed As String = name.Trim().Replace(".exe", "")
+                        If Not String.IsNullOrEmpty(trimmed) AndAlso Not processNames.Contains(trimmed) Then
+                            processNames.Add(trimmed)
+                        End If
+                    Next
+                End If
+
+                ' 2. จาก UninstallProductName (ถ้ายังไม่มีในรายชื่อ)
                 Dim productName As String = Config.AppSettings.UninstallProductName
-                If String.IsNullOrEmpty(productName) Then
-                    LogManager.Info("No UninstallProductName set. Skipping process kill.")
+                If Not String.IsNullOrEmpty(productName) Then
+                    Dim pName As String = productName.Replace(".exe", "")
+                    If Not processNames.Contains(pName) Then
+                        processNames.Add(pName)
+                    End If
+                End If
+
+                If processNames.Count = 0 Then
+                    LogManager.Info("No process names to kill. Skipping.")
                     Return
                 End If
 
-                ' ค้นหา process ที่ชื่อตรงกัน (ไม่รวมนามสกุล)
-                Dim processName As String = productName.Replace(".exe", "")
+                LogManager.Info("Kill list: " & String.Join(", ", processNames.ToArray()))
+
+                For Each processName As String In processNames
+                    KillProcessByName(processName)
+                Next
+            Catch ex As Exception
+                LogManager.Warn("Error in KillTargetProcess: " & ex.Message)
+            End Try
+        End Sub
+
+        ''' <summary>
+        ''' ปิด process ที่ระบุชื่อ — ใช้ Force Kill เพื่อข้าม Confirmation Dialog
+        ''' ลอง CloseMainWindow ก่อน รอ 2 วินาที ถ้าไม่ปิด → Kill ทันที
+        ''' ถ้ายังไม่ปิด → ใช้ taskkill /F /IM เป็น fallback สุดท้าย
+        ''' </summary>
+        Private Shared Sub KillProcessByName(processName As String)
+            Try
                 Dim processes() As Process = Process.GetProcessesByName(processName)
 
                 If processes.Length = 0 Then
-                    LogManager.Info("No running process found with name: " & processName)
+                    LogManager.Info("No running process: " & processName)
                     Return
                 End If
 
                 For Each proc As Process In processes
                     Try
-                        LogManager.Info("Killing target process: " & proc.ProcessName & " (PID: " & proc.Id & ")")
+                        LogManager.Info("Closing process: " & proc.ProcessName & " (PID: " & proc.Id & ")")
+
+                        ' ลอง CloseMainWindow ก่อน (ให้โอกาสปิดปกติ)
                         proc.CloseMainWindow()
-                        If Not proc.WaitForExit(5000) Then
-                            LogManager.Warn("Process did not exit gracefully, force killing: " & proc.ProcessName)
+
+                        ' รอแค่ 2 วินาที — ถ้าแอพมี confirmation dialog จะไม่ปิดทันเวลา
+                        If Not proc.WaitForExit(2000) Then
+                            ' Force Kill ทันที — ข้าม confirmation dialog
+                            LogManager.Info("Force killing (bypass confirmation): " & proc.ProcessName)
                             proc.Kill()
+                            proc.WaitForExit(3000)
                         End If
-                        LogManager.Info("Process killed successfully: " & proc.ProcessName)
+
+                        LogManager.Info("Process closed: " & proc.ProcessName)
                     Catch ex As Exception
-                        LogManager.Warn("Could not kill process " & proc.ProcessName & ": " & ex.Message)
+                        LogManager.Warn("Could not kill " & proc.ProcessName & ": " & ex.Message)
                     End Try
                 Next
+
+                ' ── Fallback: ใช้ taskkill เผื่อยังหลุดรอดอยู่ ──
+                Threading.Thread.Sleep(500)
+                Dim remaining() As Process = Process.GetProcessesByName(processName)
+                If remaining.Length > 0 Then
+                    LogManager.Warn("Process still running after Kill(). Using taskkill /F /IM as fallback.")
+                    Try
+                        Dim psi As New ProcessStartInfo()
+                        psi.FileName = "taskkill"
+                        psi.Arguments = "/F /IM " & processName & ".exe"
+                        psi.UseShellExecute = False
+                        psi.CreateNoWindow = True
+                        Dim p As Process = Process.Start(psi)
+                        If p IsNot Nothing Then p.WaitForExit(5000)
+                        LogManager.Info("taskkill /F /IM " & processName & ".exe completed.")
+                    Catch ex As Exception
+                        LogManager.Warn("taskkill fallback failed: " & ex.Message)
+                    End Try
+                End If
             Catch ex As Exception
-                LogManager.Warn("Error in KillTargetProcess: " & ex.Message)
+                LogManager.Warn("Error killing " & processName & ": " & ex.Message)
             End Try
         End Sub
 
