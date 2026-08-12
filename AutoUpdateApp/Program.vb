@@ -55,6 +55,9 @@ Module Program
                 ' ── ใส่ตัวเองไปที่ Startup (ถ้าเปิดใช้ใน config) ──
                 Managers.InstallerManager.AddSelfToStartup()
 
+                ' ── ใส่ Target App ไปที่ Startup (ลบก่อน + ใส่ใหม่ทุกครั้ง) ──
+                Managers.InstallerManager.CopyShortcutToStartup()
+
                 ' ── ตรวจสอบการอัปเดตที่ค้างรอรีสตาร์ทตอนเริ่มโปรแกรม ──
                 CheckPendingRestartUpdate()
 
@@ -124,6 +127,8 @@ Module Program
             Managers.LogManager.Info("Running pending restart update. " & _
                                      currentVersion & " → " & latestVersion)
 
+            ' ปิดโปรแกรมเป้าหมายก่อนทำการอัปเดต
+            Managers.InstallerManager.KillTargetProcess()
             Dim success As Boolean = Managers.InstallerManager.RunInstaller(tester.TesterType)
 
             If success Then

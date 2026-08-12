@@ -121,9 +121,17 @@ Namespace Forms
         End Sub
 
         Private Sub BtnUpdateNow_Click(sender As Object, e As EventArgs)
-            _userChoice = UpdatePromptResult.UpdateNow
-            Me.DialogResult = DialogResult.OK
-            Me.Close()
+            Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
+            Dim result As DialogResult = MessageBox.Show(
+                L("ConfirmUpdate"),
+                L("ConfirmTitle"),
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question)
+            If result = DialogResult.Yes Then
+                _userChoice = UpdatePromptResult.UpdateNow
+                Me.DialogResult = DialogResult.OK
+                Me.Close()
+            End If
         End Sub
 
         Private Sub BtnAfterRestart_Click(sender As Object, e As EventArgs)

@@ -95,6 +95,9 @@ Namespace Managers
                 End Try
 
                 If copySuccess Then
+                    ' ── ปิดโปรแกรมเป้าหมายก่อนถอนการติดตั้ง ──
+                    KillTargetProcess()
+                    CloseProgramOfRegistryPath()
                     Dim uninstallPath As String = IO.Path.Combine(localFolder, "uninstall.bat")
                     Dim installPath As String = IO.Path.Combine(localFolder, "install.bat")
 
@@ -439,6 +442,44 @@ Namespace Managers
         End Sub
 
         ''' <summary>
+        ''' ปิดโปรแกรมเป้าหมาย (RSX5000 หรือชื่อที่ตั้งใน UninstallProductName) ก่อนทำการอัปเดต
+        ''' </summary>
+        Public Shared Sub KillTargetProcess()
+            Try
+                Dim productName As String = Config.AppSettings.UninstallProductName
+                If String.IsNullOrEmpty(productName) Then
+                    LogManager.Info("No UninstallProductName set. Skipping process kill.")
+                    Return
+                End If
+
+                ' ค้นหา process ที่ชื่อตรงกัน (ไม่รวมนามสกุล)
+                Dim processName As String = productName.Replace(".exe", "")
+                Dim processes() As Process = Process.GetProcessesByName(processName)
+
+                If processes.Length = 0 Then
+                    LogManager.Info("No running process found with name: " & processName)
+                    Return
+                End If
+
+                For Each proc As Process In processes
+                    Try
+                        LogManager.Info("Killing target process: " & proc.ProcessName & " (PID: " & proc.Id & ")")
+                        proc.CloseMainWindow()
+                        If Not proc.WaitForExit(5000) Then
+                            LogManager.Warn("Process did not exit gracefully, force killing: " & proc.ProcessName)
+                            proc.Kill()
+                        End If
+                        LogManager.Info("Process killed successfully: " & proc.ProcessName)
+                    Catch ex As Exception
+                        LogManager.Warn("Could not kill process " & proc.ProcessName & ": " & ex.Message)
+                    End Try
+                Next
+            Catch ex As Exception
+                LogManager.Warn("Error in KillTargetProcess: " & ex.Message)
+            End Try
+        End Sub
+
+        ''' <summary>
         ''' ปิดโปรแกรมหลักที่ระบุใน registry path (หัวข้อ 5.3)
         ''' </summary>
         Public Shared Sub CloseProgramOfRegistryPath()
@@ -608,10 +649,9 @@ Namespace Managers
                 Dim shortcutName As String = Path.GetFileNameWithoutExtension(selfExePath) & ".lnk"
                 Dim shortcutPath As String = Path.Combine(startupFolder, shortcutName)
 
-                ' ถ้ามี shortcut อยู่แล้ว ไม่ต้องสร้างซ้ำ
-                If File.Exists(shortcutPath) Then
-                    Return
-                End If
+                ' ลบ shortcut เก่าก่อนสร้างใหม่ทุกครั้ง (ทั้ง Current User + All Users)
+                Dim selfName As String = Path.GetFileNameWithoutExtension(selfExePath)
+                RemoveStartupShortcut(selfName)
 
                 LogManager.Info("Adding self to startup: " & shortcutPath)
                 CreateShortcut(shortcutPath, selfExePath)
@@ -622,21 +662,45 @@ Namespace Managers
         End Sub
 
         ''' <summary>
-        ''' ลบ Shortcut ที่ชื่อตรงกันออกจาก Startup folder
+        ''' ลบ Shortcut ที่ชื่อตรงกันออกจาก Startup folder ทั้ง Current User และ All Users
         ''' </summary>
         Public Shared Sub RemoveStartupShortcut(shortcutBaseName As String)
             Try
                 If String.IsNullOrEmpty(shortcutBaseName) Then Return
 
-                Dim startupFolder As String = Environment.GetFolderPath(Environment.SpecialFolder.Startup)
-                Dim shortcutPath As String = Path.Combine(startupFolder, shortcutBaseName & ".lnk")
+                ' Current User Startup
+                Dim currentUserStartup As String = Environment.GetFolderPath(Environment.SpecialFolder.Startup)
+                RemoveShortcutFromFolder(currentUserStartup, shortcutBaseName)
 
-                If File.Exists(shortcutPath) Then
-                    File.Delete(shortcutPath)
-                    LogManager.Info("Removed old startup shortcut: " & shortcutPath)
-                End If
+                ' All Users Startup (Common Startup)
+                Dim allUsersStartup As String = Environment.GetFolderPath(Environment.SpecialFolder.CommonStartup)
+                RemoveShortcutFromFolder(allUsersStartup, shortcutBaseName)
             Catch ex As Exception
                 LogManager.Warn("Could not remove startup shortcut: " & ex.Message)
+            End Try
+        End Sub
+
+        ''' <summary>
+        ''' ลบ Shortcut จากโฟลเดอร์ที่ระบุ
+        ''' </summary>
+        Private Shared Sub RemoveShortcutFromFolder(folderPath As String, shortcutBaseName As String)
+            Try
+                If String.IsNullOrEmpty(folderPath) Then Return
+
+                Dim shortcutPath As String = Path.Combine(folderPath, shortcutBaseName & ".lnk")
+                If File.Exists(shortcutPath) Then
+                    File.Delete(shortcutPath)
+                    LogManager.Info("Removed startup shortcut: " & shortcutPath)
+                End If
+
+                ' ลบ .exe ตรงๆ ที่อาจถูกวางไว้ด้วย
+                Dim exePath As String = Path.Combine(folderPath, shortcutBaseName & ".exe")
+                If File.Exists(exePath) Then
+                    File.Delete(exePath)
+                    LogManager.Info("Removed startup exe: " & exePath)
+                End If
+            Catch ex As Exception
+                LogManager.Warn("Could not remove shortcut from " & folderPath & ": " & ex.Message)
             End Try
         End Sub
 

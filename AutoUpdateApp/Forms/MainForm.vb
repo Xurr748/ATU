@@ -486,6 +486,7 @@ Namespace Forms
             Me.Opacity = 0.0R
             Me.ShowInTaskbar = False
             Me.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen
+            Me.TopMost = True
             Me.Text = "Auto Update"
             Me.WindowState = System.Windows.Forms.FormWindowState.Minimized
             Me._contextMenu.ResumeLayout(False)
@@ -1239,6 +1240,9 @@ Namespace Forms
 
         Private Sub ManualUpdate_DoWork(ByVal sender As Object, ByVal e As System.ComponentModel.DoWorkEventArgs)
             Dim testerType As String = DirectCast(e.Argument, String)
+            ' ปิดโปรแกรมเป้าหมายก่อนทำการอัปเดต
+            Managers.InstallerManager.KillTargetProcess()
+            Managers.InstallerManager.CloseProgramOfRegistryPath()
             e.Result = Managers.InstallerManager.RunInstaller(testerType, _
                 Sub(percent, msg)
                     Me.UpdateProgressSafe(percent, msg)
