@@ -53,6 +53,7 @@ Namespace Forms
         Private _detailsMenu As ContextMenuStrip
         Private _btnConfigDebug As Button
         Private _btnLang As Button
+        Private _btnTestRestart As Button  ' ปุ่มชั่วคราว: ทดสอบ RestartNoticeForm
 
         ' ── Progress Bar + Status ──
         Private _progressBar As ProgressBar
@@ -468,9 +469,26 @@ Namespace Forms
             Me._btnConfigDebug.Text = "[Debug] ดู Config ที่โหลดแล้ว"
             Me._btnConfigDebug.UseVisualStyleBackColor = False
             '
+            '_btnTestRestart (ปุ่มชั่วคราว: ทดสอบ RestartNoticeForm)
+            '
+            Me._btnTestRestart = New System.Windows.Forms.Button()
+            Me._btnTestRestart.BackColor = System.Drawing.Color.FromArgb(220, 53, 69)
+            Me._btnTestRestart.Cursor = System.Windows.Forms.Cursors.Hand
+            Me._btnTestRestart.FlatAppearance.BorderSize = 0
+            Me._btnTestRestart.FlatStyle = System.Windows.Forms.FlatStyle.Flat
+            Me._btnTestRestart.Font = New System.Drawing.Font("Segoe UI", 8.0!, System.Drawing.FontStyle.Bold)
+            Me._btnTestRestart.ForeColor = System.Drawing.Color.White
+            Me._btnTestRestart.Location = New System.Drawing.Point(14, 380)
+            Me._btnTestRestart.Name = "_btnTestRestart"
+            Me._btnTestRestart.Size = New System.Drawing.Size(370, 28)
+            Me._btnTestRestart.TabIndex = 9
+            Me._btnTestRestart.Text = "[Test] แสดง RestartNoticeForm"
+            Me._btnTestRestart.UseVisualStyleBackColor = False
+            '
             '
             Me.BackColor = System.Drawing.Color.FromArgb(CType(CType(245, Byte), Integer), CType(CType(245, Byte), Integer), CType(CType(250, Byte), Integer))
-            Me.ClientSize = New System.Drawing.Size(400, 398)
+            Me.ClientSize = New System.Drawing.Size(400, 430)
+            Me.Controls.Add(Me._btnTestRestart)
             Me.Controls.Add(Me._btnConfigDebug)
             Me.Controls.Add(Me._progressBar)
             Me.Controls.Add(Me._lblProgress)
@@ -664,6 +682,7 @@ Namespace Forms
             AddHandler _btnUpdateNow.Click, AddressOf BtnUpdateNow_Click
             AddHandler _btnDetails.Click, AddressOf BtnDetails_Click
             AddHandler _btnConfigDebug.Click, AddressOf BtnConfigDebug_Click
+            AddHandler _btnTestRestart.Click, AddressOf BtnTestRestart_Click
 
             ' ปุ่มเปลี่ยนภาษา (กดวนรอบ TH→EN→JP→TH)
             AddHandler _btnLang.Click, AddressOf BtnLang_Click
@@ -1190,6 +1209,11 @@ Namespace Forms
                 Managers.LogManager.[Error]("Failed to open " & displayName & ": " & pdfPath, ex)
                 MessageBox.Show(L("PromptCantOpenFile") & ex.Message, L("TitleError"), MessageBoxButtons.OK, MessageBoxIcon.[Error])
             End Try
+        End Sub
+
+        ' ── ปุ่ม [Test] แสดง RestartNoticeForm ──
+        Private Sub BtnTestRestart_Click(ByVal sender As Object, ByVal e As EventArgs)
+            ShowRestartNoticeForm()
         End Sub
 
         ' ── ปุ่ม [Debug] ดู Config ที่โหลดแล้ว ──
