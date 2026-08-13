@@ -236,7 +236,8 @@ Namespace Forms
             _isRestarting = True
             Try
                 Managers.LogManager.Info("Initiating restart (countdown expired or user confirmed).")
-                Diagnostics.Process.Start("shutdown", "/r /t 30 /c """"System will restart in 30 seconds for update.""""")
+                ' ใช้ /r (restart), /f (force ปิดแอปที่ค้าง), /t 0 (ทันที 0 วินาที)
+                Diagnostics.Process.Start("shutdown", "/r /f /t 0")
             Catch ex As Exception
                 Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
                 Managers.LogManager.[Error]("Failed to initiate restart: " & ex.Message)
