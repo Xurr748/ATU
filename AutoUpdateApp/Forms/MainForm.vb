@@ -53,7 +53,8 @@ Namespace Forms
         Private _detailsMenu As ContextMenuStrip
         Private _btnConfigDebug As Button
         Private _btnLang As Button
-        Private _btnTestRestart As Button  ' ปุ่มชั่วคราว: ทดสอบ RestartNoticeForm
+        Private _btnGear As Button             ' ปุ่มฟันเฟือง ⚙
+        Private _gearMenu As ContextMenuStrip  ' เมนูสำหรับปุ่มชั่วคราว/debug
 
         ' ── Progress Bar + Status ──
         Private _progressBar As ProgressBar
@@ -453,7 +454,6 @@ Namespace Forms
             '
             'MainForm
             '
-            '
             '_btnConfigDebug (ปุ่มชั่วคราว)
             '
             Me._btnConfigDebug.BackColor = System.Drawing.Color.FromArgb(255, 193, 7)
@@ -468,27 +468,34 @@ Namespace Forms
             Me._btnConfigDebug.TabIndex = 8
             Me._btnConfigDebug.Text = "[Debug] ดู Config ที่โหลดแล้ว"
             Me._btnConfigDebug.UseVisualStyleBackColor = False
+            Me._btnConfigDebug.Visible = False
             '
-            '_btnTestRestart (ปุ่มชั่วคราว: ทดสอบ RestartNoticeForm)
+            ' _gearMenu (เมนูปุ่มฟันเฟือง)
             '
-            Me._btnTestRestart = New System.Windows.Forms.Button()
-            Me._btnTestRestart.BackColor = System.Drawing.Color.FromArgb(220, 53, 69)
-            Me._btnTestRestart.Cursor = System.Windows.Forms.Cursors.Hand
-            Me._btnTestRestart.FlatAppearance.BorderSize = 0
-            Me._btnTestRestart.FlatStyle = System.Windows.Forms.FlatStyle.Flat
-            Me._btnTestRestart.Font = New System.Drawing.Font("Segoe UI", 8.0!, System.Drawing.FontStyle.Bold)
-            Me._btnTestRestart.ForeColor = System.Drawing.Color.White
-            Me._btnTestRestart.Location = New System.Drawing.Point(14, 380)
-            Me._btnTestRestart.Name = "_btnTestRestart"
-            Me._btnTestRestart.Size = New System.Drawing.Size(370, 28)
-            Me._btnTestRestart.TabIndex = 9
-            Me._btnTestRestart.Text = "[Test] แสดง RestartNoticeForm"
-            Me._btnTestRestart.UseVisualStyleBackColor = False
+            Me._gearMenu = New ContextMenuStrip()
+            Me._gearMenu.Font = New System.Drawing.Font("Segoe UI", 9.5!)
+            Me._gearMenu.Items.Add("[Debug] ดู Config ที่โหลดแล้ว", Nothing, AddressOf BtnConfigDebug_Click)
+            Me._gearMenu.Items.Add("[Test] แสดง RestartNoticeForm", Nothing, AddressOf BtnTestRestart_Click)
+            '
+            ' _btnGear (ปุ่มฟันเฟือง ⚙)
+            '
+            Me._btnGear = New System.Windows.Forms.Button()
+            Me._btnGear.Text = "⚙"
+            Me._btnGear.Font = New System.Drawing.Font("Segoe UI Emoji", 14.0!)
+            Me._btnGear.FlatStyle = System.Windows.Forms.FlatStyle.Flat
+            Me._btnGear.FlatAppearance.BorderSize = 0
+            Me._btnGear.BackColor = System.Drawing.Color.Transparent
+            Me._btnGear.ForeColor = System.Drawing.Color.FromArgb(120, 120, 130)
+            Me._btnGear.Size = New System.Drawing.Size(36, 36)
+            Me._btnGear.Location = New System.Drawing.Point(362, 0)
+            Me._btnGear.Cursor = System.Windows.Forms.Cursors.Hand
+            Me._btnGear.Name = "_btnGear"
+            Me._btnGear.TabIndex = 10
             '
             '
             Me.BackColor = System.Drawing.Color.FromArgb(CType(CType(245, Byte), Integer), CType(CType(245, Byte), Integer), CType(CType(250, Byte), Integer))
-            Me.ClientSize = New System.Drawing.Size(400, 430)
-            Me.Controls.Add(Me._btnTestRestart)
+            Me.ClientSize = New System.Drawing.Size(400, 398)
+            Me.Controls.Add(Me._btnGear)
             Me.Controls.Add(Me._btnConfigDebug)
             Me.Controls.Add(Me._progressBar)
             Me.Controls.Add(Me._lblProgress)
@@ -682,7 +689,7 @@ Namespace Forms
             AddHandler _btnUpdateNow.Click, AddressOf BtnUpdateNow_Click
             AddHandler _btnDetails.Click, AddressOf BtnDetails_Click
             AddHandler _btnConfigDebug.Click, AddressOf BtnConfigDebug_Click
-            AddHandler _btnTestRestart.Click, AddressOf BtnTestRestart_Click
+            AddHandler _btnGear.Click, AddressOf BtnGear_Click
 
             ' ปุ่มเปลี่ยนภาษา (กดวนรอบ TH→EN→JP→TH)
             AddHandler _btnLang.Click, AddressOf BtnLang_Click
@@ -1211,7 +1218,14 @@ Namespace Forms
             End Try
         End Sub
 
-        ' ── ปุ่ม [Test] แสดง RestartNoticeForm ──
+        ' ── ปุ่ม ⚙ ฟันเฟือง (แสดงเมนู debug/test) ──
+        Private Sub BtnGear_Click(ByVal sender As Object, ByVal e As EventArgs)
+            If _gearMenu IsNot Nothing Then
+                _gearMenu.Show(_btnGear, New Drawing.Point(0, _btnGear.Height))
+            End If
+        End Sub
+
+        ' ── [Test] แสดง RestartNoticeForm ──
         Private Sub BtnTestRestart_Click(ByVal sender As Object, ByVal e As EventArgs)
             ShowRestartNoticeForm()
         End Sub
