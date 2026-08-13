@@ -149,6 +149,8 @@ Namespace Config
             AddString("RestartNoticeHeader", "กรุณารีสตาร์ทเครื่อง", "Please Restart Your Computer", "コンピュータを再起動してください")
             AddString("RestartNoticeBody", "ระบบได้ตั้งค่าอัปเดตเรียบร้อยแล้ว" & Environment.NewLine & "กรุณารีสตาร์ทเครื่องเพื่อทำการติดตั้งอัปเดต" & Environment.NewLine & Environment.NewLine & "หมายเหตุ: กรุณาบันทึกงานทั้งหมดก่อนรีสตาร์ท", "Update has been scheduled successfully." & Environment.NewLine & "Please restart your computer to install the update." & Environment.NewLine & Environment.NewLine & "Note: Please save all your work before restarting.", "アップデートが正常にスケジュールされました。" & Environment.NewLine & "アップデートをインストールするために再起動してください。" & Environment.NewLine & Environment.NewLine & "注意: 再起動前にすべての作業を保存してください。")
             AddString("RestartNoticeBtn", "รีสตาร์ทเดี๋ยวนี้", "Restart Now", "今すぐ再起動")
+            AddString("RestartNoticeBtnCancel", "ยกเลิก (ยังไม่รีสตาร์ท)", "Cancel", "キャンセル")
+            AddString("RestartNoticeCountdown", "รีสตาร์ทอัตโนมัติใน {0} วินาที", "Auto restart in {0} seconds", "{0}秒後に自動再起動します")
             AddString("RestartNoticeMinimizeWarn", "หน้าต่างจะกลับมาแสดงใน 20 วินาที", "This window will reappear in 20 seconds", "このウィンドウは20秒後に再表示されます")
 
             ' ── Language ──
