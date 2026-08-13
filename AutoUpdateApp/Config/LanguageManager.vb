@@ -144,6 +144,13 @@ Namespace Config
             AddString("DebugConfigStatus", "══════ สถานะ Config ══════", "══════ Config Status ══════", "══════ 設定ファイルのステータス ══════")
             AddString("DebugReadValues", "══════ ค่าที่อ่านได้ ══════", "══════ Read Values ══════", "══════ 読み取られた値 ══════")
 
+            ' ── Restart Notice Form ──
+            AddString("RestartNoticeTitle", "⚠ แจ้งเตือนรีสตาร์ท", "⚠ Restart Required", "⚠ 再起動が必要です")
+            AddString("RestartNoticeHeader", "กรุณารีสตาร์ทเครื่อง", "Please Restart Your Computer", "コンピュータを再起動してください")
+            AddString("RestartNoticeBody", "ระบบได้ตั้งค่าอัปเดตเรียบร้อยแล้ว" & Environment.NewLine & "กรุณารีสตาร์ทเครื่องเพื่อทำการติดตั้งอัปเดต" & Environment.NewLine & Environment.NewLine & "หมายเหตุ: กรุณาบันทึกงานทั้งหมดก่อนรีสตาร์ท", "Update has been scheduled successfully." & Environment.NewLine & "Please restart your computer to install the update." & Environment.NewLine & Environment.NewLine & "Note: Please save all your work before restarting.", "アップデートが正常にスケジュールされました。" & Environment.NewLine & "アップデートをインストールするために再起動してください。" & Environment.NewLine & Environment.NewLine & "注意: 再起動前にすべての作業を保存してください。")
+            AddString("RestartNoticeBtn", "รีสตาร์ทเดี๋ยวนี้", "Restart Now", "今すぐ再起動")
+            AddString("RestartNoticeMinimizeWarn", "หน้าต่างจะกลับมาแสดงใน 20 วินาที", "This window will reappear in 20 seconds", "このウィンドウは20秒後に再表示されます")
+
             ' ── Language ──
             AddString("LangTH", "TH", "TH", "TH")
             AddString("LangEN", "EN", "EN", "EN")

@@ -423,6 +423,7 @@ Namespace Forms
             Me._btnUpdateNow.TabIndex = 3
             Me._btnUpdateNow.Text = "อัปเดตทันที"
             Me._btnUpdateNow.UseVisualStyleBackColor = False
+            Me._btnUpdateNow.Visible = False
             '
             '_progressBar
             '
@@ -773,6 +774,9 @@ Namespace Forms
                         MessageBox.Show(L("PromptCheckDone") & ": " & translatedMsg, L("TitleCheckResult"), MessageBoxButtons.OK, MessageBoxIcon.Information)
                     Case Strategies.UpdateResult.UpdateCompleted
                         MessageBox.Show(L("PromptSuccessCompleted"), L("TitleCheckResult"), MessageBoxButtons.OK, MessageBoxIcon.Information)
+                    Case Strategies.UpdateResult.UpdateScheduledForRestart
+                        ' แสดงหน้าต่างแจ้งเตือนรีสตาร์ทขนาดใหญ่
+                        ShowRestartNoticeForm()
                     Case Strategies.UpdateResult.[Error]
                         Dim translatedMsg As String = TranslateMessage(e.Message)
                         MessageBox.Show(L("TitleError") & ": " & translatedMsg, L("TitleCheckResult"), MessageBoxButtons.OK, MessageBoxIcon.Error)
@@ -806,6 +810,19 @@ Namespace Forms
 
             Return msg
         End Function
+
+        ''' <summary>
+        ''' แสดงหน้าต่างแจ้งเตือนรีสตาร์ทขนาดใหญ่ (เรียกหลังจาก UpdateScheduledForRestart)
+        ''' </summary>
+        Private Sub ShowRestartNoticeForm()
+            Try
+                Dim notice As New RestartNoticeForm()
+                notice.Show()
+                Managers.LogManager.Info("RestartNoticeForm displayed.")
+            Catch ex As Exception
+                Managers.LogManager.[Error]("Failed to show RestartNoticeForm: " & ex.Message)
+            End Try
+        End Sub
 
         Private Sub CheckAndTrackUpdateFlag()
             Try
