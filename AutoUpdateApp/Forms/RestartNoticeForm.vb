@@ -120,22 +120,22 @@ Namespace Forms
         End Sub
 
         ''' <summary>
-        ''' ป้องกันการกดปิดหน้าต่าง (X) — ย่อแทน
+        ''' จำลองการทำงานของปุ่มปิด (X) — ซ่อนหน้าต่างแทนการปิดจริง เพื่อให้ Timer ยังทำงานต่อได้
         ''' </summary>
         Protected Overrides Sub OnFormClosing(e As FormClosingEventArgs)
             If Not _isRestarting AndAlso e.CloseReason = CloseReason.UserClosing Then
                 e.Cancel = True
-                Me.WindowState = FormWindowState.Minimized
+                Me.Hide() ' ซ่อนหน้าต่างไปเลย (หลอกว่าปิดแล้ว)
             End If
             MyBase.OnFormClosing(e)
         End Sub
 
         ''' <summary>
-        ''' เมื่อ user กดย่อ แล้วไม่ restart ภายใน 20 วินาที → เด้งขึ้นมาใหม่
-        ''' ต้องเช็คว่า Form ยัง Visible อยู่ ป้องกันการเด้งตอนที่ถูกซ่อนโดยหน้า Countdown
+        ''' เมื่อ user กดย่อ หรือ กดปิด(ซ่อน) แล้วไม่ restart ภายใน 20 วินาที → เด้งขึ้นมาใหม่
         ''' </summary>
         Private Sub PopupTimer_Tick(sender As Object, e As EventArgs)
-            If Me.Visible AndAlso Me.WindowState = FormWindowState.Minimized Then
+            If Not Me.Visible OrElse Me.WindowState = FormWindowState.Minimized Then
+                Me.Show()
                 Me.WindowState = FormWindowState.Normal
                 Me.TopMost = True
                 Me.BringToFront()
@@ -143,8 +143,13 @@ Namespace Forms
             End If
         End Sub
 
+        Public Sub ResumePopupTimer()
+            If _popupTimer IsNot Nothing Then _popupTimer.Start()
+        End Sub
+
         Private Sub BtnRestart_Click(sender As Object, e As EventArgs)
             ' ซ่อนฟอร์มปัจจุบัน และเปิดหน้าต่างนับถอยหลังขึ้นมาแทน
+            If _popupTimer IsNot Nothing Then _popupTimer.Stop()
             Me.Hide()
             Dim countdownForm As New RestartCountdownForm(Me)
             countdownForm.Show()

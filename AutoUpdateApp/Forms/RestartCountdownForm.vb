@@ -114,10 +114,13 @@ Namespace Forms
             _countdownTimer.Stop()
             Managers.LogManager.Info("User cancelled restart countdown from CountdownForm.")
             
-            ' เรียกฟอร์มหน้าต่างเก่ากลับมาและย่อไว้
+            ' เรียกฟอร์มหน้าต่างเก่ากลับมาและซ่อนไว้เบื้องหลัง (หลอกว่าปิด)
             If _parentForm IsNot Nothing Then
                 _parentForm.Show()
-                _parentForm.WindowState = FormWindowState.Minimized
+                _parentForm.Hide() ' ซ่อนอีกครั้งเพื่อให้ Trigger PopupTimer
+                If TypeOf _parentForm Is RestartNoticeForm Then
+                    DirectCast(_parentForm, RestartNoticeForm).ResumePopupTimer()
+                End If
             End If
             Me.Close()
         End Sub
