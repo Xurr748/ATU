@@ -95,6 +95,9 @@
     <Compile Include="Forms\RestartNoticeForm.vb">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="Forms\RestartCountdownForm.vb">
+      <SubType>Form</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Forms\MainForm.resx">
