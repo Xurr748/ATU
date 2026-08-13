@@ -896,30 +896,13 @@ Namespace Forms
                     Dim elapsed As TimeSpan = DateTime.Now - _flagSetTime
                     If elapsed.TotalMinutes >= 60 Then
                         _restartPromptShown = True
-                        Managers.LogManager.Info("Update flag has been set for " & elapsed.TotalMinutes.ToString("F0") & " minutes. Prompting restart.")
+                        Managers.LogManager.Info("Update flag has been set for " & elapsed.TotalMinutes.ToString("F0") & " minutes. Showing RestartNoticeForm.")
 
-                        ' ปลุก/แสดงหน้าต่างหลักขึ้นมาเพื่อให้ป๊อปอัปเด้งแสดงอย่างชัดเจน ไม่หลบหลังแอปอื่น
+                        ' แสดง RestartNoticeForm แทน MessageBox เดิม
                         If Me.InvokeRequired Then
-                            Me.BeginInvoke(New Action(AddressOf ShowForm))
+                            Me.BeginInvoke(New Action(AddressOf ShowRestartNoticeForm))
                         Else
-                            ShowForm()
-                        End If
-
-                        Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
-                        Dim result As DialogResult = MessageBox.Show(
-                            L("RestartPromptMsg"),
-                            L("RestartPromptTitle"),
-                            MessageBoxButtons.YesNo,
-                            MessageBoxIcon.Warning)
-
-                        If result = DialogResult.Yes Then
-                            Managers.LogManager.Info("User confirmed restart.")
-                            Try
-                                Process.Start("shutdown", "/r /t 30 /c """"System will restart in 30 seconds for update.""""")
-                            Catch ex As Exception
-                                Managers.LogManager.[Error]("Failed to initiate restart: " & ex.Message)
-                                MessageBox.Show(L("CantRestart") & ex.Message, L("TitleError"), MessageBoxButtons.OK, MessageBoxIcon.[Error])
-                            End Try
+                            ShowRestartNoticeForm()
                         End If
                     End If
                 End If
