@@ -124,6 +124,15 @@ Namespace Forms
             Me.ResumeLayout(False)
         End Sub
 
+        Public Sub UpdateLanguage()
+            Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
+            Me.Text = L("RestartNoticeTitle")
+            If _lblHeader IsNot Nothing Then _lblHeader.Text = L("RestartNoticeHeader")
+            If _lblBody IsNot Nothing Then _lblBody.Text = L("RestartNoticeBody")
+            If _btnRestart IsNot Nothing Then _btnRestart.Text = L("RestartNoticeBtn")
+            If _lblWarn IsNot Nothing Then _lblWarn.Text = L("RestartNoticeMinimizeWarn")
+        End Sub
+
         ''' <summary>
         ''' ปุ่มปิด (X) = ซ่อนหน้าต่างแทน (จะเด้งขึ้นมาใหม่ใน 20 วินาที)
         ''' </summary>

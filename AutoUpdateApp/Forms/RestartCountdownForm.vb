@@ -105,6 +105,13 @@ Namespace Forms
             Me.ResumeLayout(False)
         End Sub
 
+        Public Sub UpdateLanguage()
+            Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
+            Me.Text = L("RestartNoticeTitle")
+            If _lblHeader IsNot Nothing Then _lblHeader.Text = L("RestartNoticeCountdown").Replace("{0}", "")
+            If _btnCancel IsNot Nothing Then _btnCancel.Text = L("RestartNoticeBtnCancel")
+        End Sub
+
         Private Sub CountdownTimer_Tick(sender As Object, e As EventArgs)
             _secondsLeft -= 1
             _lblCountdown.Text = _secondsLeft.ToString()

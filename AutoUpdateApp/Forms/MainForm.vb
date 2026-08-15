@@ -626,6 +626,17 @@ Namespace Forms
 
             ' Context Menu
             _mnuCheckNow.Text = L("MenuCheckNow")
+
+            ' อัปเดตหน้าต่าง Restart ถ้ากำลังเปิดอยู่
+            If _restartNoticeForm IsNot Nothing AndAlso Not _restartNoticeForm.IsDisposed Then
+                _restartNoticeForm.UpdateLanguage()
+            End If
+
+            For Each frm As Form In Application.OpenForms
+                If TypeOf frm Is RestartCountdownForm Then
+                    DirectCast(frm, RestartCountdownForm).UpdateLanguage()
+                End If
+            Next
             _mnuExit.Text = L("MenuExit")
 
             ' Language Button Text (แสดงภาษาปัจจุบัน)
