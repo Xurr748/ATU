@@ -7,15 +7,14 @@ Imports System.Windows.Forms
 Namespace Forms
 
     ''' <summary>
-    ''' หน้าต่างแจ้งเตือนรีสตาร์ทขนาดใหญ่ (60% ของหน้าจอ)
-    ''' - ปิดปุ่ม Close (X) และ Maximize
-    ''' - เหลือแค่ปุ่ม Minimize
-    ''' - ถ้ายกลงไปจะเด้งขึ้นมาใหม่ใน 20 วินาที
+    ''' หน้าต่างแจ้งเตือนรีสตาร์ท (50% ของหน้าจอ)
+    ''' - ใช้ SystemIcons.Warning แทน emoji เพื่อรองรับ Win7
+    ''' - ปุ่ม Close (X) = ซ่อนหน้าต่าง → เด้งขึ้นมาใหม่ใน 20 วินาที
     ''' </summary>
     Public Class RestartNoticeForm
         Inherits Form
 
-        Private _lblIcon As Label
+        Private _picIcon As PictureBox
         Private _lblHeader As Label
         Private _lblBody As Label
         Private _lblWarn As Label
@@ -32,79 +31,85 @@ Namespace Forms
 
             Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
 
-            ' ── คำนวณขนาด 60% ของหน้าจอ ──
+            ' ── คำนวณขนาด 50% ของหน้าจอ (ปรับให้เหมาะกับ 1280x1024) ──
             Dim screen As Rectangle = System.Windows.Forms.Screen.PrimaryScreen.WorkingArea
-            Dim formW As Integer = CInt(screen.Width * 0.6)
-            Dim formH As Integer = CInt(screen.Height * 0.6)
+            Dim formW As Integer = CInt(screen.Width * 0.5)
+            Dim formH As Integer = CInt(screen.Height * 0.5)
+
+            ' กำหนดขนาดขั้นต่ำ/สูงสุด
+            If formW < 500 Then formW = 500
+            If formH < 380 Then formH = 380
+            If formW > 800 Then formW = 800
+            If formH > 600 Then formH = 600
 
             ' ── Form Settings ──
             Me.Text = L("RestartNoticeTitle")
             Me.Size = New Size(formW, formH)
             Me.StartPosition = FormStartPosition.CenterScreen
             Me.FormBorderStyle = FormBorderStyle.FixedSingle
-            Me.MaximizeBox = False       ' ปิดปุ่ม Maximize
-            Me.MinimizeBox = True        ' เหลือแค่ Minimize
+            Me.MaximizeBox = False
+            Me.MinimizeBox = True
             Me.TopMost = True
             Me.ShowInTaskbar = True
             Me.BackColor = Color.FromArgb(25, 25, 35)
             Me.Font = New Font("Segoe UI", 10.0F)
 
-            ' ── ⚠ ไอคอนเตือน ──
-            _lblIcon = New Label()
-            _lblIcon.Text = "⚠"
-            _lblIcon.Font = New Font("Segoe UI Emoji", 72.0F)
-            _lblIcon.ForeColor = Color.FromArgb(255, 193, 7)
-            _lblIcon.TextAlign = ContentAlignment.MiddleCenter
-            _lblIcon.AutoSize = False
-            _lblIcon.Size = New Size(formW - 40, 130)
-            _lblIcon.Location = New Point(20, CInt(formH * 0.08))
+            Dim topY As Integer = 20
 
-            ' ── หัวข้อขนาดใหญ่ ──
+            ' ── ไอคอนเตือน (SystemIcons.Warning — รองรับ Win7) ──
+            _picIcon = New PictureBox()
+            _picIcon.Image = New Bitmap(SystemIcons.Warning.ToBitmap(), New Size(64, 64))
+            _picIcon.SizeMode = PictureBoxSizeMode.CenterImage
+            _picIcon.Size = New Size(formW - 40, 80)
+            _picIcon.Location = New Point(20, topY)
+            _picIcon.BackColor = Color.Transparent
+
+            ' ── หัวข้อ ──
             _lblHeader = New Label()
             _lblHeader.Text = L("RestartNoticeHeader")
-            _lblHeader.Font = New Font("Segoe UI", 32.0F, FontStyle.Bold)
+            _lblHeader.Font = New Font("Segoe UI", 24.0F, FontStyle.Bold)
             _lblHeader.ForeColor = Color.White
             _lblHeader.TextAlign = ContentAlignment.MiddleCenter
             _lblHeader.AutoSize = False
-            _lblHeader.Size = New Size(formW - 40, 80)
-            _lblHeader.Location = New Point(20, CInt(formH * 0.08) + 135)
+            _lblHeader.Size = New Size(formW - 40, 60)
+            _lblHeader.Location = New Point(20, topY + 85)
 
             ' ── เนื้อหา ──
             _lblBody = New Label()
             _lblBody.Text = L("RestartNoticeBody")
-            _lblBody.Font = New Font("Segoe UI", 15.0F)
+            _lblBody.Font = New Font("Segoe UI", 11.0F)
             _lblBody.ForeColor = Color.FromArgb(200, 200, 210)
             _lblBody.TextAlign = ContentAlignment.MiddleCenter
             _lblBody.AutoSize = False
-            _lblBody.Size = New Size(formW - 80, 140)
-            _lblBody.Location = New Point(40, CInt(formH * 0.08) + 230)
+            _lblBody.Size = New Size(formW - 60, 100)
+            _lblBody.Location = New Point(30, topY + 155)
 
             ' ── ปุ่ม Restart Now ──
             _btnRestart = New Button()
             _btnRestart.Text = L("RestartNoticeBtn")
-            _btnRestart.Font = New Font("Segoe UI", 16.0F, FontStyle.Bold)
+            _btnRestart.Font = New Font("Segoe UI", 14.0F, FontStyle.Bold)
             _btnRestart.ForeColor = Color.White
             _btnRestart.BackColor = Color.FromArgb(220, 53, 69)
             _btnRestart.FlatStyle = FlatStyle.Flat
             _btnRestart.FlatAppearance.BorderSize = 0
-            _btnRestart.Size = New Size(300, 60)
-            _btnRestart.Location = New Point(CInt((formW - 300) / 2), CInt(formH * 0.08) + 400)
+            _btnRestart.Size = New Size(260, 50)
+            _btnRestart.Location = New Point(CInt((formW - 260) / 2), topY + 270)
             _btnRestart.Cursor = Cursors.Hand
             AddHandler _btnRestart.Click, AddressOf BtnRestart_Click
             AddHandler _btnRestart.MouseEnter, Sub(s, ev) _btnRestart.BackColor = Color.FromArgb(200, 35, 51)
             AddHandler _btnRestart.MouseLeave, Sub(s, ev) _btnRestart.BackColor = Color.FromArgb(220, 53, 69)
 
-            ' ── คำเตือนเมื่อ Minimize ──
+            ' ── คำเตือนเมื่อปิด/ย่อ ──
             _lblWarn = New Label()
             _lblWarn.Text = L("RestartNoticeMinimizeWarn")
-            _lblWarn.Font = New Font("Segoe UI", 10.0F, FontStyle.Italic)
+            _lblWarn.Font = New Font("Segoe UI", 9.0F, FontStyle.Italic)
             _lblWarn.ForeColor = Color.FromArgb(150, 150, 160)
             _lblWarn.TextAlign = ContentAlignment.MiddleCenter
             _lblWarn.AutoSize = False
-            _lblWarn.Size = New Size(formW - 40, 30)
-            _lblWarn.Location = New Point(20, CInt(formH * 0.08) + 475)
+            _lblWarn.Size = New Size(formW - 40, 25)
+            _lblWarn.Location = New Point(20, topY + 330)
 
-            Me.Controls.Add(_lblIcon)
+            Me.Controls.Add(_picIcon)
             Me.Controls.Add(_lblHeader)
             Me.Controls.Add(_lblBody)
             Me.Controls.Add(_btnRestart)
@@ -112,7 +117,7 @@ Namespace Forms
 
             ' ── Timer: เด้งขึ้นมาใหม่ทุก 20 วินาที ──
             _popupTimer = New Timer()
-            _popupTimer.Interval = 20000 ' 20 วินาที
+            _popupTimer.Interval = 20000
             AddHandler _popupTimer.Tick, AddressOf PopupTimer_Tick
             _popupTimer.Start()
 
@@ -120,12 +125,12 @@ Namespace Forms
         End Sub
 
         ''' <summary>
-        ''' จำลองการทำงานของปุ่มปิด (X) — ซ่อนหน้าต่างแทนการปิดจริง เพื่อให้ Timer ยังทำงานต่อได้
+        ''' ปุ่มปิด (X) = ซ่อนหน้าต่างแทน (จะเด้งขึ้นมาใหม่ใน 20 วินาที)
         ''' </summary>
         Protected Overrides Sub OnFormClosing(e As FormClosingEventArgs)
             If Not _isRestarting AndAlso e.CloseReason = CloseReason.UserClosing Then
                 e.Cancel = True
-                Me.Hide() ' ซ่อนหน้าต่างไปเลย (หลอกว่าปิดแล้ว)
+                Me.Hide()
             End If
             MyBase.OnFormClosing(e)
         End Sub
@@ -164,6 +169,9 @@ Namespace Forms
                 End If
                 If _btnRestart IsNot Nothing Then
                     RemoveHandler _btnRestart.Click, AddressOf BtnRestart_Click
+                End If
+                If _picIcon IsNot Nothing AndAlso _picIcon.Image IsNot Nothing Then
+                    _picIcon.Image.Dispose()
                 End If
             End If
             MyBase.Dispose(disposing)

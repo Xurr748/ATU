@@ -839,12 +839,27 @@ Namespace Forms
 
         ''' <summary>
         ''' แสดงหน้าต่างแจ้งเตือนรีสตาร์ทขนาดใหญ่ (เรียกหลังจาก UpdateScheduledForRestart)
+        ''' ใช้ instance เดียว ป้องกันหน้าต่างซ้อนหลายอัน
         ''' </summary>
+        Private _restartNoticeForm As RestartNoticeForm = Nothing
+
         Private Sub ShowRestartNoticeForm()
             Try
-                Dim notice As New RestartNoticeForm()
-                notice.Show()
-                Managers.LogManager.Info("RestartNoticeForm displayed.")
+                ' ถ้ามี instance เก่าอยู่แล้วและยังไม่ถูก Dispose → แค่แสดงมันขึ้นมาใหม่
+                If _restartNoticeForm IsNot Nothing AndAlso Not _restartNoticeForm.IsDisposed Then
+                    _restartNoticeForm.Show()
+                    _restartNoticeForm.WindowState = FormWindowState.Normal
+                    _restartNoticeForm.TopMost = True
+                    _restartNoticeForm.BringToFront()
+                    _restartNoticeForm.Activate()
+                    Managers.LogManager.Info("RestartNoticeForm re-shown (existing instance).")
+                    Return
+                End If
+
+                ' สร้างใหม่ถ้ายังไม่มี
+                _restartNoticeForm = New RestartNoticeForm()
+                _restartNoticeForm.Show()
+                Managers.LogManager.Info("RestartNoticeForm displayed (new instance).")
             Catch ex As Exception
                 Managers.LogManager.[Error]("Failed to show RestartNoticeForm: " & ex.Message)
             End Try

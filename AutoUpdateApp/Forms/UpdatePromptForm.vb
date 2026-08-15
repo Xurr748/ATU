@@ -76,6 +76,7 @@ Namespace Forms
             btnUpdateNow.ForeColor = Drawing.Color.White
             btnUpdateNow.Cursor = Cursors.Hand
             AddHandler btnUpdateNow.Click, AddressOf BtnUpdateNow_Click
+            btnUpdateNow.Visible = False
 
             ' ── btnAfterRestart ──
             btnAfterRestart = New Button()

@@ -7,7 +7,7 @@ Imports System.Windows.Forms
 Namespace Forms
 
     ''' <summary>
-    ''' หน้าต่างนับถอยหลังรีสตาร์ทขนาด 40% ของหน้าจอ
+    ''' หน้าต่างนับถอยหลังรีสตาร์ท (40% ของหน้าจอ)
     ''' - แสดงตัวเลขสีแดงขนาดใหญ่
     ''' - รีสตาร์ทอัตโนมัติเมื่อครบ 0
     ''' </summary>
@@ -31,10 +31,16 @@ Namespace Forms
             Me.SuspendLayout()
             Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
 
-            ' ── คำนวณขนาด 40% ของหน้าจอ ──
+            ' ── คำนวณขนาด 40% ของหน้าจอ (ปรับให้เหมาะกับ 1280x1024) ──
             Dim screen As Rectangle = System.Windows.Forms.Screen.PrimaryScreen.WorkingArea
             Dim formW As Integer = CInt(screen.Width * 0.4)
             Dim formH As Integer = CInt(screen.Height * 0.4)
+
+            ' กำหนดขนาดขั้นต่ำ/สูงสุด
+            If formW < 400 Then formW = 400
+            If formH < 300 Then formH = 300
+            If formW > 600 Then formW = 600
+            If formH > 450 Then formH = 450
 
             Me.Text = L("RestartNoticeTitle")
             Me.Size = New Size(formW, formH)
@@ -48,40 +54,39 @@ Namespace Forms
             Me.BackColor = Color.FromArgb(20, 20, 25)
             Me.Font = New Font("Segoe UI", 10.0F)
 
-            Dim centerY As Integer = CInt(formH * 0.15)
+            Dim centerY As Integer = CInt(formH * 0.08)
 
             ' ── ข้อความด้านบน ──
             _lblHeader = New Label()
-            ' ตัด {0} ออกเพื่อเอาข้อความเพียวๆ เช่น "รีสตาร์ทอัตโนมัติใน วินาที" -> เราจะใช้คำง่ายๆ หรือ Header
-            _lblHeader.Text = L("RestartNoticeCountdown").Replace(" {0} ", " ")
-            _lblHeader.Font = New Font("Segoe UI", 18.0F, FontStyle.Bold)
+            _lblHeader.Text = L("RestartNoticeCountdown").Replace("{0}", "")
+            _lblHeader.Font = New Font("Segoe UI", 14.0F, FontStyle.Bold)
             _lblHeader.ForeColor = Color.White
             _lblHeader.TextAlign = ContentAlignment.MiddleCenter
             _lblHeader.AutoSize = False
-            _lblHeader.Size = New Size(formW - 40, 50)
+            _lblHeader.Size = New Size(formW - 40, 40)
             _lblHeader.Location = New Point(20, centerY)
 
-            ' ── ตัวเลข 60 วิ สีแดงตัวใหญ่ ──
+            ' ── ตัวเลข countdown สีแดงตัวใหญ่ ──
             _lblCountdown = New Label()
             _lblCountdown.Text = _secondsLeft.ToString()
-            _lblCountdown.Font = New Font("Segoe UI", 90.0F, FontStyle.Bold)
+            _lblCountdown.Font = New Font("Segoe UI", 72.0F, FontStyle.Bold)
             _lblCountdown.ForeColor = Color.FromArgb(255, 70, 70)
             _lblCountdown.TextAlign = ContentAlignment.MiddleCenter
             _lblCountdown.AutoSize = False
-            _lblCountdown.Size = New Size(formW - 40, 150)
-            _lblCountdown.Location = New Point(20, centerY + 50)
+            _lblCountdown.Size = New Size(formW - 40, 120)
+            _lblCountdown.Location = New Point(20, centerY + 45)
 
             ' ── ปุ่ม Cancel ──
             _btnCancel = New Button()
             _btnCancel.Text = L("RestartNoticeBtnCancel")
-            _btnCancel.Font = New Font("Segoe UI", 14.0F)
+            _btnCancel.Font = New Font("Segoe UI", 12.0F)
             _btnCancel.ForeColor = Color.White
             _btnCancel.BackColor = Color.FromArgb(80, 80, 95)
             _btnCancel.FlatStyle = FlatStyle.Flat
             _btnCancel.FlatAppearance.BorderSize = 1
             _btnCancel.FlatAppearance.BorderColor = Color.FromArgb(120, 120, 140)
-            _btnCancel.Size = New Size(250, 50)
-            _btnCancel.Location = New Point(CInt((formW - 250) / 2), centerY + 220)
+            _btnCancel.Size = New Size(220, 45)
+            _btnCancel.Location = New Point(CInt((formW - 220) / 2), centerY + 185)
             _btnCancel.Cursor = Cursors.Hand
             AddHandler _btnCancel.Click, AddressOf BtnCancel_Click
             AddHandler _btnCancel.MouseEnter, Sub(s, ev) _btnCancel.BackColor = Color.FromArgb(100, 100, 115)
