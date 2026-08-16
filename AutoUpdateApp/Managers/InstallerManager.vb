@@ -147,8 +147,8 @@ Namespace Managers
                     End If
 
                     If uninstallSuccess Then
-                        ' ── Install: ค้นหา .msi จากโฟลเดอร์ Installer อัตโนมัติ ──
-                        Dim msiFile As String = FindLatestMsi(installerFolder)
+                        ' ── Install: ค้นหา .msi จากโฟลเดอร์ที่ copy มายังเครื่องแล้ว (localFolder) ──
+                        Dim msiFile As String = FindLatestMsi(localFolder)
                         Dim installerArgs As String = Config.AppSettings.InstallerArgs
 
                         If Not String.IsNullOrEmpty(msiFile) Then
