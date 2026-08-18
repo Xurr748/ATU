@@ -122,6 +122,8 @@ Namespace Forms
             Me._progressBar = New System.Windows.Forms.ProgressBar()
             Me._lblProgress = New System.Windows.Forms.Label()
             Me._fadeTimer = New System.Windows.Forms.Timer(Me.components)
+            Me._gearMenu = New System.Windows.Forms.ContextMenuStrip(Me.components)
+            Me._btnGear = New System.Windows.Forms.Button()
             Me._contextMenu.SuspendLayout()
             Me._grpInfo.SuspendLayout()
             Me._grpVersion.SuspendLayout()
@@ -305,7 +307,7 @@ Namespace Forms
             '
             Me._lblCurrentValue.AutoSize = True
             Me._lblCurrentValue.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
-            Me._lblCurrentValue.Location = New System.Drawing.Point(150, 40)
+            Me._lblCurrentValue.Location = New System.Drawing.Point(130, 40)
             Me._lblCurrentValue.Name = "_lblCurrentValue"
             Me._lblCurrentValue.Size = New System.Drawing.Size(16, 15)
             Me._lblCurrentValue.TabIndex = 1
@@ -325,7 +327,7 @@ Namespace Forms
             '
             Me._lblServerValue.AutoSize = True
             Me._lblServerValue.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
-            Me._lblServerValue.Location = New System.Drawing.Point(150, 62)
+            Me._lblServerValue.Location = New System.Drawing.Point(130, 62)
             Me._lblServerValue.Name = "_lblServerValue"
             Me._lblServerValue.Size = New System.Drawing.Size(16, 15)
             Me._lblServerValue.TabIndex = 3
@@ -345,7 +347,7 @@ Namespace Forms
             '
             Me._lblStatusValue.AutoSize = True
             Me._lblStatusValue.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
-            Me._lblStatusValue.Location = New System.Drawing.Point(150, 84)
+            Me._lblStatusValue.Location = New System.Drawing.Point(130, 84)
             Me._lblStatusValue.Name = "_lblStatusValue"
             Me._lblStatusValue.Size = New System.Drawing.Size(16, 15)
             Me._lblStatusValue.TabIndex = 5
@@ -381,20 +383,21 @@ Namespace Forms
             Me._btnRefreshInfo.Text = "รีเฟรช"
             Me._btnRefreshInfo.UseVisualStyleBackColor = False
             '
-            '_btnLang
+            '_btnUpdateNow
             '
-            Me._btnLang.BackColor = System.Drawing.Color.FromArgb(52, 73, 94)
-            Me._btnLang.Cursor = System.Windows.Forms.Cursors.Hand
-            Me._btnLang.FlatAppearance.BorderSize = 0
-            Me._btnLang.FlatStyle = System.Windows.Forms.FlatStyle.Flat
-            Me._btnLang.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
-            Me._btnLang.ForeColor = System.Drawing.Color.White
-            Me._btnLang.Location = New System.Drawing.Point(305, 310)
-            Me._btnLang.Name = "_btnLang"
-            Me._btnLang.Size = New System.Drawing.Size(79, 32)
-            Me._btnLang.TabIndex = 6
-            Me._btnLang.Text = "🌐 TH"
-            Me._btnLang.UseVisualStyleBackColor = False
+            Me._btnUpdateNow.BackColor = System.Drawing.Color.FromArgb(CType(CType(9, Byte), Integer), CType(CType(132, Byte), Integer), CType(CType(227, Byte), Integer))
+            Me._btnUpdateNow.Cursor = System.Windows.Forms.Cursors.Hand
+            Me._btnUpdateNow.FlatAppearance.BorderSize = 0
+            Me._btnUpdateNow.FlatStyle = System.Windows.Forms.FlatStyle.Flat
+            Me._btnUpdateNow.Font = New System.Drawing.Font("Segoe UI", 9.5!, System.Drawing.FontStyle.Bold)
+            Me._btnUpdateNow.ForeColor = System.Drawing.Color.White
+            Me._btnUpdateNow.Location = New System.Drawing.Point(14, 268)
+            Me._btnUpdateNow.Name = "_btnUpdateNow"
+            Me._btnUpdateNow.Size = New System.Drawing.Size(370, 34)
+            Me._btnUpdateNow.TabIndex = 3
+            Me._btnUpdateNow.Text = "อัปเดตทันที"
+            Me._btnUpdateNow.UseVisualStyleBackColor = False
+            Me._btnUpdateNow.Visible = False
             '
             '_btnDetails
             '
@@ -411,21 +414,41 @@ Namespace Forms
             Me._btnDetails.Text = "Details"
             Me._btnDetails.UseVisualStyleBackColor = False
             '
-            '_btnUpdateNow
+            '_btnConfigDebug
             '
-            Me._btnUpdateNow.BackColor = System.Drawing.Color.FromArgb(CType(CType(9, Byte), Integer), CType(CType(132, Byte), Integer), CType(CType(227, Byte), Integer))
-            Me._btnUpdateNow.Cursor = System.Windows.Forms.Cursors.Hand
-            Me._btnUpdateNow.FlatAppearance.BorderSize = 0
-            Me._btnUpdateNow.FlatStyle = System.Windows.Forms.FlatStyle.Flat
-            Me._btnUpdateNow.Font = New System.Drawing.Font("Segoe UI", 9.5!, System.Drawing.FontStyle.Bold)
-            Me._btnUpdateNow.ForeColor = System.Drawing.Color.White
-            Me._btnUpdateNow.Location = New System.Drawing.Point(14, 268)
-            Me._btnUpdateNow.Name = "_btnUpdateNow"
-            Me._btnUpdateNow.Size = New System.Drawing.Size(370, 34)
-            Me._btnUpdateNow.TabIndex = 3
-            Me._btnUpdateNow.Text = "อัปเดตทันที"
-            Me._btnUpdateNow.UseVisualStyleBackColor = False
-            Me._btnUpdateNow.Visible = False
+            Me._btnConfigDebug.BackColor = System.Drawing.Color.FromArgb(CType(CType(255, Byte), Integer), CType(CType(193, Byte), Integer), CType(CType(7, Byte), Integer))
+            Me._btnConfigDebug.Cursor = System.Windows.Forms.Cursors.Hand
+            Me._btnConfigDebug.FlatAppearance.BorderSize = 0
+            Me._btnConfigDebug.FlatStyle = System.Windows.Forms.FlatStyle.Flat
+            Me._btnConfigDebug.Font = New System.Drawing.Font("Segoe UI", 8.0!, System.Drawing.FontStyle.Bold)
+            Me._btnConfigDebug.ForeColor = System.Drawing.Color.Black
+            Me._btnConfigDebug.Location = New System.Drawing.Point(14, 350)
+            Me._btnConfigDebug.Name = "_btnConfigDebug"
+            Me._btnConfigDebug.Size = New System.Drawing.Size(370, 28)
+            Me._btnConfigDebug.TabIndex = 8
+            Me._btnConfigDebug.Text = "[Debug] ดู Config ที่โหลดแล้ว"
+            Me._btnConfigDebug.UseVisualStyleBackColor = False
+            Me._btnConfigDebug.Visible = False
+            '
+            '_btnLang
+            '
+            Me._btnLang.BackColor = System.Drawing.Color.FromArgb(CType(CType(52, Byte), Integer), CType(CType(73, Byte), Integer), CType(CType(94, Byte), Integer))
+            Me._btnLang.Cursor = System.Windows.Forms.Cursors.Hand
+            Me._btnLang.FlatAppearance.BorderSize = 0
+            Me._btnLang.FlatStyle = System.Windows.Forms.FlatStyle.Flat
+            Me._btnLang.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
+            Me._btnLang.ForeColor = System.Drawing.Color.White
+            Me._btnLang.Location = New System.Drawing.Point(305, 310)
+            Me._btnLang.Name = "_btnLang"
+            Me._btnLang.Size = New System.Drawing.Size(79, 32)
+            Me._btnLang.TabIndex = 6
+            Me._btnLang.Text = "🌐 TH"
+            Me._btnLang.UseVisualStyleBackColor = False
+            '
+            '_detailsMenu
+            '
+            Me._detailsMenu.Name = "_detailsMenu"
+            Me._detailsMenu.Size = New System.Drawing.Size(61, 4)
             '
             '_progressBar
             '
@@ -452,46 +475,28 @@ Namespace Forms
             '
             Me._fadeTimer.Interval = 30
             '
-            'MainForm
+            '_gearMenu
             '
-            '_btnConfigDebug (ปุ่มชั่วคราว)
-            '
-            Me._btnConfigDebug.BackColor = System.Drawing.Color.FromArgb(255, 193, 7)
-            Me._btnConfigDebug.Cursor = System.Windows.Forms.Cursors.Hand
-            Me._btnConfigDebug.FlatAppearance.BorderSize = 0
-            Me._btnConfigDebug.FlatStyle = System.Windows.Forms.FlatStyle.Flat
-            Me._btnConfigDebug.Font = New System.Drawing.Font("Segoe UI", 8.0!, System.Drawing.FontStyle.Bold)
-            Me._btnConfigDebug.ForeColor = System.Drawing.Color.Black
-            Me._btnConfigDebug.Location = New System.Drawing.Point(14, 350)
-            Me._btnConfigDebug.Name = "_btnConfigDebug"
-            Me._btnConfigDebug.Size = New System.Drawing.Size(370, 28)
-            Me._btnConfigDebug.TabIndex = 8
-            Me._btnConfigDebug.Text = "[Debug] ดู Config ที่โหลดแล้ว"
-            Me._btnConfigDebug.UseVisualStyleBackColor = False
-            Me._btnConfigDebug.Visible = False
-            '
-            ' _gearMenu (เมนูปุ่มฟันเฟือง)
-            '
-            Me._gearMenu = New ContextMenuStrip()
             Me._gearMenu.Font = New System.Drawing.Font("Segoe UI", 9.5!)
-            Me._gearMenu.Items.Add("[Debug] ดู Config ที่โหลดแล้ว", Nothing, AddressOf BtnConfigDebug_Click)
-            Me._gearMenu.Items.Add("[Test] แสดง RestartNoticeForm", Nothing, AddressOf BtnTestRestart_Click)
+            Me._gearMenu.Name = "_gearMenu"
+            Me._gearMenu.Size = New System.Drawing.Size(61, 4)
             '
-            ' _btnGear (ปุ่มฟันเฟือง ⚙)
+            '_btnGear
             '
-            Me._btnGear = New System.Windows.Forms.Button()
-            Me._btnGear.Text = "⚙"
-            Me._btnGear.Font = New System.Drawing.Font("Segoe UI Emoji", 14.0!)
-            Me._btnGear.FlatStyle = System.Windows.Forms.FlatStyle.Flat
-            Me._btnGear.FlatAppearance.BorderSize = 0
             Me._btnGear.BackColor = System.Drawing.Color.Transparent
-            Me._btnGear.ForeColor = System.Drawing.Color.FromArgb(120, 120, 130)
-            Me._btnGear.Size = New System.Drawing.Size(36, 36)
-            Me._btnGear.Location = New System.Drawing.Point(362, 0)
             Me._btnGear.Cursor = System.Windows.Forms.Cursors.Hand
+            Me._btnGear.FlatAppearance.BorderSize = 0
+            Me._btnGear.FlatStyle = System.Windows.Forms.FlatStyle.Flat
+            Me._btnGear.Font = New System.Drawing.Font("Segoe UI Emoji", 14.0!)
+            Me._btnGear.ForeColor = System.Drawing.Color.FromArgb(CType(CType(120, Byte), Integer), CType(CType(120, Byte), Integer), CType(CType(130, Byte), Integer))
+            Me._btnGear.Location = New System.Drawing.Point(362, 0)
             Me._btnGear.Name = "_btnGear"
+            Me._btnGear.Size = New System.Drawing.Size(36, 36)
             Me._btnGear.TabIndex = 10
+            Me._btnGear.Text = "⚙"
+            Me._btnGear.UseVisualStyleBackColor = False
             '
+            'MainForm
             '
             Me.BackColor = System.Drawing.Color.FromArgb(CType(CType(245, Byte), Integer), CType(CType(245, Byte), Integer), CType(CType(250, Byte), Integer))
             Me.ClientSize = New System.Drawing.Size(400, 398)
@@ -512,8 +517,8 @@ Namespace Forms
             Me.Opacity = 0.0R
             Me.ShowInTaskbar = False
             Me.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen
-            Me.TopMost = True
             Me.Text = "Auto Update"
+            Me.TopMost = True
             Me.WindowState = System.Windows.Forms.FormWindowState.Minimized
             Me._contextMenu.ResumeLayout(False)
             Me._grpInfo.ResumeLayout(False)
@@ -701,6 +706,10 @@ Namespace Forms
             AddHandler _btnDetails.Click, AddressOf BtnDetails_Click
             AddHandler _btnConfigDebug.Click, AddressOf BtnConfigDebug_Click
             AddHandler _btnGear.Click, AddressOf BtnGear_Click
+
+            ' เพิ่ม menu items สำหรับปุ่มฟันเฟือง (ต้องอยู่ใน OnLoad ไม่ใช่ InitializeComponent
+            ' เพราะ Designer จะ overwrite InitializeComponent ทุกครั้งที่ save)
+            SetupGearMenu()
 
             ' ปุ่มเปลี่ยนภาษา (กดวนรอบ TH→EN→JP→TH)
             AddHandler _btnLang.Click, AddressOf BtnLang_Click
@@ -1225,6 +1234,15 @@ Namespace Forms
                 Managers.LogManager.[Error]("Failed to open " & displayName & ": " & pdfPath, ex)
                 MessageBox.Show(L("PromptCantOpenFile") & ex.Message, L("TitleError"), MessageBoxButtons.OK, MessageBoxIcon.[Error])
             End Try
+        End Sub
+
+        ' ── ตั้งค่า menu items สำหรับปุ่มฟันเฟือง ──
+        ' วางไว้นอก InitializeComponent เพื่อไม่ให้ Designer overwrite
+        Private Sub SetupGearMenu()
+            If _gearMenu Is Nothing Then Return
+            _gearMenu.Items.Clear()
+            _gearMenu.Items.Add("[Debug] ดู Config ที่โหลดแล้ว", Nothing, AddressOf BtnConfigDebug_Click)
+            _gearMenu.Items.Add("[Test] แสดง RestartNoticeForm", Nothing, AddressOf BtnTestRestart_Click)
         End Sub
 
         ' ── ปุ่ม ⚙ ฟันเฟือง (แสดงเมนู debug/test) ──
