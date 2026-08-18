@@ -429,7 +429,7 @@ Namespace Managers
                     End Using
                 End Using
 
-                LogManager.Info(String.Format("คัดลอกไฟล์สำเร็จ: {0} ({1}/{2})", file.Name, currentFileIndex + 1, fileCount))
+
                 currentFileIndex += 1
             Next
 
@@ -854,7 +854,6 @@ Namespace Managers
                             Dim fileName As String = Path.GetFileName(trimmedPath)
                             Dim destFile As String = Path.Combine(destination, fileName)
                             IO.File.Copy(trimmedPath, destFile, True)
-                            LogManager.Info("Copied file: " & trimmedPath & " -> " & destFile)
 
                         ElseIf Directory.Exists(trimmedPath) Then
                             ' เป็นโฟลเดอร์ → copy ทุกไฟล์ในโฟลเดอร์ไปวางทับ
@@ -863,7 +862,6 @@ Namespace Managers
                                 Dim fileName As String = Path.GetFileName(f)
                                 Dim destFile As String = Path.Combine(destination, fileName)
                                 IO.File.Copy(f, destFile, True)
-                                LogManager.Info("Copied file: " & f & " -> " & destFile)
                             Next
                         Else
                             LogManager.Warn("Source path not found: " & trimmedPath)
