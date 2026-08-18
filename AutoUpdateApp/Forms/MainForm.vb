@@ -1184,7 +1184,50 @@ Namespace Forms
                     Return
                 End If
                 Managers.LogManager.Info("เปิด PDF: " & filePath)
-                Process.Start(filePath)
+
+                ' 1. ลองเปิดด้วยโปรแกรมเริ่มต้น
+                Try
+                    Process.Start(filePath)
+                    Return
+                Catch ex As System.ComponentModel.Win32Exception
+                    Managers.LogManager.Warn("No default PDF app: " & ex.Message & ". Trying fallback...")
+                End Try
+
+                ' 2. Fallback: ลองเปิดด้วย Internet Explorer / Edge
+                Dim browsers As String() = {
+                    "C:\Program Files\Internet Explorer\iexplore.exe",
+                    "C:\Program Files (x86)\Internet Explorer\iexplore.exe",
+                    "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+                    "C:\Program Files\Microsoft\Edge\Application\msedge.exe"
+                }
+                For Each browser As String In browsers
+                    If IO.File.Exists(browser) Then
+                        Process.Start(browser, """" & filePath & """")
+                        Managers.LogManager.Info("Opened PDF with browser: " & browser)
+                        Return
+                    End If
+                Next
+
+                ' 3. Fallback: ใช้ Windows "Open With" dialog
+                Try
+                    Dim psi As New ProcessStartInfo()
+                    psi.FileName = "rundll32.exe"
+                    psi.Arguments = "shell32.dll,OpenAs_RunDLL " & filePath
+                    Process.Start(psi)
+                    Managers.LogManager.Info("Opened PDF with OpenAs dialog")
+                    Return
+                Catch ex2 As Exception
+                    Managers.LogManager.Warn("OpenAs fallback failed: " & ex2.Message)
+                End Try
+
+                ' 4. สุดท้าย: เปิดโฟลเดอร์ที่มีไฟล์อยู่
+                Try
+                    Process.Start("explorer.exe", "/select,""" & filePath & """")
+                    Managers.LogManager.Info("Opened containing folder for: " & filePath)
+                Catch ex3 As Exception
+                    Managers.LogManager.[Error]("All fallbacks failed for: " & filePath, ex3)
+                End Try
+
             Catch ex As Exception
                 Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
                 Managers.LogManager.[Error]("Failed to open PDF: " & filePath, ex)
