@@ -1,4 +1,4 @@
-Option Strict On
+﻿Option Strict On
 Option Explicit On
 
 Imports System.Drawing
@@ -6,11 +6,6 @@ Imports System.Windows.Forms
 
 Namespace Forms
 
-    ''' <summary>
-    ''' หน้าต่างแจ้งเตือนรีสตาร์ท (50% ของหน้าจอ)
-    ''' - ใช้ SystemIcons.Warning แทน emoji เพื่อรองรับ Win7
-    ''' - ปุ่ม Close (X) = ซ่อนหน้าต่าง → เด้งขึ้นมาใหม่ใน 20 วินาที
-    ''' </summary>
     Public Class RestartNoticeForm
         Inherits Form
 
@@ -31,18 +26,15 @@ Namespace Forms
 
             Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
 
-            ' ── คำนวณขนาด 50% ของหน้าจอ (ปรับให้เหมาะกับ 1280x1024) ──
             Dim screen As Rectangle = System.Windows.Forms.Screen.PrimaryScreen.WorkingArea
             Dim formW As Integer = CInt(screen.Width * 0.5)
             Dim formH As Integer = CInt(screen.Height * 0.5)
 
-            ' กำหนดขนาดขั้นต่ำ/สูงสุด
             If formW < 500 Then formW = 500
             If formH < 380 Then formH = 380
             If formW > 800 Then formW = 800
             If formH > 600 Then formH = 600
 
-            ' ── Form Settings ──
             Me.Text = L("RestartNoticeTitle")
             Me.Size = New Size(formW, formH)
             Me.StartPosition = FormStartPosition.CenterScreen
@@ -56,7 +48,6 @@ Namespace Forms
 
             Dim topY As Integer = 20
 
-            ' ── ไอคอนเตือน (SystemIcons.Warning — รองรับ Win7) ──
             _picIcon = New PictureBox()
             _picIcon.Image = New Bitmap(SystemIcons.Warning.ToBitmap(), New Size(64, 64))
             _picIcon.SizeMode = PictureBoxSizeMode.CenterImage
@@ -64,7 +55,6 @@ Namespace Forms
             _picIcon.Location = New Point(20, topY)
             _picIcon.BackColor = Color.Transparent
 
-            ' ── หัวข้อ ──
             _lblHeader = New Label()
             _lblHeader.Text = L("RestartNoticeHeader")
             _lblHeader.Font = New Font("Segoe UI", 24.0F, FontStyle.Bold)
@@ -74,7 +64,6 @@ Namespace Forms
             _lblHeader.Size = New Size(formW - 40, 60)
             _lblHeader.Location = New Point(20, topY + 85)
 
-            ' ── เนื้อหา ──
             _lblBody = New Label()
             _lblBody.Text = L("RestartNoticeBody")
             _lblBody.Font = New Font("Segoe UI", 11.0F)
@@ -84,7 +73,6 @@ Namespace Forms
             _lblBody.Size = New Size(formW - 60, 100)
             _lblBody.Location = New Point(30, topY + 155)
 
-            ' ── ปุ่ม Restart Now ──
             _btnRestart = New Button()
             _btnRestart.Text = L("RestartNoticeBtn")
             _btnRestart.Font = New Font("Segoe UI", 14.0F, FontStyle.Bold)
@@ -99,7 +87,6 @@ Namespace Forms
             AddHandler _btnRestart.MouseEnter, Sub(s, ev) _btnRestart.BackColor = Color.FromArgb(200, 35, 51)
             AddHandler _btnRestart.MouseLeave, Sub(s, ev) _btnRestart.BackColor = Color.FromArgb(220, 53, 69)
 
-            ' ── คำเตือนเมื่อปิด/ย่อ ──
             _lblWarn = New Label()
             _lblWarn.Text = L("RestartNoticeMinimizeWarn")
             _lblWarn.Font = New Font("Segoe UI", 9.0F, FontStyle.Italic)
@@ -115,7 +102,6 @@ Namespace Forms
             Me.Controls.Add(_btnRestart)
             Me.Controls.Add(_lblWarn)
 
-            ' ── Timer: เด้งขึ้นมาใหม่ทุก 20 วินาที ──
             _popupTimer = New Timer()
             _popupTimer.Interval = 20000
             AddHandler _popupTimer.Tick, AddressOf PopupTimer_Tick
@@ -133,9 +119,6 @@ Namespace Forms
             If _lblWarn IsNot Nothing Then _lblWarn.Text = L("RestartNoticeMinimizeWarn")
         End Sub
 
-        ''' <summary>
-        ''' ปุ่มปิด (X) = ซ่อนหน้าต่างแทน (จะเด้งขึ้นมาใหม่ใน 20 วินาที)
-        ''' </summary>
         Protected Overrides Sub OnFormClosing(e As FormClosingEventArgs)
             If Not _isRestarting AndAlso e.CloseReason = CloseReason.UserClosing Then
                 e.Cancel = True
@@ -144,9 +127,6 @@ Namespace Forms
             MyBase.OnFormClosing(e)
         End Sub
 
-        ''' <summary>
-        ''' เมื่อ user กดย่อ หรือ กดปิด(ซ่อน) แล้วไม่ restart ภายใน 20 วินาที → เด้งขึ้นมาใหม่
-        ''' </summary>
         Private Sub PopupTimer_Tick(sender As Object, e As EventArgs)
             If Not Me.Visible OrElse Me.WindowState = FormWindowState.Minimized Then
                 Me.Show()
@@ -162,7 +142,6 @@ Namespace Forms
         End Sub
 
         Private Sub BtnRestart_Click(sender As Object, e As EventArgs)
-            ' ซ่อนฟอร์มปัจจุบัน และเปิดหน้าต่างนับถอยหลังขึ้นมาแทน
             If _popupTimer IsNot Nothing Then _popupTimer.Stop()
             Me.Hide()
             Dim countdownForm As New RestartCountdownForm(Me)

@@ -1,4 +1,4 @@
-Option Strict On
+﻿Option Strict On
 Option Explicit On
 
 Imports System.Windows.Forms
@@ -7,11 +7,6 @@ Imports System.Drawing.Drawing2D
 
 Namespace Forms
 
-    ''' <summary>
-    ''' หน้าจอหลักของแอปพลิเคชัน
-    ''' แสดงข้อมูล Version (Current/Server), ComputerName, Type, Mode, Time
-    ''' มีไอคอนที่ System Tray พร้อมเมนู Check Now / Exit
-    ''' </summary>
     Public Class MainForm
         Inherits Form
 
@@ -25,7 +20,6 @@ Namespace Forms
         Private components As System.ComponentModel.IContainer
         Private WithEvents _mnuExit As ToolStripMenuItem
 
-        ' ── UI Controls ──
         Private _grpInfo As Panel
         Private _lblInfoTitle As Label
         Private _lblComNameLabel As Label
@@ -53,10 +47,9 @@ Namespace Forms
         Private _detailsMenu As ContextMenuStrip
         Private _btnConfigDebug As Button
         Private _btnLang As Button
-        Private _btnGear As Button             ' ปุ่มฟันเฟือง ⚙
-        Private _gearMenu As ContextMenuStrip  ' เมนูสำหรับปุ่มชั่วคราว/debug
+        Private _btnGear As Button
+        Private _gearMenu As ContextMenuStrip
 
-        ' ── Progress Bar + Status ──
         Private _progressBar As ProgressBar
         Private _lblProgress As Label
         Private _manualUpdateWorker As System.ComponentModel.BackgroundWorker
@@ -73,7 +66,6 @@ Namespace Forms
         Private _falseCount As Integer = 0
         Private WithEvents _restartCheckTimer As Timer
 
-        ' ── ตัวแปรเก็บค่าข้อความชั่วคราวระหว่างรอ Fade-in เสร็จ ──
         Private _tempComName As String = ""
         Private _tempType As String = ""
         Private _tempMode As String = ""
@@ -128,39 +120,21 @@ Namespace Forms
             Me._grpInfo.SuspendLayout()
             Me._grpVersion.SuspendLayout()
             Me.SuspendLayout()
-            '
-            '_contextMenu
-            '
             Me._contextMenu.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me._mnuCheckNow, Me._mnuSeparator, Me._mnuExit})
             Me._contextMenu.Name = "_contextMenu"
             Me._contextMenu.Size = New System.Drawing.Size(144, 54)
-            '
-            '_mnuCheckNow
-            '
             Me._mnuCheckNow.Name = "_mnuCheckNow"
             Me._mnuCheckNow.Size = New System.Drawing.Size(143, 22)
             Me._mnuCheckNow.Text = "ตรวจสอบตอนนี้"
-            '
-            '_mnuSeparator
-            '
             Me._mnuSeparator.Name = "_mnuSeparator"
             Me._mnuSeparator.Size = New System.Drawing.Size(140, 6)
-            '
-            '_mnuExit
-            '
             Me._mnuExit.Name = "_mnuExit"
             Me._mnuExit.Size = New System.Drawing.Size(143, 22)
             Me._mnuExit.Text = "ออก"
-            '
-            '_notifyIcon
-            '
             Me._notifyIcon.ContextMenuStrip = Me._contextMenu
             Me._notifyIcon.Icon = CType(resources.GetObject("_notifyIcon.Icon"), System.Drawing.Icon)
             Me._notifyIcon.Text = "Auto Update"
             Me._notifyIcon.Visible = True
-            '
-            '_grpInfo
-            '
             Me._grpInfo.BackColor = System.Drawing.Color.White
             Me._grpInfo.Controls.Add(Me._lblInfoTitle)
             Me._grpInfo.Controls.Add(Me._lblComNameLabel)
@@ -175,9 +149,6 @@ Namespace Forms
             Me._grpInfo.Name = "_grpInfo"
             Me._grpInfo.Size = New System.Drawing.Size(370, 130)
             Me._grpInfo.TabIndex = 1
-            '
-            '_lblInfoTitle
-            '
             Me._lblInfoTitle.AutoSize = True
             Me._lblInfoTitle.Font = New System.Drawing.Font("Segoe UI", 10.0!, System.Drawing.FontStyle.Bold)
             Me._lblInfoTitle.ForeColor = System.Drawing.Color.FromArgb(CType(CType(41, Byte), Integer), CType(CType(128, Byte), Integer), CType(CType(185, Byte), Integer))
@@ -186,9 +157,6 @@ Namespace Forms
             Me._lblInfoTitle.Size = New System.Drawing.Size(124, 19)
             Me._lblInfoTitle.TabIndex = 0
             Me._lblInfoTitle.Text = "ข้อมูลเครื่องทดสอบ"
-            '
-            '_lblComNameLabel
-            '
             Me._lblComNameLabel.AutoSize = True
             Me._lblComNameLabel.Font = New System.Drawing.Font("Segoe UI", 9.0!)
             Me._lblComNameLabel.Location = New System.Drawing.Point(16, 40)
@@ -196,9 +164,6 @@ Namespace Forms
             Me._lblComNameLabel.Size = New System.Drawing.Size(49, 15)
             Me._lblComNameLabel.TabIndex = 0
             Me._lblComNameLabel.Text = "ชื่อเครื่อง:"
-            '
-            '_lblComNameValue
-            '
             Me._lblComNameValue.AutoSize = True
             Me._lblComNameValue.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
             Me._lblComNameValue.Location = New System.Drawing.Point(130, 40)
@@ -206,9 +171,6 @@ Namespace Forms
             Me._lblComNameValue.Size = New System.Drawing.Size(16, 15)
             Me._lblComNameValue.TabIndex = 1
             Me._lblComNameValue.Text = "..."
-            '
-            '_lblTypeLabel
-            '
             Me._lblTypeLabel.AutoSize = True
             Me._lblTypeLabel.Font = New System.Drawing.Font("Segoe UI", 9.0!)
             Me._lblTypeLabel.Location = New System.Drawing.Point(16, 62)
@@ -216,9 +178,6 @@ Namespace Forms
             Me._lblTypeLabel.Size = New System.Drawing.Size(43, 15)
             Me._lblTypeLabel.TabIndex = 2
             Me._lblTypeLabel.Text = "ประเภท:"
-            '
-            '_lblTypeValue
-            '
             Me._lblTypeValue.AutoSize = True
             Me._lblTypeValue.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
             Me._lblTypeValue.Location = New System.Drawing.Point(130, 62)
@@ -226,9 +185,6 @@ Namespace Forms
             Me._lblTypeValue.Size = New System.Drawing.Size(16, 15)
             Me._lblTypeValue.TabIndex = 3
             Me._lblTypeValue.Text = "..."
-            '
-            '_lblModeLabel
-            '
             Me._lblModeLabel.AutoSize = True
             Me._lblModeLabel.Font = New System.Drawing.Font("Segoe UI", 9.0!)
             Me._lblModeLabel.Location = New System.Drawing.Point(16, 84)
@@ -236,9 +192,6 @@ Namespace Forms
             Me._lblModeLabel.Size = New System.Drawing.Size(36, 15)
             Me._lblModeLabel.TabIndex = 4
             Me._lblModeLabel.Text = "โหมด:"
-            '
-            '_lblModeValue
-            '
             Me._lblModeValue.AutoSize = True
             Me._lblModeValue.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
             Me._lblModeValue.Location = New System.Drawing.Point(130, 84)
@@ -246,9 +199,6 @@ Namespace Forms
             Me._lblModeValue.Size = New System.Drawing.Size(16, 15)
             Me._lblModeValue.TabIndex = 5
             Me._lblModeValue.Text = "..."
-            '
-            '_lblTimeLabel
-            '
             Me._lblTimeLabel.AutoSize = True
             Me._lblTimeLabel.Font = New System.Drawing.Font("Segoe UI", 9.0!)
             Me._lblTimeLabel.Location = New System.Drawing.Point(16, 106)
@@ -256,9 +206,6 @@ Namespace Forms
             Me._lblTimeLabel.Size = New System.Drawing.Size(71, 15)
             Me._lblTimeLabel.TabIndex = 6
             Me._lblTimeLabel.Text = "เวลาตรวจสอบ:"
-            '
-            '_lblTimeValue
-            '
             Me._lblTimeValue.AutoSize = True
             Me._lblTimeValue.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
             Me._lblTimeValue.Location = New System.Drawing.Point(130, 106)
@@ -266,9 +213,6 @@ Namespace Forms
             Me._lblTimeValue.Size = New System.Drawing.Size(16, 15)
             Me._lblTimeValue.TabIndex = 7
             Me._lblTimeValue.Text = "..."
-            '
-            '_grpVersion
-            '
             Me._grpVersion.BackColor = System.Drawing.Color.White
             Me._grpVersion.Controls.Add(Me._lblVersionTitle)
             Me._grpVersion.Controls.Add(Me._lblCurrentLabel)
@@ -281,9 +225,6 @@ Namespace Forms
             Me._grpVersion.Name = "_grpVersion"
             Me._grpVersion.Size = New System.Drawing.Size(370, 104)
             Me._grpVersion.TabIndex = 2
-            '
-            '_lblVersionTitle
-            '
             Me._lblVersionTitle.AutoSize = True
             Me._lblVersionTitle.Font = New System.Drawing.Font("Segoe UI", 10.0!, System.Drawing.FontStyle.Bold)
             Me._lblVersionTitle.ForeColor = System.Drawing.Color.FromArgb(CType(CType(41, Byte), Integer), CType(CType(128, Byte), Integer), CType(CType(185, Byte), Integer))
@@ -292,9 +233,6 @@ Namespace Forms
             Me._lblVersionTitle.Size = New System.Drawing.Size(109, 19)
             Me._lblVersionTitle.TabIndex = 0
             Me._lblVersionTitle.Text = "สถานะซอฟต์แวร์"
-            '
-            '_lblCurrentLabel
-            '
             Me._lblCurrentLabel.AutoSize = True
             Me._lblCurrentLabel.Font = New System.Drawing.Font("Segoe UI", 9.0!)
             Me._lblCurrentLabel.Location = New System.Drawing.Point(16, 40)
@@ -302,9 +240,6 @@ Namespace Forms
             Me._lblCurrentLabel.Size = New System.Drawing.Size(76, 15)
             Me._lblCurrentLabel.TabIndex = 0
             Me._lblCurrentLabel.Text = "เวอร์ชันปัจจุบัน:"
-            '
-            '_lblCurrentValue
-            '
             Me._lblCurrentValue.AutoSize = True
             Me._lblCurrentValue.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
             Me._lblCurrentValue.Location = New System.Drawing.Point(130, 40)
@@ -312,9 +247,6 @@ Namespace Forms
             Me._lblCurrentValue.Size = New System.Drawing.Size(16, 15)
             Me._lblCurrentValue.TabIndex = 1
             Me._lblCurrentValue.Text = "..."
-            '
-            '_lblServerLabel
-            '
             Me._lblServerLabel.AutoSize = True
             Me._lblServerLabel.Font = New System.Drawing.Font("Segoe UI", 9.0!)
             Me._lblServerLabel.Location = New System.Drawing.Point(16, 62)
@@ -322,9 +254,6 @@ Namespace Forms
             Me._lblServerLabel.Size = New System.Drawing.Size(78, 15)
             Me._lblServerLabel.TabIndex = 2
             Me._lblServerLabel.Text = "เวอร์ชัน Server:"
-            '
-            '_lblServerValue
-            '
             Me._lblServerValue.AutoSize = True
             Me._lblServerValue.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
             Me._lblServerValue.Location = New System.Drawing.Point(130, 62)
@@ -332,9 +261,6 @@ Namespace Forms
             Me._lblServerValue.Size = New System.Drawing.Size(16, 15)
             Me._lblServerValue.TabIndex = 3
             Me._lblServerValue.Text = "..."
-            '
-            '_lblStatusLabel
-            '
             Me._lblStatusLabel.AutoSize = True
             Me._lblStatusLabel.Font = New System.Drawing.Font("Segoe UI", 9.0!)
             Me._lblStatusLabel.Location = New System.Drawing.Point(16, 84)
@@ -342,9 +268,6 @@ Namespace Forms
             Me._lblStatusLabel.Size = New System.Drawing.Size(39, 15)
             Me._lblStatusLabel.TabIndex = 4
             Me._lblStatusLabel.Text = "สถานะ:"
-            '
-            '_lblStatusValue
-            '
             Me._lblStatusValue.AutoSize = True
             Me._lblStatusValue.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
             Me._lblStatusValue.Location = New System.Drawing.Point(130, 84)
@@ -352,9 +275,6 @@ Namespace Forms
             Me._lblStatusValue.Size = New System.Drawing.Size(16, 15)
             Me._lblStatusValue.TabIndex = 5
             Me._lblStatusValue.Text = "..."
-            '
-            '_btnCheckNow
-            '
             Me._btnCheckNow.BackColor = System.Drawing.Color.White
             Me._btnCheckNow.Cursor = System.Windows.Forms.Cursors.Hand
             Me._btnCheckNow.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(CType(CType(9, Byte), Integer), CType(CType(132, Byte), Integer), CType(CType(227, Byte), Integer))
@@ -367,9 +287,6 @@ Namespace Forms
             Me._btnCheckNow.TabIndex = 4
             Me._btnCheckNow.Text = "ตรวจสอบ"
             Me._btnCheckNow.UseVisualStyleBackColor = False
-            '
-            '_btnRefreshInfo
-            '
             Me._btnRefreshInfo.BackColor = System.Drawing.Color.White
             Me._btnRefreshInfo.Cursor = System.Windows.Forms.Cursors.Hand
             Me._btnRefreshInfo.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(CType(CType(108, Byte), Integer), CType(CType(92, Byte), Integer), CType(CType(231, Byte), Integer))
@@ -382,9 +299,6 @@ Namespace Forms
             Me._btnRefreshInfo.TabIndex = 5
             Me._btnRefreshInfo.Text = "รีเฟรช"
             Me._btnRefreshInfo.UseVisualStyleBackColor = False
-            '
-            '_btnUpdateNow
-            '
             Me._btnUpdateNow.BackColor = System.Drawing.Color.FromArgb(CType(CType(9, Byte), Integer), CType(CType(132, Byte), Integer), CType(CType(227, Byte), Integer))
             Me._btnUpdateNow.Cursor = System.Windows.Forms.Cursors.Hand
             Me._btnUpdateNow.FlatAppearance.BorderSize = 0
@@ -398,9 +312,6 @@ Namespace Forms
             Me._btnUpdateNow.Text = "อัปเดตทันที"
             Me._btnUpdateNow.UseVisualStyleBackColor = False
             Me._btnUpdateNow.Visible = False
-            '
-            '_btnDetails
-            '
             Me._btnDetails.BackColor = System.Drawing.Color.White
             Me._btnDetails.Cursor = System.Windows.Forms.Cursors.Hand
             Me._btnDetails.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(CType(CType(46, Byte), Integer), CType(CType(204, Byte), Integer), CType(CType(113, Byte), Integer))
@@ -413,9 +324,6 @@ Namespace Forms
             Me._btnDetails.TabIndex = 7
             Me._btnDetails.Text = "Details"
             Me._btnDetails.UseVisualStyleBackColor = False
-            '
-            '_btnConfigDebug
-            '
             Me._btnConfigDebug.BackColor = System.Drawing.Color.FromArgb(CType(CType(255, Byte), Integer), CType(CType(193, Byte), Integer), CType(CType(7, Byte), Integer))
             Me._btnConfigDebug.Cursor = System.Windows.Forms.Cursors.Hand
             Me._btnConfigDebug.FlatAppearance.BorderSize = 0
@@ -429,9 +337,6 @@ Namespace Forms
             Me._btnConfigDebug.Text = "[Debug] ดู Config ที่โหลดแล้ว"
             Me._btnConfigDebug.UseVisualStyleBackColor = False
             Me._btnConfigDebug.Visible = False
-            '
-            '_btnLang
-            '
             Me._btnLang.BackColor = System.Drawing.Color.FromArgb(CType(CType(52, Byte), Integer), CType(CType(73, Byte), Integer), CType(CType(94, Byte), Integer))
             Me._btnLang.Cursor = System.Windows.Forms.Cursors.Hand
             Me._btnLang.FlatAppearance.BorderSize = 0
@@ -444,14 +349,8 @@ Namespace Forms
             Me._btnLang.TabIndex = 6
             Me._btnLang.Text = "🌐 TH"
             Me._btnLang.UseVisualStyleBackColor = False
-            '
-            '_detailsMenu
-            '
             Me._detailsMenu.Name = "_detailsMenu"
             Me._detailsMenu.Size = New System.Drawing.Size(61, 4)
-            '
-            '_progressBar
-            '
             Me._progressBar.Location = New System.Drawing.Point(14, 350)
             Me._progressBar.MarqueeAnimationSpeed = 30
             Me._progressBar.Name = "_progressBar"
@@ -459,9 +358,6 @@ Namespace Forms
             Me._progressBar.Style = System.Windows.Forms.ProgressBarStyle.Marquee
             Me._progressBar.TabIndex = 1
             Me._progressBar.Visible = False
-            '
-            '_lblProgress
-            '
             Me._lblProgress.Font = New System.Drawing.Font("Segoe UI", 8.0!, System.Drawing.FontStyle.Italic)
             Me._lblProgress.ForeColor = System.Drawing.Color.FromArgb(CType(CType(100, Byte), Integer), CType(CType(100, Byte), Integer), CType(CType(100, Byte), Integer))
             Me._lblProgress.Location = New System.Drawing.Point(14, 370)
@@ -470,19 +366,10 @@ Namespace Forms
             Me._lblProgress.TabIndex = 2
             Me._lblProgress.TextAlign = System.Drawing.ContentAlignment.MiddleCenter
             Me._lblProgress.Visible = False
-            '
-            '_fadeTimer
-            '
             Me._fadeTimer.Interval = 30
-            '
-            '_gearMenu
-            '
             Me._gearMenu.Font = New System.Drawing.Font("Segoe UI", 9.5!)
             Me._gearMenu.Name = "_gearMenu"
             Me._gearMenu.Size = New System.Drawing.Size(61, 4)
-            '
-            '_btnGear
-            '
             Me._btnGear.BackColor = System.Drawing.Color.Transparent
             Me._btnGear.Cursor = System.Windows.Forms.Cursors.Hand
             Me._btnGear.FlatAppearance.BorderSize = 0
@@ -495,9 +382,6 @@ Namespace Forms
             Me._btnGear.TabIndex = 10
             Me._btnGear.Text = "⚙"
             Me._btnGear.UseVisualStyleBackColor = False
-            '
-            'MainForm
-            '
             Me.BackColor = System.Drawing.Color.FromArgb(CType(CType(245, Byte), Integer), CType(CType(245, Byte), Integer), CType(CType(250, Byte), Integer))
             Me.ClientSize = New System.Drawing.Size(400, 398)
             Me.Controls.Add(Me._btnGear)
@@ -529,14 +413,10 @@ Namespace Forms
 
         End Sub
 
-        ' ══════════════════════════════════════════════
-        ' โหลดข้อมูลแสดงผลบน UI
-        ' ══════════════════════════════════════════════
         Private Sub LoadInfo()
             Try
                 Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
 
-                ' ── ข้อมูลเครื่อง ──
                 Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
                 _lblComNameValue.Text = computerName
 
@@ -551,14 +431,12 @@ Namespace Forms
                     _lblTimeValue.Text = "-"
                 End If
 
-                ' ── เวอร์ชัน ──
                 Dim currentVer As String = Managers.VersionManager.ReadRegistryVersion()
                 Dim serverVer As String = Managers.VersionManager.ReadLatestVersion()
 
                 _lblCurrentValue.Text = If(String.IsNullOrEmpty(currentVer), L("VersionNotFound"), currentVer)
                 _lblServerValue.Text = If(String.IsNullOrEmpty(serverVer), L("VersionReadError"), serverVer)
 
-                ' ── สถานะ ──
                 Dim hasPendingUpdate As Boolean = Managers.UpdateFlagManager.GetFlag(computerName).GetValueOrDefault(False)
 
                 If hasPendingUpdate Then
@@ -590,49 +468,37 @@ Namespace Forms
             End Try
         End Sub
 
-        ''' <summary>
-        ''' อัปเดตสถานะตามข้อมูลล่าสุด
-        ''' </summary>
         Private Sub UpdateStatusBar()
             LoadInfo()
         End Sub
 
-        ''' <summary>
-        ''' ปรับข้อความ UI ทั้งหมดตามภาษาปัจจุบัน
-        ''' </summary>
         Private Sub ApplyLanguage()
             Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
 
-            ' Title
             Me.Text = L("AppTitle")
             If _notifyIcon IsNot Nothing Then
                 _notifyIcon.Text = L("AppTitle")
             End If
 
-            ' Info Card
             _lblInfoTitle.Text = L("InfoTitle")
             _lblComNameLabel.Text = L("ComputerName")
             _lblTypeLabel.Text = L("Type")
             _lblModeLabel.Text = L("Mode")
             _lblTimeLabel.Text = L("ScheduleTime")
 
-            ' Version Card
             _lblVersionTitle.Text = L("VersionTitle")
             _lblCurrentLabel.Text = L("CurrentVersion")
             _lblServerLabel.Text = L("ServerVersion")
             _lblStatusLabel.Text = L("Status")
 
-            ' Buttons
             _btnUpdateNow.Text = L("BtnUpdateNow")
             _btnCheckNow.Text = L("BtnCheck")
             _btnRefreshInfo.Text = L("BtnRefresh")
             _btnDetails.Text = L("BtnDetails")
             _btnConfigDebug.Text = L("BtnDebugConfig")
 
-            ' Context Menu
             _mnuCheckNow.Text = L("MenuCheckNow")
 
-            ' อัปเดตหน้าต่าง Restart ถ้ากำลังเปิดอยู่
             If _restartNoticeForm IsNot Nothing AndAlso Not _restartNoticeForm.IsDisposed Then
                 _restartNoticeForm.UpdateLanguage()
             End If
@@ -644,16 +510,12 @@ Namespace Forms
             Next
             _mnuExit.Text = L("MenuExit")
 
-            ' Language Button Text (แสดงภาษาปัจจุบัน)
             Dim currentLang As String = Config.LanguageManager.CurrentLanguage
             If _btnLang IsNot Nothing Then
                 _btnLang.Text = "🌐 " & currentLang.ToUpper()
             End If
         End Sub
 
-        ''' <summary>
-        ''' เปลี่ยนภาษาและรีเฟรช UI
-        ''' </summary>
         Private Sub SwitchLanguage(lang As String)
             Config.LanguageManager.CurrentLanguage = lang
             Config.AppSettings.UpdateLanguage(lang)
@@ -663,19 +525,14 @@ Namespace Forms
         End Sub
 
 
-        ' ══════════════════════════════════════════════
-        ' Events
-        ' ══════════════════════════════════════════════
 
         Protected Overrides Sub OnLoad(ByVal e As EventArgs)
             MyBase.OnLoad(e)
 
-            ' เปิด Double Buffer เพื่อลดการกะพริบและเพิ่มความลื่นไหลของ Typewriter Animation
             Me.DoubleBuffered = True
             Me.SetStyle(ControlStyles.OptimizedDoubleBuffer Or ControlStyles.AllPaintingInWmPaint Or ControlStyles.UserPaint, True)
             Me.UpdateStyles()
 
-            ' เปิด Double Buffer บน Panel ย่อยผ่าน Reflection เพื่อไม่ให้ภาพกะพริบและลื่นไหล 100%
             Try
                 Dim doubleBufferProp As System.Reflection.PropertyInfo = GetType(Control).GetProperty("DoubleBuffered", System.Reflection.BindingFlags.NonPublic Or System.Reflection.BindingFlags.Instance)
                 If doubleBufferProp IsNot Nothing Then
@@ -683,18 +540,14 @@ Namespace Forms
                     doubleBufferProp.SetValue(_grpVersion, True, Nothing)
                 End If
             Catch ex As Exception
-                ' ละเว้นหากเกิดข้อผิดพลาดในการตั้งค่ารีเฟลกชัน
             End Try
 
-            ' ซ่อนหน้าต่าง
             Me.Visible = False
 
-            ' ผูก Event วาดพื้นหลังแบบไล่เฉดสี (Gradient)
             AddHandler _grpInfo.Paint, AddressOf Panel_Paint
             AddHandler _grpVersion.Paint, AddressOf Panel_Paint
             AddHandler Me.Paint, AddressOf MainForm_Paint
 
-            ' ผูก Event ปุ่มและอนิเมชั่นของปุ่ม
             AddButtonAnimHandlers(_btnUpdateNow, Color.FromArgb(41, 128, 185), Color.FromArgb(52, 152, 219), Color.FromArgb(41, 128, 185), Color.FromArgb(52, 152, 219))
             AddButtonAnimHandlers(_btnCheckNow, Color.White, Color.FromArgb(235, 245, 253), Color.FromArgb(70, 130, 180), Color.FromArgb(41, 128, 185))
             AddButtonAnimHandlers(_btnRefreshInfo, Color.White, Color.FromArgb(245, 240, 255), Color.FromArgb(180, 180, 180), Color.FromArgb(108, 92, 231))
@@ -707,24 +560,18 @@ Namespace Forms
             AddHandler _btnConfigDebug.Click, AddressOf BtnConfigDebug_Click
             AddHandler _btnGear.Click, AddressOf BtnGear_Click
 
-            ' เพิ่ม menu items สำหรับปุ่มฟันเฟือง (ต้องอยู่ใน OnLoad ไม่ใช่ InitializeComponent
-            ' เพราะ Designer จะ overwrite InitializeComponent ทุกครั้งที่ save)
             SetupGearMenu()
 
-            ' ปุ่มเปลี่ยนภาษา (กดวนรอบ TH→EN→JP→TH)
             AddHandler _btnLang.Click, AddressOf BtnLang_Click
 
-            ' เริ่มตัวนับเวลาของ Typewriter Effect
             _typewriteTimer = New System.Windows.Forms.Timer()
-            _typewriteTimer.Interval = 35 ' ความเร็วพิมพ์ตัวอักษร 35ms
+            _typewriteTimer.Interval = 35
             AddHandler _typewriteTimer.Tick, AddressOf TypewriteTimer_Tick
 
-            ' เริ่มตัวนับเวลาของ Button Hover Animation
             _btnAnimTimer = New System.Windows.Forms.Timer()
-            _btnAnimTimer.Interval = 15 ' อัพเดตสีทุกๆ 15ms เพื่อความลื่นไหล
+            _btnAnimTimer.Interval = 15
             AddHandler _btnAnimTimer.Tick, AddressOf BtnAnimTimer_Tick
 
-            ' สร้าง Worker และตัวตั้งเวลา
             _updateWorker = New Workers.UpdateWorker(Me)
             AddHandler _updateWorker.UpdateCompleted, AddressOf OnUpdateCompleted
 
@@ -732,19 +579,15 @@ Namespace Forms
             AddHandler _scheduler.TickFired, AddressOf OnSchedulerTick
             _scheduler.Start()
 
-            ' Timer ตรวจสอบว่า updateflag = true เกิน 1 ชม หรือไม่
             _restartCheckTimer = New System.Windows.Forms.Timer()
-            _restartCheckTimer.Interval = 60000 ' ตรวจทุก 1 นาที
+            _restartCheckTimer.Interval = 60000
             AddHandler _restartCheckTimer.Tick, AddressOf RestartCheckTimer_Tick
             _restartCheckTimer.Start()
 
-            ' ตรวจ flag ตอนเริ่มต้น
             CheckAndTrackUpdateFlag()
 
-            ' ตั้งค่าภาษาจาก config
             Config.LanguageManager.CurrentLanguage = Config.AppSettings.Language
 
-            ' โหลดข้อมูลครั้งแรก
             ApplyLanguage()
             LoadInfo()
 
@@ -753,7 +596,6 @@ Namespace Forms
 
         Private _lastScheduledRunDate As DateTime = DateTime.MinValue
 
-        ' ── Timer ครบรอบ (ทุก 1 ชั่วโมง) → เริ่มตรวจสอบอัปเดตเมื่อตรงเวลา (หัวข้อ 4) ──
         Private Sub OnSchedulerTick(ByVal sender As Object, ByVal e As EventArgs)
             Try
                 Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
@@ -762,7 +604,6 @@ Namespace Forms
                     Dim now As DateTime = DateTime.Now
                     Dim scheduled As TimeSpan = tester.ScheduledTime
 
-                    ' ตรวจสอบเวลาปัจจุบันตรงกับชั่วโมงที่กำหนด และยังไม่ได้ทำงานในวันนี้
                     If now.Hour = scheduled.Hours AndAlso now.Minute >= scheduled.Minutes Then
                         If _lastScheduledRunDate.Date <> now.Date Then
                             If _updateWorker IsNot Nothing AndAlso Not _updateWorker.IsBusy Then
@@ -778,9 +619,6 @@ Namespace Forms
             End Try
         End Sub
 
-        ''' <summary>
-        ''' อัปเดตความคืบหน้าของเปอร์เซ็นต์และข้อความสถานะบนหน้าจออย่างปลอดภัยจาก Background Thread (หัวข้อ 1 & 2)
-        ''' </summary>
         Public Sub UpdateProgressSafe(percent As Integer, statusText As String)
             If Me.IsDisposed OrElse Not Me.IsHandleCreated Then Return
             If Me.InvokeRequired Then
@@ -798,7 +636,6 @@ Namespace Forms
             End If
         End Sub
 
-        ' ── ตรวจสอบอัปเดตเสร็จแล้ว → รีเฟรช UI + แจ้งผล ──
         Private Sub OnUpdateCompleted(ByVal sender As Object, ByVal e As Workers.UpdateCompletedEventArgs)
             If Me.InvokeRequired Then
                 Me.BeginInvoke(New Action(Of Object, Workers.UpdateCompletedEventArgs)(AddressOf OnUpdateCompleted), sender, e)
@@ -806,13 +643,11 @@ Namespace Forms
             End If
             LoadInfo()
             ShowProgress(False, "")
-            ' คืนค่าปุ่มตรวจสอบ
             Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
             If _btnCheckNow IsNot Nothing Then
                 _btnCheckNow.Enabled = True
                 _btnCheckNow.Text = L("BtnCheck")
             End If
-            ' แจ้งผลเฉพาะตอนหน้าต่างเปิดอยู่
             If Me.Visible AndAlso Me.WindowState <> FormWindowState.Minimized Then
                 Select Case e.Result
                     Case Strategies.UpdateResult.NoAction
@@ -821,7 +656,6 @@ Namespace Forms
                     Case Strategies.UpdateResult.UpdateCompleted
                         MessageBox.Show(L("PromptSuccessCompleted"), L("TitleCheckResult"), MessageBoxButtons.OK, MessageBoxIcon.Information)
                     Case Strategies.UpdateResult.UpdateScheduledForRestart
-                        ' แสดงหน้าต่างแจ้งเตือนรีสตาร์ทขนาดใหญ่
                         ShowRestartNoticeForm()
                     Case Strategies.UpdateResult.[Error]
                         Dim translatedMsg As String = TranslateMessage(e.Message)
@@ -831,21 +665,16 @@ Namespace Forms
             UpdateStatusBar()
         End Sub
 
-        ''' <summary>
-        ''' แปลผลลัพธ์หรือข้อความสถานะภาษาจากระบบเป็นภาษาปัจจุบัน
-        ''' </summary>
         Private Function TranslateMessage(msg As String) As String
             If String.IsNullOrEmpty(msg) Then Return ""
             Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
 
-            ' 1. ตรวจสอบคีย์ตรงตัวจากการแปลง format
             Dim cleanKey As String = msg.Replace(" ", "").Replace("(", "").Replace(")", "").Replace(".", "")
             Dim translated As String = L("Msg" & cleanKey)
             If Not String.Equals(translated, "Msg" & cleanKey, StringComparison.OrdinalIgnoreCase) Then
                 Return translated
             End If
 
-            ' 2. แมปกรณีคำอธิบายแบบยาว/เก่า
             If msg.Contains("Not in config") Then Return L("MsgNotInConfig")
             If msg.Contains("Hour not matching") Then Return L("MsgHourNotMatching")
             If msg.Contains("Already checked today") Then Return L("MsgAlreadyCheckedToday")
@@ -857,15 +686,10 @@ Namespace Forms
             Return msg
         End Function
 
-        ''' <summary>
-        ''' แสดงหน้าต่างแจ้งเตือนรีสตาร์ทขนาดใหญ่ (เรียกหลังจาก UpdateScheduledForRestart)
-        ''' ใช้ instance เดียว ป้องกันหน้าต่างซ้อนหลายอัน
-        ''' </summary>
         Private _restartNoticeForm As RestartNoticeForm = Nothing
 
         Private Sub ShowRestartNoticeForm()
             Try
-                ' ถ้ามี instance เก่าอยู่แล้วและยังไม่ถูก Dispose → แค่แสดงมันขึ้นมาใหม่
                 If _restartNoticeForm IsNot Nothing AndAlso Not _restartNoticeForm.IsDisposed Then
                     _restartNoticeForm.Show()
                     _restartNoticeForm.WindowState = FormWindowState.Normal
@@ -876,7 +700,6 @@ Namespace Forms
                     Return
                 End If
 
-                ' สร้างใหม่ถ้ายังไม่มี
                 _restartNoticeForm = New RestartNoticeForm()
                 _restartNoticeForm.Show()
                 Managers.LogManager.Info("RestartNoticeForm displayed (new instance).")
@@ -891,13 +714,11 @@ Namespace Forms
                 Dim flagResult As Boolean? = Managers.UpdateFlagManager.GetFlag(computerName)
 
                 If flagResult.HasValue AndAlso flagResult.Value Then
-                    ' เมื่อพบ flag = True
-                    _falseCount = 0 ' รีเซ็ตตัวนับความผิดพลาด
+                    _falseCount = 0
                     If _flagSetTime = DateTime.MinValue Then
                         _flagSetTime = DateTime.Now
                         Managers.LogManager.Info("Update flag detected. Tracking start: " & _flagSetTime.ToString("HH:mm:ss"))
 
-                        ' เอา target app ออกจาก Startup เมื่อ flag = true
                         Dim shortcutName As String = Config.AppSettings.StartupShortcutName
                         If String.IsNullOrEmpty(shortcutName) Then
                             shortcutName = Config.AppSettings.UninstallProductName
@@ -908,8 +729,6 @@ Namespace Forms
                         Managers.LogManager.Info("Removed target app from Startup (flag is true)")
                     End If
                 Else
-                    ' หากอ่านได้เป็น False หรือหาไม่พบ (Nothing) ให้บวกตัวนับความผิดพลาด
-                    ' ป้องกันกรณีที่ไฟล์โดน lock หรือเขียนทับชั่วคราวแล้วทำให้เวลารีเซ็ต
                     _falseCount += 1
                     If _falseCount >= 3 Then
                         _flagSetTime = DateTime.MinValue
@@ -926,14 +745,12 @@ Namespace Forms
             Try
                 CheckAndTrackUpdateFlag()
 
-                ' ถ้า flag = true เกิน 1 ชม และยังไม่ได้แจ้งเตือน
                 If _flagSetTime <> DateTime.MinValue AndAlso Not _restartPromptShown Then
                     Dim elapsed As TimeSpan = DateTime.Now - _flagSetTime
                     If elapsed.TotalMinutes >= 60 Then
                         _restartPromptShown = True
                         Managers.LogManager.Info("Update flag has been set for " & elapsed.TotalMinutes.ToString("F0") & " minutes. Showing RestartNoticeForm.")
 
-                        ' แสดง RestartNoticeForm แทน MessageBox เดิม
                         If Me.InvokeRequired Then
                             Me.BeginInvoke(New Action(AddressOf ShowRestartNoticeForm))
                         Else
@@ -946,16 +763,13 @@ Namespace Forms
             End Try
         End Sub
 
-        ' ── ไอคอน Tray: ดับเบิลคลิกเพื่อเปิดหน้าต่าง ──
         Private Sub NotifyIcon_DoubleClick(ByVal sender As Object, ByVal e As EventArgs) Handles _notifyIcon.DoubleClick
             ShowForm()
         End Sub
 
-        ' ── แสดง/คืนสภาพหน้าต่างหลัก ──
         Private Sub ShowForm()
             LoadInfo()
 
-            ' ดึงค่าที่โหลดขึ้นมาแล้ว เพื่อเตรียมทำเอฟเฟคพิมพ์ดีดหลังขยายหน้าต่างและสไลด์การ์ดเสร็จ
             _tempComName = _lblComNameValue.Text
             _tempType = _lblTypeValue.Text
             _tempMode = _lblModeValue.Text
@@ -964,7 +778,6 @@ Namespace Forms
             _tempServerVer = _lblServerValue.Text
             _tempStatus = _lblStatusValue.Text
 
-            ' เคลียร์ฟิลด์ชั่วคราวเพื่อให้เป็นช่องว่างระหว่างอนิเมชั่นค่อยๆ แสดงหน้าต่าง
             _lblComNameValue.Text = ""
             _lblTypeValue.Text = ""
             _lblModeValue.Text = ""
@@ -973,7 +786,6 @@ Namespace Forms
             _lblServerValue.Text = ""
             _lblStatusValue.Text = ""
 
-            ' ตั้งค่าพิกัดเริ่มต้นสำหรับการ์ดสไลด์เยื้องเวลา (Staggered Animation)
             _grpInfo.Top = 50
             _grpVersion.Top = 188
 
@@ -993,7 +805,6 @@ Namespace Forms
             End If
         End Sub
 
-        ' ── เรียกอนิเมชั่น Typewriter ให้ช่องข้อความเริ่มทำงานพร้อมกัน ──
         Private Sub TriggerTypewriter()
             StartTypewriter(_lblComNameValue, _tempComName)
             StartTypewriter(_lblTypeValue, _tempType)
@@ -1004,7 +815,6 @@ Namespace Forms
             StartTypewriter(_lblStatusValue, _tempStatus)
         End Sub
 
-        ' ── ตัวนับเวลาสำหรับทำอนิเมชั่นค่อยๆ แสดงหน้าต่าง (Fade-in) และขยับเลื่อนการ์ดแบบเยื้องเวลา (Staggered Slide-in) ──
         Private Sub FadeTimer_Tick(ByVal sender As Object, ByVal e As EventArgs) Handles _fadeTimer.Tick
             Dim isOpacityDone As Boolean = False
             If Me.Opacity < 1.0R Then
@@ -1018,7 +828,6 @@ Namespace Forms
             Dim versionTarget As Integer = 152
             Dim stepY As Integer = 3
 
-            ' เลื่อนการ์ดแรกทันที
             Dim isInfoDone As Boolean = False
             If _grpInfo.Top > infoTarget Then
                 _grpInfo.Top = Math.Max(infoTarget, _grpInfo.Top - stepY)
@@ -1027,7 +836,6 @@ Namespace Forms
                 isInfoDone = True
             End If
 
-            ' เลื่อนการ์ดสองเยื้องเวลา (จะเริ่มเมื่อการ์ดแรกเลื่อนเข้าใกล้เป้าหมายแล้ว)
             Dim isVersionDone As Boolean = False
             If _grpInfo.Top <= 26 Then
                 If _grpVersion.Top > versionTarget Then
@@ -1038,7 +846,6 @@ Namespace Forms
                 End If
             End If
 
-            ' บังคับวาดหน้าต่างใหม่เพื่อให้แสดงเงาการ์ดเคลื่อนตามตำแหน่งของการ์ดจริง
             Me.Invalidate()
 
             If isOpacityDone AndAlso isInfoDone AndAlso isVersionDone Then
@@ -1047,7 +854,6 @@ Namespace Forms
             End If
         End Sub
 
-        ' ── เมนู Tray: ตรวจสอบตอนนี้ ──
         Private Sub MnuCheckNow_Click(ByVal sender As Object, ByVal e As EventArgs) Handles _mnuCheckNow.Click
             If _updateWorker IsNot Nothing AndAlso Not _updateWorker.IsBusy Then
                 Managers.LogManager.Info("Manual check triggered by user.")
@@ -1055,12 +861,10 @@ Namespace Forms
             End If
         End Sub
 
-        ' ── เมนู Tray: ออกจากโปรแกรม ──
         Private Sub MnuExit_Click(ByVal sender As Object, ByVal e As EventArgs) Handles _mnuExit.Click
             CleanupAndExit()
         End Sub
 
-        ' ── ปุ่ม: ตรวจสอบอัปเดต ──
         Private Sub BtnCheckNow_Click(ByVal sender As Object, ByVal e As EventArgs)
             Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
             If _updateWorker IsNot Nothing AndAlso Not _updateWorker.IsBusy Then
@@ -1074,12 +878,10 @@ Namespace Forms
             End If
         End Sub
 
-        ' ── ปุ่ม: รีเฟรชข้อมูล ──
         Private Sub BtnRefreshInfo_Click(ByVal sender As Object, ByVal e As EventArgs)
             Managers.ConfigManager.InvalidateCache()
             LoadInfo()
 
-            ' ดึงค่าใหม่มาใส่ตัวแปรชั่วคราวเพื่อทำเอฟเฟคพิมพ์ดีดซ้ำอีกรอบ
             _tempComName = _lblComNameValue.Text
             _tempType = _lblTypeValue.Text
             _tempMode = _lblModeValue.Text
@@ -1088,30 +890,22 @@ Namespace Forms
             _tempServerVer = _lblServerValue.Text
             _tempStatus = _lblStatusValue.Text
 
-            ' สั่งรันเอฟเฟค Typewriter พิมพ์ใหม่
             TriggerTypewriter()
 
         End Sub
 
-        ' ── ปุ่ม Details: แสดง Dropdown Menu สำหรับเปิดเอกสาร PDF ──
         Private Sub BtnDetails_Click(ByVal sender As Object, ByVal e As EventArgs)
             _detailsMenu.Items.Clear()
 
-            ' สร้างเมนูจากโฟลเดอร์ Info
             AddPdfFolderMenu(_detailsMenu, "Info", Config.AppSettings.DetailInfoPdfPath)
 
             _detailsMenu.Items.Add(New ToolStripSeparator())
 
-            ' สร้างเมนูจากโฟลเดอร์ Detail
             AddPdfFolderMenu(_detailsMenu, "Detail", Config.AppSettings.DetailPdfPath)
 
             _detailsMenu.Show(_btnDetails, New System.Drawing.Point(0, _btnDetails.Height))
         End Sub
 
-        ''' <summary>
-        ''' สแกนโฟลเดอร์หา PDF ทั้งหมด แล้วเพิ่มเป็น menu items (เรียงใหม่สุดก่อน)
-        ''' ถ้ามี 1 ไฟล์ → เพิ่มตรงๆ, ถ้ามีหลายไฟล์ → สร้าง submenu
-        ''' </summary>
         Private Sub AddPdfFolderMenu(menu As ContextMenuStrip, groupName As String, folderPath As String)
             If String.IsNullOrEmpty(folderPath) Then
                 Dim mnu As New ToolStripMenuItem(groupName & "  (ยังไม่ได้ตั้ง path)")
@@ -1120,7 +914,6 @@ Namespace Forms
                 Return
             End If
 
-            ' ถ้าเป็นไฟล์ตรงๆ (ไม่ใช่โฟลเดอร์)
             If IO.File.Exists(folderPath) Then
                 Dim filePath As String = folderPath
                 Dim mnu As New ToolStripMenuItem(groupName & "  —  " & IO.Path.GetFileName(filePath))
@@ -1131,7 +924,6 @@ Namespace Forms
                 Return
             End If
 
-            ' ถ้าโฟลเดอร์ไม่มีอยู่
             If Not IO.Directory.Exists(folderPath) Then
                 Dim mnu As New ToolStripMenuItem(groupName & "  (หาโฟลเดอร์ไม่เจอ)")
                 mnu.Enabled = False
@@ -1139,7 +931,6 @@ Namespace Forms
                 Return
             End If
 
-            ' สแกน PDF ทั้งหมดในโฟลเดอร์ เรียงใหม่สุดก่อน
             Dim pdfFiles = New IO.DirectoryInfo(folderPath).GetFiles("*.pdf")
             If pdfFiles.Length = 0 Then
                 Dim mnu As New ToolStripMenuItem(groupName & "  (ไม่มีไฟล์ PDF)")
@@ -1148,11 +939,9 @@ Namespace Forms
                 Return
             End If
 
-            ' เรียงจากใหม่ไปเก่า
             Array.Sort(pdfFiles, Function(a, b) b.LastWriteTime.CompareTo(a.LastWriteTime))
 
             If pdfFiles.Length = 1 Then
-                ' ไฟล์เดียว → เพิ่มตรงๆ
                 Dim f As IO.FileInfo = pdfFiles(0)
                 Dim filePath As String = f.FullName
                 Dim mnu As New ToolStripMenuItem(groupName & "  —  " & f.Name)
@@ -1161,7 +950,6 @@ Namespace Forms
                                       End Sub
                 menu.Items.Add(mnu)
             Else
-                ' หลายไฟล์ → สร้าง submenu
                 Dim parent As New ToolStripMenuItem(groupName & "  (" & pdfFiles.Length & " ไฟล์)")
                 For Each f As IO.FileInfo In pdfFiles
                     Dim filePath As String = f.FullName
@@ -1185,7 +973,6 @@ Namespace Forms
                 End If
                 Managers.LogManager.Info("เปิด PDF: " & filePath)
 
-                ' 1. ลองเปิดด้วยโปรแกรมเริ่มต้น
                 Try
                     Process.Start(filePath)
                     Return
@@ -1193,7 +980,6 @@ Namespace Forms
                     Managers.LogManager.Warn("No default PDF app: " & ex.Message & ". Trying fallback...")
                 End Try
 
-                ' 2. Fallback: ลองเปิดด้วย Internet Explorer / Edge
                 Dim browsers As String() = {
                     "C:\Program Files\Internet Explorer\iexplore.exe",
                     "C:\Program Files (x86)\Internet Explorer\iexplore.exe",
@@ -1208,7 +994,6 @@ Namespace Forms
                     End If
                 Next
 
-                ' 3. Fallback: ใช้ Windows "Open With" dialog
                 Try
                     Dim psi As New ProcessStartInfo()
                     psi.FileName = "rundll32.exe"
@@ -1220,7 +1005,6 @@ Namespace Forms
                     Managers.LogManager.Warn("OpenAs fallback failed: " & ex2.Message)
                 End Try
 
-                ' 4. สุดท้าย: เปิดโฟลเดอร์ที่มีไฟล์อยู่
                 Try
                     Process.Start("explorer.exe", "/select,""" & filePath & """")
                     Managers.LogManager.Info("Opened containing folder for: " & filePath)
@@ -1235,9 +1019,6 @@ Namespace Forms
             End Try
         End Sub
 
-        ''' <summary>
-        ''' เปิดไฟล์ PDF — ถ้า path เป็นโฟลเดอร์จะเลือกไฟล์ PDF ที่ใหม่ที่สุดอัตโนมัติ
-        ''' </summary>
         Private Sub OpenPdfFile(pdfPath As String, displayName As String)
             Try
                 Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
@@ -1249,14 +1030,12 @@ Namespace Forms
 
                 Dim fileToOpen As String = pdfPath
 
-                ' ถ้า path เป็นโฟลเดอร์ → หา PDF ที่ใหม่ที่สุด
                 If IO.Directory.Exists(pdfPath) Then
                     Dim pdfFiles = New IO.DirectoryInfo(pdfPath).GetFiles("*.pdf")
                     If pdfFiles.Length = 0 Then
                         MessageBox.Show(L("PromptNoPdfInFolder") & pdfPath, L("PromptFileNotFoundTitle"), MessageBoxButtons.OK, MessageBoxIcon.Warning)
                         Return
                     End If
-                    ' เลือกไฟล์ที่แก้ไขล่าสุด
                     Dim latestPdf As IO.FileInfo = pdfFiles(0)
                     For Each f In pdfFiles
                         If f.LastWriteTime > latestPdf.LastWriteTime Then
@@ -1279,8 +1058,6 @@ Namespace Forms
             End Try
         End Sub
 
-        ' ── ตั้งค่า menu items สำหรับปุ่มฟันเฟือง ──
-        ' วางไว้นอก InitializeComponent เพื่อไม่ให้ Designer overwrite
         Private Sub SetupGearMenu()
             If _gearMenu Is Nothing Then Return
             _gearMenu.Items.Clear()
@@ -1288,25 +1065,21 @@ Namespace Forms
             _gearMenu.Items.Add("[Test] แสดง RestartNoticeForm", Nothing, AddressOf BtnTestRestart_Click)
         End Sub
 
-        ' ── ปุ่ม ⚙ ฟันเฟือง (แสดงเมนู debug/test) ──
         Private Sub BtnGear_Click(ByVal sender As Object, ByVal e As EventArgs)
             If _gearMenu IsNot Nothing Then
                 _gearMenu.Show(Cursor.Position)
             End If
         End Sub
 
-        ' ── [Test] แสดง RestartNoticeForm ──
         Private Sub BtnTestRestart_Click(ByVal sender As Object, ByVal e As EventArgs)
             ShowRestartNoticeForm()
         End Sub
 
-        ' ── ปุ่ม [Debug] ดู Config ที่โหลดแล้ว ──
         Private Sub BtnConfigDebug_Click(ByVal sender As Object, ByVal e As EventArgs)
             Try
                 Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
                 Dim sb As New System.Text.StringBuilder()
 
-                ' สถานะการโหลด
                 sb.AppendLine(L("DebugExeLocation"))
                 sb.AppendLine(System.Reflection.Assembly.GetExecutingAssembly().Location)
                 sb.AppendLine()
@@ -1314,7 +1087,6 @@ Namespace Forms
                 sb.AppendLine(Config.AppSettings.LoadStatus)
                 sb.AppendLine()
 
-                ' ค่าทั้งหมด
                 sb.AppendLine(L("DebugReadValues"))
                 For Each issue As String In Config.AppSettings.ValidateConfig()
                     sb.AppendLine(issue)
@@ -1327,7 +1099,6 @@ Namespace Forms
             End Try
         End Sub
 
-        ' ── ปุ่ม: อัปเดตทันที (รันบน BackgroundWorker) ──
         Private Sub BtnUpdateNow_Click(ByVal sender As Object, ByVal e As EventArgs)
             Try
                 Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
@@ -1345,7 +1116,6 @@ Namespace Forms
                     _btnUpdateNow.Text = L("Updating")
                     ShowProgress(True, L("Updating"))
 
-                    ' รันบน BackgroundWorker เพื่อไม่บล็อก UI
                     If _manualUpdateWorker IsNot Nothing Then
                         RemoveHandler _manualUpdateWorker.DoWork, AddressOf ManualUpdate_DoWork
                         RemoveHandler _manualUpdateWorker.RunWorkerCompleted, AddressOf ManualUpdate_Completed
@@ -1365,7 +1135,6 @@ Namespace Forms
 
         Private Sub ManualUpdate_DoWork(ByVal sender As Object, ByVal e As System.ComponentModel.DoWorkEventArgs)
             Dim testerType As String = DirectCast(e.Argument, String)
-            ' ปิดโปรแกรมเป้าหมายก่อนทำการอัปเดต
             Managers.InstallerManager.KillTargetProcess()
             Managers.InstallerManager.CloseProgramOfRegistryPath()
             e.Result = Managers.InstallerManager.RunInstaller(testerType, _
@@ -1403,7 +1172,6 @@ Namespace Forms
             End If
         End Sub
 
-        ' ── แสดง/ซ่อน Progress Bar ──
         Private Sub ShowProgress(show As Boolean, statusText As String)
             If _progressBar IsNot Nothing Then _progressBar.Visible = show
             If _lblProgress IsNot Nothing Then
@@ -1456,7 +1224,6 @@ Namespace Forms
         End Sub
 
         Protected Overrides Sub OnFormClosing(ByVal e As FormClosingEventArgs)
-            ' ย่อลงไปที่ Tray แทนการปิด (ยกเว้นกดออกจากเมนู)
             If e.CloseReason = CloseReason.UserClosing Then
                 e.Cancel = True
                 Me.WindowState = FormWindowState.Minimized
@@ -1505,7 +1272,6 @@ Namespace Forms
             MyBase.Dispose(disposing)
         End Sub
 
-        ' ── เริ่มอนิเมชั่นพิมพ์ดีดสำหรับ Label ที่ระบุ ──
         Private Sub StartTypewriter(ByVal lbl As Label, ByVal text As String)
             If lbl Is Nothing Then Return
             lbl.Text = ""
@@ -1516,7 +1282,6 @@ Namespace Forms
             End If
         End Sub
 
-        ' ── ตัวนับเวลาการวาดตัวอักษรทีละตัว ──
         Private Sub TypewriteTimer_Tick(ByVal sender As Object, ByVal e As EventArgs)
             Dim keys As New System.Collections.Generic.List(Of Label)(_typewriteTargets.Keys)
             Dim allDone As Boolean = True

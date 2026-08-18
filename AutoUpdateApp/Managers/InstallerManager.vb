@@ -1,4 +1,4 @@
-Option Strict On
+﻿Option Strict On
 Option Explicit On
 
 Imports System.Diagnostics
@@ -7,20 +7,11 @@ Imports System.Runtime.InteropServices
 
 Namespace Managers
 
-    ''' <summary>
-    ''' เรียกใช้ตัวติดตั้ง (Installer) ตามประเภทเครื่องทดสอบ (HE/LLE)
-    ''' คัดลอกโฟลเดอร์จากเซิร์ฟเวอร์แบบ Recursive มายังเครื่องปลายทางก่อนรันติดตั้ง
-    ''' มีฟังก์ชันปิด/เปิดโปรแกรมหลัก และเพิ่ม Startup Shortcut
-    ''' </summary>
     Public NotInheritable Class InstallerManager
 
         Private Sub New()
-            ' คลาสแบบ Static เท่านั้น ไม่ต้องสร้าง Instance
         End Sub
 
-        ''' <summary>
-        ''' คืนค่าเส้นทาง Installer สำหรับประเภทเครื่องที่ระบุ
-        ''' </summary>
         Public Shared Function GetInstallerPath(testerType As String) As String
             Select Case testerType.ToUpperInvariant()
                 Case "HE"
@@ -33,12 +24,6 @@ Namespace Managers
             End Select
         End Function
 
-        ''' <summary>
-        ''' เรียกใช้ Installer สำหรับประเภทเครื่องที่ระบุ
-        ''' โดยจะรัน uninstall.bat ก่อน แล้วตามด้วย install.bat
-        ''' คืนค่า True หากทั้งสองกระบวนการทำงานสำเร็จ
-        ''' รอจนกว่าจะทำงานเสร็จทีละตัว
-        ''' </summary>
         Public Shared Function RunInstaller(testerType As String, Optional progressCallback As Action(Of Integer, String) = Nothing) As Boolean
             Dim installerFolder As String = GetInstallerPath(testerType)
 
@@ -47,16 +32,13 @@ Namespace Managers
                 Return False
             End If
 
-            ' ตรวจสอบโฟลเดอร์ตัวติดตั้งบนเซิร์ฟเวอร์ (หัวข้อ 3)
             If Not Directory.Exists(installerFolder) Then
                 LogManager.[Error]("Installer folder not found on server: " & installerFolder)
                 Return False
             End If
 
-            ' บันทึก IP Address เมื่อมีการรันฟังก์ชันดาวน์โหลด/อัปเดต (หัวข้อ 7)
             LogManager.LogIPAddress()
 
-            ' โฟลเดอร์ปลายทางบนเครื่องที่รัน (หัวข้อ 6)
             Dim configLocalPath As String = Config.AppSettings.LocalInstallerPath
             Dim localFolder As String
             If Not String.IsNullOrEmpty(configLocalPath) Then
@@ -66,7 +48,7 @@ Namespace Managers
             End If
             Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
             Dim result As Boolean = False
-            
+
             Try
                 LogManager.Info(String.Format("Downloading installer folder: {0} -> {1}", installerFolder, localFolder))
 
@@ -74,7 +56,6 @@ Namespace Managers
                     progressCallback(0, L("ProgressDownloading"))
                 End If
 
-                ' เคลียร์ไฟล์เก่าในเครื่องปลายทาง
                 Try
                     If Directory.Exists(localFolder) Then
                         Directory.Delete(localFolder, True)
@@ -84,7 +65,6 @@ Namespace Managers
                 End Try
 
                 Dim copySuccess As Boolean = True
-                ' คัดลอกทั้งโฟลเดอร์แบบย่อยและอัปเดตความคืบหน้า (หัวข้อ 6)
                 Try
                     CopyDirectoryWithProgress(installerFolder, localFolder, progressCallback)
                 Catch ex As Exception
@@ -96,18 +76,15 @@ Namespace Managers
                 End Try
 
                 If copySuccess Then
-                    ' ── ปิดโปรแกรมเป้าหมายก่อนถอนการติดตั้ง ──
                     KillTargetProcess()
                     CloseProgramOfRegistryPath()
                     Dim uninstallPath As String = IO.Path.Combine(localFolder, "uninstall.bat")
                     Dim installPath As String = IO.Path.Combine(localFolder, "install.bat")
 
                     Dim uninstallSuccess As Boolean = True
-                    ' รัน uninstall — ถ้ามี UninstallProductName จะสร้าง smart uninstall อัตโนมัติ
                     Dim productName As String = Config.AppSettings.UninstallProductName
 
                     If Not String.IsNullOrEmpty(productName) Then
-                        ' ── ค้นหา GUID จากชื่อโปรแกรมอัตโนมัติ ──
                         If progressCallback IsNot Nothing Then
                             progressCallback(85, L("ProgressSearching"))
                         End If
@@ -121,7 +98,6 @@ Namespace Managers
                                 progressCallback(90, String.Format(L("ProgressUninstallingProduct"), productName))
                             End If
 
-                            ' สร้าง smart uninstall.bat
                             Dim smartBatPath As String = IO.Path.Combine(localFolder, "uninstall.bat")
                             Dim batContent As String = "@echo off" & Environment.NewLine &
                                                        "msiexec.exe /x " & guid & " /quiet /norestart" & Environment.NewLine &
@@ -135,7 +111,6 @@ Namespace Managers
                             End If
                         End If
                     ElseIf Utilities.FileHelper.FileExistsSafe(uninstallPath) Then
-                        ' ── ใช้ uninstall.bat ที่มีอยู่ (แบบเดิม) ──
                         If progressCallback IsNot Nothing Then
                             progressCallback(90, L("ProgressUninstalling"))
                         End If
@@ -148,12 +123,10 @@ Namespace Managers
                     End If
 
                     If uninstallSuccess Then
-                        ' ── Install: ค้นหา .msi จากโฟลเดอร์ที่ copy มายังเครื่องแล้ว (localFolder) ──
                         Dim msiFile As String = FindLatestMsi(localFolder)
                         Dim installerArgs As String = Config.AppSettings.InstallerArgs
 
                         If Not String.IsNullOrEmpty(msiFile) Then
-                            ' สร้าง smart install.bat
                             LogManager.Info("พบ MSI: " & msiFile)
                             If progressCallback IsNot Nothing Then
                                 progressCallback(95, String.Format(L("ProgressInstallingProduct"), IO.Path.GetFileName(msiFile)))
@@ -175,7 +148,6 @@ Namespace Managers
                                 result = True
                             End If
                         ElseIf Utilities.FileHelper.FileExistsSafe(installPath) Then
-                            ' ── ใช้ install.bat ที่มีอยู่ (แบบเดิม) ──
                             If progressCallback IsNot Nothing Then
                                 progressCallback(95, L("ProgressInstalling"))
                             End If
@@ -196,7 +168,6 @@ Namespace Managers
                 LogManager.[Error]("Error during installation process.", ex)
                 result = False
             Finally
-                ' Cleanup temp folder
                 Try
                     If Directory.Exists(localFolder) Then
                         Directory.Delete(localFolder, True)
@@ -206,7 +177,6 @@ Namespace Managers
                 End Try
             End Try
 
-            ' ── หลังติดตั้งสำเร็จ: Copy ไฟล์ config + เปิดแอพเป้าหมาย ──
             If result Then
                 CopyConfigFiles()
                 LaunchTargetAppWithAutoConfirm()
@@ -215,20 +185,10 @@ Namespace Managers
             Return result
         End Function
 
-        ''' <summary>
-        ''' ค้นหา GUID ของโปรแกรมจาก Registry Uninstall keys (ค้นทั้ง 64-bit และ 32-bit)
-        ''' </summary>
-        ''' <summary>
-        ''' ค้นหาไฟล์ .msi ล่าสุดในโฟลเดอร์ Installer
-        ''' </summary>
-        ''' <summary>
-        ''' เปิดแอพเป้าหมายหลังอัปเดตสำเร็จ (ดึง path จาก config หรือ Registry)
-        ''' </summary>
         Public Shared Sub LaunchTargetApp()
             Try
                 Dim appPath As String = Config.AppSettings.TargetAppExePath
 
-                ' ถ้าไม่ได้ตั้ง path → ดึงจาก Registry
                 If String.IsNullOrEmpty(appPath) Then
                     appPath = Utilities.RegistryHelper.ReadValue(
                         Config.AppSettings.RegistryKeyPath, Config.AppSettings.RegistryPathValueName)
@@ -239,7 +199,6 @@ Namespace Managers
                     Return
                 End If
 
-                ' ถ้า path เป็นโฟลเดอร์ → หาไฟล์ .exe
                 If IO.Directory.Exists(appPath) Then
                     Dim exeFiles = IO.Directory.GetFiles(appPath, "*.exe")
                     If exeFiles.Length > 0 Then
@@ -273,7 +232,6 @@ Namespace Managers
                     Return Nothing
                 End If
 
-                ' เรียงจากใหม่ไปเก่า เลือกอันใหม่ที่สุด
                 Dim latest As IO.FileInfo = msiFiles(0)
                 For Each f In msiFiles
                     If f.LastWriteTime > latest.LastWriteTime Then
@@ -308,14 +266,12 @@ Namespace Managers
                                     If displayName IsNot Nothing Then
                                         Dim name As String = displayName.ToString()
                                         If name.IndexOf(productName, StringComparison.OrdinalIgnoreCase) >= 0 Then
-                                            ' subKeyName คือ GUID เช่น {4772073D-714A-40AE-B120-0561D01099B6}
                                             LogManager.Info("Registry match: " & name & " → " & subKeyName & " (in " & regPath & ")")
                                             Return subKeyName
                                         End If
                                     End If
                                 End Using
                             Catch
-                                ' ข้ามถ้าอ่าน subkey ไม่ได้
                             End Try
                         Next
                     End Using
@@ -340,7 +296,6 @@ Namespace Managers
 
                 Using proc As Process = Process.Start(psi)
                     If proc IsNot Nothing Then
-                        ' รอ 30 นาที ป้องกัน hang ตลอดกาล
                         proc.WaitForExit(1800000)
                         If Not proc.HasExited Then
                             LogManager.Warn(stepName & " script timed out after 30 minutes.")
@@ -348,7 +303,6 @@ Namespace Managers
                         End If
                         Dim exitCode As Integer = proc.ExitCode
                         LogManager.Info(stepName & " script exited with code: " & exitCode.ToString())
-                        ' Bat scripts may not always return 0, but we assume 0 means success.
                         Return (exitCode = 0)
                     End If
                 End Using
@@ -360,16 +314,12 @@ Namespace Managers
             End Try
         End Function
 
-        ''' <summary>
-        ''' คัดลอกโฟลเดอร์และโฟลเดอร์ย่อยทั้งหมดพร้อมบอกความคืบหน้า (หัวข้อ 6)
-        ''' </summary>
         Private Shared Sub CopyDirectoryWithProgress(sourceDir As String, destDir As String, progressCallback As Action(Of Integer, String))
             Dim sourceDirInfo As New DirectoryInfo(sourceDir)
             If Not sourceDirInfo.Exists Then
                 Throw New DirectoryNotFoundException("Source directory not found: " & sourceDir)
             End If
 
-            ' สแกนหาไฟล์ทั้งหมดเพื่อคำนวณขนาดรวมทั้งหมด
             Dim allFiles As New List(Of FileInfo)()
             GetAllFilesRecursive(sourceDirInfo, allFiles)
 
@@ -390,28 +340,25 @@ Namespace Managers
             Dim currentFileIndex As Integer = 0
 
             For Each file In allFiles
-                ' คำนวณพาธปลายทาง
                 Dim relativePath As String = file.FullName.Substring(sourceDirInfo.FullName.Length)
                 If relativePath.StartsWith("\") OrElse relativePath.StartsWith("/") Then
                     relativePath = relativePath.Substring(1)
                 End If
                 Dim destFilePath As String = Path.Combine(destDir, relativePath)
 
-                ' ตรวจสอบและสร้างโฟลเดอร์ย่อยปลายทาง
                 Dim destSubDir As String = Path.GetDirectoryName(destFilePath)
                 If Not Directory.Exists(destSubDir) Then
                     Directory.CreateDirectory(destSubDir)
                 End If
 
-                ' คัดลอกโดยใช้ Buffer เพื่อรายงานความคืบหน้าแบบละเอียด
-                Dim buffer(65536 - 1) As Byte ' 64KB
+                Dim buffer(65536 - 1) As Byte
                 Using sourceStream As New FileStream(file.FullName, FileMode.Open, FileAccess.Read)
                     Using destStream As New FileStream(destFilePath, FileMode.Create, FileAccess.Write)
                         Dim bytesRead As Integer = sourceStream.Read(buffer, 0, buffer.Length)
                         While bytesRead > 0
                             destStream.Write(buffer, 0, bytesRead)
                             copiedBytes += bytesRead
-                            
+
                             Dim percent As Integer = 0
                             If totalBytes > 0 Then
                                 percent = CInt((copiedBytes * 100) \ totalBytes)
@@ -443,17 +390,10 @@ Namespace Managers
             Next
         End Sub
 
-        ''' <summary>
-        ''' ปิดโปรแกรมเป้าหมายทั้งหมดก่อนทำการอัปเดต
-        ''' อ่านรายชื่อจาก KillProcessList (คั่นด้วย ,) + UninstallProductName
-        ''' ใช้ Force Kill เพื่อข้าม Confirmation Dialog ของแอพ
-        ''' </summary>
         Public Shared Sub KillTargetProcess()
             Try
-                ' รวบรวมรายชื่อ process ที่ต้องปิด
                 Dim processNames As New List(Of String)()
 
-                ' 1. จาก KillProcessList config (คั่นด้วย ,)
                 Dim killList As String = Config.AppSettings.KillProcessList
                 If Not String.IsNullOrEmpty(killList) Then
                     For Each name As String In killList.Split(","c)
@@ -464,7 +404,6 @@ Namespace Managers
                     Next
                 End If
 
-                ' 2. จาก UninstallProductName (ถ้ายังไม่มีในรายชื่อ)
                 Dim productName As String = Config.AppSettings.UninstallProductName
                 If Not String.IsNullOrEmpty(productName) Then
                     Dim pName As String = productName.Replace(".exe", "")
@@ -488,11 +427,6 @@ Namespace Managers
             End Try
         End Sub
 
-        ''' <summary>
-        ''' ปิด process ที่ระบุชื่อ — ใช้ Force Kill เพื่อข้าม Confirmation Dialog
-        ''' ลอง CloseMainWindow ก่อน รอ 2 วินาที ถ้าไม่ปิด → Kill ทันที
-        ''' ถ้ายังไม่ปิด → ใช้ taskkill /F /IM เป็น fallback สุดท้าย
-        ''' </summary>
         Private Shared Sub KillProcessByName(processName As String)
             Try
                 Dim processes() As Process = Process.GetProcessesByName(processName)
@@ -506,12 +440,9 @@ Namespace Managers
                     Try
                         LogManager.Info("Closing process: " & proc.ProcessName & " (PID: " & proc.Id & ")")
 
-                        ' ลอง CloseMainWindow ก่อน (ให้โอกาสปิดปกติ)
                         proc.CloseMainWindow()
 
-                        ' รอแค่ 2 วินาที — ถ้าแอพมี confirmation dialog จะไม่ปิดทันเวลา
                         If Not proc.WaitForExit(2000) Then
-                            ' Force Kill ทันที — ข้าม confirmation dialog
                             LogManager.Info("Force killing (bypass confirmation): " & proc.ProcessName)
                             proc.Kill()
                             proc.WaitForExit(3000)
@@ -523,7 +454,6 @@ Namespace Managers
                     End Try
                 Next
 
-                ' ── Fallback: ใช้ taskkill เผื่อยังหลุดรอดอยู่ ──
                 Threading.Thread.Sleep(500)
                 Dim remaining() As Process = Process.GetProcessesByName(processName)
                 If remaining.Length > 0 Then
@@ -546,52 +476,46 @@ Namespace Managers
             End Try
         End Sub
 
-        ''' <summary>
-        ''' ปิดโปรแกรมหลักที่ระบุใน registry path (หัวข้อ 5.3)
-        ''' </summary>
         Public Shared Sub CloseProgramOfRegistryPath()
             Try
                 Dim keyPath As String = Config.AppSettings.RegistryKeyPath
                 Dim pathValueName As String = Config.AppSettings.RegistryPathValueName
                 Dim targetPath As String = Utilities.RegistryHelper.ReadValue(keyPath, pathValueName)
-                
+
                 If String.IsNullOrEmpty(targetPath) Then
                     LogManager.Warn("Cannot find target program path in registry to close: " & keyPath & "\" & pathValueName)
                     Return
                 End If
-                
+
                 targetPath = targetPath.Trim()
                 LogManager.Info("Target program path from registry to close: " & targetPath)
-                
+
                 Dim processName As String = ""
                 If File.Exists(targetPath) Then
                     processName = Path.GetFileNameWithoutExtension(targetPath)
                 End If
-                
+
                 For Each proc As Process In Process.GetProcesses()
                     Try
                         Dim isTarget As Boolean = False
                         If Not String.IsNullOrEmpty(processName) AndAlso String.Equals(proc.ProcessName, processName, StringComparison.OrdinalIgnoreCase) Then
                             isTarget = True
                         Else
-                            ' ตรวจเช็กโมดูลหลัก (ใช้สิทธิ์แอดมินหรือดักจับ Error ในกรณีสิทธิ์ไม่ถึง)
                             Dim mainModulePath As String = proc.MainModule.FileName
                             If mainModulePath.StartsWith(targetPath, StringComparison.OrdinalIgnoreCase) Then
                                 isTarget = True
                             End If
                         End If
-                        
+
                         If isTarget Then
                             LogManager.Info("Closing target process: " & proc.ProcessName & " (PID: " & proc.Id & ")")
                             proc.CloseMainWindow()
-                            ' รอสูงสุด 5 วินาที ถ้าไม่ปิดเองจะทำการ Kill
                             If Not proc.WaitForExit(5000) Then
                                 LogManager.Warn("Process did not exit, force killing: " & proc.ProcessName)
                                 proc.Kill()
                             End If
                         End If
                     Catch ex As Exception
-                        ' ป้องกันการขัดข้องกรณีระบบป้องกันของ OS หรือสิทธิ์การเข้าถึง process อื่น
                     End Try
                 Next
             Catch ex As Exception
@@ -599,20 +523,17 @@ Namespace Managers
             End Try
         End Sub
 
-        ''' <summary>
-        ''' เปิดโปรแกรมหลักขึ้นมาใหม่หลังจากอัปเดตเสร็จ (หัวข้อ 5.5)
-        ''' </summary>
         Public Shared Sub StartProgramOfRegistryPath()
             Try
                 Dim keyPath As String = Config.AppSettings.RegistryKeyPath
                 Dim pathValueName As String = Config.AppSettings.RegistryPathValueName
                 Dim targetPath As String = Utilities.RegistryHelper.ReadValue(keyPath, pathValueName)
-                
+
                 If String.IsNullOrEmpty(targetPath) Then
                     LogManager.Warn("Cannot find target program path in registry to start: " & keyPath & "\" & pathValueName)
                     Return
                 End If
-                
+
                 targetPath = targetPath.Trim()
                 If File.Exists(targetPath) Then
                     LogManager.Info("Starting target program: " & targetPath)
@@ -633,10 +554,6 @@ Namespace Managers
             End Try
         End Sub
 
-        ''' <summary>
-        ''' คัดลอก/สร้าง Shortcut ไปยังโฟลเดอร์ Startup เพื่อเปิดอัตโนมัติเมื่อเปิดเครื่อง
-        ''' ตรวจสอบค่า EnableTargetStartup ก่อนทำงาน
-        ''' </summary>
         Public Shared Sub CopyShortcutToStartup()
             Try
                 If Not Config.AppSettings.EnableTargetStartup Then
@@ -647,7 +564,7 @@ Namespace Managers
                 Dim keyPath As String = Config.AppSettings.RegistryKeyPath
                 Dim pathValueName As String = Config.AppSettings.RegistryPathValueName
                 Dim targetPath As String = Utilities.RegistryHelper.ReadValue(keyPath, pathValueName)
-                
+
                 If String.IsNullOrEmpty(targetPath) Then
                     LogManager.Warn("Cannot find program executable to create shortcut: (empty registry value)")
                     Return
@@ -655,7 +572,6 @@ Namespace Managers
 
                 targetPath = targetPath.Trim()
 
-                ' ถ้า registry ชี้ไปที่โฟลเดอร์ ให้หา exe ข้างใน
                 If Directory.Exists(targetPath) AndAlso Not File.Exists(targetPath) Then
                     Dim exes As String() = Directory.GetFiles(targetPath, "*.exe")
                     If exes.Length > 0 Then
@@ -671,7 +587,6 @@ Namespace Managers
                     Return
                 End If
 
-                ' ลบ shortcut เก่าก่อน (ถ้าเปิดใช้งาน)
                 If Config.AppSettings.RemoveOldStartupShortcut Then
                     Dim nameToRemove As String = Config.AppSettings.StartupShortcutName
                     If String.IsNullOrEmpty(nameToRemove) Then
@@ -686,7 +601,7 @@ Namespace Managers
                     shortcutBaseName = Path.GetFileNameWithoutExtension(targetPath)
                 End If
                 Dim shortcutPath As String = Path.Combine(startupFolder, shortcutBaseName & ".lnk")
-                
+
                 LogManager.Info("Creating startup shortcut at: " & shortcutPath)
                 CreateShortcut(shortcutPath, targetPath)
                 LogManager.Info("Startup shortcut created successfully.")
@@ -695,10 +610,6 @@ Namespace Managers
             End Try
         End Sub
 
-        ''' <summary>
-        ''' ใส่ตัว AutoUpdateApp เองไปที่ Startup folder
-        ''' ตรวจสอบค่า EnableSelfStartup ก่อนทำงาน
-        ''' </summary>
         Public Shared Sub AddSelfToStartup()
             Try
                 If Not Config.AppSettings.EnableSelfStartup Then
@@ -716,7 +627,6 @@ Namespace Managers
                 Dim shortcutName As String = Path.GetFileNameWithoutExtension(selfExePath) & ".lnk"
                 Dim shortcutPath As String = Path.Combine(startupFolder, shortcutName)
 
-                ' ลบ shortcut เก่าก่อนสร้างใหม่ทุกครั้ง (ทั้ง Current User + All Users)
                 Dim selfName As String = Path.GetFileNameWithoutExtension(selfExePath)
                 RemoveStartupShortcut(selfName)
 
@@ -728,18 +638,13 @@ Namespace Managers
             End Try
         End Sub
 
-        ''' <summary>
-        ''' ลบ Shortcut ที่ชื่อตรงกันออกจาก Startup folder ทั้ง Current User และ All Users
-        ''' </summary>
         Public Shared Sub RemoveStartupShortcut(shortcutBaseName As String)
             Try
                 If String.IsNullOrEmpty(shortcutBaseName) Then Return
 
-                ' Current User Startup
                 Dim currentUserStartup As String = Environment.GetFolderPath(Environment.SpecialFolder.Startup)
                 RemoveShortcutFromFolder(currentUserStartup, shortcutBaseName)
 
-                ' All Users Startup (Common Startup)
                 Dim allUsersStartup As String = Environment.GetFolderPath(Environment.SpecialFolder.CommonStartup)
                 RemoveShortcutFromFolder(allUsersStartup, shortcutBaseName)
             Catch ex As Exception
@@ -747,9 +652,6 @@ Namespace Managers
             End Try
         End Sub
 
-        ''' <summary>
-        ''' ลบ Shortcut จากโฟลเดอร์ที่ระบุ
-        ''' </summary>
         Private Shared Sub RemoveShortcutFromFolder(folderPath As String, shortcutBaseName As String)
             Try
                 If String.IsNullOrEmpty(folderPath) Then Return
@@ -760,7 +662,6 @@ Namespace Managers
                     LogManager.Info("Removed startup shortcut: " & shortcutPath)
                 End If
 
-                ' ลบ .exe ตรงๆ ที่อาจถูกวางไว้ด้วย
                 Dim exePath As String = Path.Combine(folderPath, shortcutBaseName & ".exe")
                 If File.Exists(exePath) Then
                     File.Delete(exePath)
@@ -771,9 +672,6 @@ Namespace Managers
             End Try
         End Sub
 
-        ''' <summary>
-        ''' ตรวจสอบว่าการติดตั้งสำเร็จจริงหรือไม่ โดยเปรียบเทียบ Registry Version กับ version.txt
-        ''' </summary>
         Public Shared Function VerifyInstallation() As Boolean
             Try
                 Dim currentVersion As String = VersionManager.ReadRegistryVersion()
@@ -797,9 +695,6 @@ Namespace Managers
             End Try
         End Function
 
-        ''' <summary>
-        ''' สร้าง Windows Shortcut (.lnk) ด้วย WScript.Shell COM
-        ''' </summary>
         Private Shared Sub CreateShortcut(shortcutPath As String, targetExePath As String)
             Dim shellType As Type = Type.GetTypeFromProgID("WScript.Shell")
             Dim shell As Object = Activator.CreateInstance(shellType)
@@ -811,15 +706,7 @@ Namespace Managers
             shortcutType.InvokeMember("Save", System.Reflection.BindingFlags.InvokeMethod, Nothing, shortcut, Nothing)
         End Sub
 
-        ' ═══════════════════════════════════════════════════════════════
-        ' Post-Install: Copy Config Files (.ini, .txt ฯลฯ)
-        ' ═══════════════════════════════════════════════════════════════
 
-        ''' <summary>
-        ''' คัดลอกไฟล์จาก Server ไปวางทับที่ปลายทาง (หลังติดตั้งเสร็จ)
-        ''' config: CopyFilesSource = path ไฟล์ต้นทาง (คั่นด้วย | สำหรับหลายไฟล์)
-        ''' config: CopyFilesDestination = โฟลเดอร์ปลายทาง
-        ''' </summary>
         Public Shared Sub CopyConfigFiles()
             Try
                 Dim sources As String = Config.AppSettings.CopyFilesSource
@@ -835,13 +722,11 @@ Namespace Managers
                     Return
                 End If
 
-                ' สร้างโฟลเดอร์ปลายทางถ้ายังไม่มี
                 If Not Directory.Exists(destination) Then
                     Directory.CreateDirectory(destination)
                     LogManager.Info("Created destination directory: " & destination)
                 End If
 
-                ' แยก path ด้วย | สำหรับหลายไฟล์
                 Dim filePaths As String() = sources.Split("|"c)
 
                 For Each srcPath As String In filePaths
@@ -850,13 +735,11 @@ Namespace Managers
 
                     Try
                         If IO.File.Exists(trimmedPath) Then
-                            ' เป็นไฟล์เดี่ยว → copy ไปวางทับ
                             Dim fileName As String = Path.GetFileName(trimmedPath)
                             Dim destFile As String = Path.Combine(destination, fileName)
                             IO.File.Copy(trimmedPath, destFile, True)
 
                         ElseIf Directory.Exists(trimmedPath) Then
-                            ' เป็นโฟลเดอร์ → copy ทุกไฟล์ในโฟลเดอร์ไปวางทับ
                             Dim allFiles = Directory.GetFiles(trimmedPath)
                             For Each f As String In allFiles
                                 Dim fileName As String = Path.GetFileName(f)
@@ -877,11 +760,7 @@ Namespace Managers
             End Try
         End Sub
 
-        ' ═══════════════════════════════════════════════════════════════
-        ' Post-Install: Auto Launch + Auto Confirm Dialog
-        ' ═══════════════════════════════════════════════════════════════
 
-        ' ── Win32 API สำหรับค้นหาและกดปุ่มใน Dialog อัตโนมัติ ──
         <DllImport("user32.dll", SetLastError:=True, CharSet:=CharSet.Auto)>
         Private Shared Function FindWindow(lpClassName As String, lpWindowName As String) As IntPtr
         End Function
@@ -911,12 +790,8 @@ Namespace Managers
         Private Const BM_CLICK As UInteger = &HF5UI
         Private Const WM_CLOSE As UInteger = &H10UI
 
-        ''' <summary>
-        ''' เปิดแอพเป้าหมายหลังติดตั้ง + กดปุ่ม Yes/OK/ตกลง ใน Dialog อัตโนมัติ
-        ''' </summary>
         Public Shared Sub LaunchTargetAppWithAutoConfirm()
             Try
-                ' เปิดแอพเป้าหมาย
                 LaunchTargetApp()
 
                 If Not Config.AppSettings.AutoConfirmAfterLaunch Then
@@ -926,14 +801,12 @@ Namespace Managers
 
                 LogManager.Info("AutoConfirmAfterLaunch enabled. Waiting for dialog windows...")
 
-                ' รอให้แอพเปิดและ dialog ขึ้นมา (ลอง 30 วินาที ทุกๆ 2 วินาที)
                 Dim maxAttempts As Integer = 15
                 Dim confirmed As Boolean = False
 
                 For attempt As Integer = 1 To maxAttempts
                     Threading.Thread.Sleep(2000)
 
-                    ' ค้นหาหน้าต่าง Dialog (#32770 = Windows Dialog class)
                     confirmed = TryClickConfirmButtons()
 
                     If confirmed Then
@@ -950,19 +823,14 @@ Namespace Managers
             End Try
         End Sub
 
-        ''' <summary>
-        ''' ค้นหาทุกหน้าต่าง Dialog (#32770) และลองกดปุ่ม Yes/OK/ตกลง/はい
-        ''' </summary>
         Private Shared Function TryClickConfirmButtons() As Boolean
             Dim clicked As Boolean = False
 
             Try
-                ' ค้นหาหน้าต่าง Dialog ทั้งหมดที่เปิดอยู่
                 Dim dialogHandle As IntPtr = FindWindow("#32770", Nothing)
 
                 If dialogHandle = IntPtr.Zero Then Return False
 
-                ' ค้นหาปุ่มในหน้าต่าง Dialog
                 Dim confirmTexts As String() = {
                     "Yes", "yes", "YES",
                     "OK", "Ok", "ok",
@@ -971,7 +839,6 @@ Namespace Managers
                     "はい", "OK"
                 }
 
-                ' วนหา Button ใน Dialog
                 Dim childButtons As New List(Of IntPtr)()
                 EnumChildWindows(dialogHandle, Function(hWnd As IntPtr, lParam As IntPtr) As Boolean
                                                    Dim className As New System.Text.StringBuilder(256)

@@ -1,24 +1,16 @@
-Option Strict On
+﻿Option Strict On
 Option Explicit On
 
 Imports System.Windows.Forms
 
 Namespace Forms
 
-    ''' <summary>
-    ''' ผลลัพธ์จากการเลือกของผู้ใช้บนหน้าต่างแจ้งเตือนอัปเดต
-    ''' </summary>
     Public Enum UpdatePromptResult
         UpdateNow = 0
         UpdateAfterRestart = 1
         RemindLater = 2
     End Enum
 
-    ''' <summary>
-    ''' หน้าต่างแจ้งเตือนสำหรับโหมด Normal
-    ''' แสดงเวอร์ชันปัจจุบัน vs ล่าสุด และปุ่มเลือก 3 ปุ่ม
-    ''' ใช้ uninstall.bat/install.bat สำหรับการอัปเดต
-    ''' </summary>
     Public Class UpdatePromptForm
         Inherits Form
 
@@ -30,9 +22,6 @@ Namespace Forms
         Private btnAfterRestart As Button
         Private btnRemindLater As Button
 
-        ''' <summary>
-        ''' ดึงค่าที่ผู้ใช้เลือก
-        ''' </summary>
         Public ReadOnly Property UserChoice As UpdatePromptResult
             Get
                 Return _userChoice
@@ -48,7 +37,6 @@ Namespace Forms
         Private Sub InitializeComponent()
             Me.SuspendLayout()
 
-            ' ── lblMessage ──
             lblMessage = New Label()
             lblMessage.Text = Config.LanguageManager.GetText("PromptNewVersion")
             lblMessage.Font = New Drawing.Font("Segoe UI", 10.0F, Drawing.FontStyle.Bold)
@@ -56,7 +44,6 @@ Namespace Forms
             lblMessage.Size = New Drawing.Size(340, 25)
             lblMessage.AutoSize = False
 
-            ' ── lblVersionInfo ──
             lblVersionInfo = New Label()
             lblVersionInfo.Text = ""
             lblVersionInfo.Font = New Drawing.Font("Segoe UI", 9.0F)
@@ -64,7 +51,6 @@ Namespace Forms
             lblVersionInfo.Size = New Drawing.Size(340, 20)
             lblVersionInfo.AutoSize = False
 
-            ' ── btnUpdateNow ──
             btnUpdateNow = New Button()
             btnUpdateNow.Text = Config.LanguageManager.GetText("PromptUpdateNow")
             btnUpdateNow.Location = New Drawing.Point(20, 90)
@@ -78,7 +64,6 @@ Namespace Forms
             AddHandler btnUpdateNow.Click, AddressOf BtnUpdateNow_Click
             btnUpdateNow.Visible = False
 
-            ' ── btnAfterRestart ──
             btnAfterRestart = New Button()
             btnAfterRestart.Text = Config.LanguageManager.GetText("PromptAfterRestart")
             btnAfterRestart.Location = New Drawing.Point(135, 90)
@@ -89,7 +74,6 @@ Namespace Forms
             btnAfterRestart.Cursor = Cursors.Hand
             AddHandler btnAfterRestart.Click, AddressOf BtnAfterRestart_Click
 
-            ' ── btnRemindLater ──
             btnRemindLater = New Button()
             btnRemindLater.Text = Config.LanguageManager.GetText("PromptRemindLater")
             btnRemindLater.Location = New Drawing.Point(255, 90)
@@ -100,7 +84,6 @@ Namespace Forms
             btnRemindLater.Cursor = Cursors.Hand
             AddHandler btnRemindLater.Click, AddressOf BtnRemindLater_Click
 
-            ' ── Form ──
             Me.Text = Config.LanguageManager.GetText("PromptTitle")
             Me.ClientSize = New Drawing.Size(380, 145)
             Me.FormBorderStyle = FormBorderStyle.FixedDialog

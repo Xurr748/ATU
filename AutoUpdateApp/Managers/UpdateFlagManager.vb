@@ -1,27 +1,17 @@
-Option Strict On
+﻿Option Strict On
 Option Explicit On
 
 Imports System.Text
 
 Namespace Managers
 
-    ''' <summary>
-    ''' อ่านและเขียนไฟล์ updateflag.txt
-    ''' ไฟล์ใช้รูปแบบ CSV: ComputerName,UpdateFlag
-    ''' เขียนอย่างปลอดภัยต่อ Thread ด้วย SyncLock
-    ''' </summary>
     Public NotInheritable Class UpdateFlagManager
 
         Private Shared ReadOnly _lock As New Object
 
         Private Sub New()
-            ' คลาสแบบ Static เท่านั้น ไม่ต้องสร้าง Instance
         End Sub
 
-        ''' <summary>
-        ''' ดึงค่า Flag การอัปเดตของเครื่องที่ระบุ
-        ''' คืนค่า Nothing หากไม่พบเครื่องในไฟล์
-        ''' </summary>
         Public Shared Function GetFlag(computerName As String) As Boolean?
             SyncLock _lock
                 Dim entries As List(Of Models.UpdateFlagEntry) = LoadAll()
@@ -34,11 +24,6 @@ Namespace Managers
             End SyncLock
         End Function
 
-        ''' <summary>
-        ''' ตั้งค่า Flag การอัปเดตสำหรับเครื่องที่ระบุ
-        ''' แก้ไขรายการเดิม หรือเพิ่มรายการใหม่
-        ''' เขียนไฟล์ทั้งหมดกลับคืนแบบ Atomic
-        ''' </summary>
         Public Shared Sub SetFlag(computerName As String, value As Boolean)
             SyncLock _lock
                 Dim entries As List(Of Models.UpdateFlagEntry) = LoadAll()
@@ -59,7 +44,6 @@ Namespace Managers
                     entries.Add(newEntry)
                 End If
 
-                ' สร้างเนื้อหาไฟล์ใหม่
                 Dim sb As New StringBuilder(entries.Count * 30)
                 sb.AppendLine("ComputerName,UpdateFlag")
                 For Each entry In entries
@@ -74,10 +58,6 @@ Namespace Managers
             End SyncLock
         End Sub
 
-        ''' <summary>
-        ''' โหลดรายการ Flag ทั้งหมดจาก updateflag.txt
-        ''' คืนค่า List ว่างหากไฟล์ไม่มีอยู่หรือว่างเปล่า
-        ''' </summary>
         Private Shared Function LoadAll() As List(Of Models.UpdateFlagEntry)
             Dim result As New List(Of Models.UpdateFlagEntry)
             Dim filePath As String = Config.AppSettings.UpdateFlagPath

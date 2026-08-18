@@ -1,12 +1,8 @@
-Option Strict On
+﻿Option Strict On
 Option Explicit On
 
 Namespace Strategies
 
-    ''' <summary>
-    ''' โหมด Auto: ตั้งค่า Flag เพื่ออัปเดตหลังรีสตาร์ทเมื่อถึงเวลาที่กำหนดและเวอร์ชันไม่ตรงกัน
-    ''' ไม่ต้องมีการโต้ตอบกับผู้ใช้
-    ''' </summary>
     Public Class AutoStrategy
         Implements IUpdateStrategy
 

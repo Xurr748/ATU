@@ -1,29 +1,18 @@
-Option Strict On
+﻿Option Strict On
 Option Explicit On
 
 Imports System.Threading
 Imports System.Windows.Forms
 
-''' <summary>
-''' จุดเริ่มต้นของแอปพลิเคชัน
-''' 
-''' ขั้นตอนเริ่มต้น:
-''' 1. ตรวจสอบว่าเปิดโปรแกรมซ้ำหรือไม่ ด้วย Mutex
-''' 2. ตรวจสอบ updateflag.txt ว่ามีอัปเดตค้างรอรีสตาร์ทหรือไม่
-''' 3. ถ้า Flag เป็น True และเวอร์ชันไม่ตรง → รัน Installer → ล้าง Flag
-''' 4. เปิด MainForm (System Tray)
-''' </summary>
 Module Program
 
     Private Const MutexName As String = "Local\AutoUpdateApp_SingleInstance"
 
     Sub Main()
         Try
-            ' ── ตรวจสอบว่ามีโปรแกรมเปิดอยู่แล้วหรือไม่ ──
             Dim createdNew As Boolean
             Using mutex As New Mutex(True, MutexName, createdNew)
                 If Not createdNew Then
-                    ' มีโปรแกรมเปิดอยู่แล้ว ไม่เปิดซ้ำ
                     Return
                 End If
 
@@ -34,7 +23,6 @@ Module Program
                 Managers.LogManager.Info("Application starting.")
                 Managers.LogManager.Info("Exe directory: " & AppDomain.CurrentDomain.BaseDirectory)
 
-                ' ── ตรวจสอบ Config ──
                 If Not Config.AppSettings.IsLoaded Then
                     Dim msg As String = "ไม่สามารถโหลด config.txt ได้!" & Environment.NewLine & _
                                         Config.AppSettings.LoadStatus & Environment.NewLine & Environment.NewLine & _
@@ -45,23 +33,18 @@ Module Program
                     MessageBox.Show(msg, "Config Error", MessageBoxButtons.OK, MessageBoxIcon.Warning)
                 End If
 
-                ' ── Log ค่า Config ทั้งหมด ──
                 For Each issue As String In Config.AppSettings.ValidateConfig()
                     Managers.LogManager.Info(issue)
                 Next
 
                 Managers.LogManager.Info("═══════════════════════════════════════")
 
-                ' ── ใส่ตัวเองไปที่ Startup (ถ้าเปิดใช้ใน config) ──
                 Managers.InstallerManager.AddSelfToStartup()
 
-                ' ── ใส่ Target App ไปที่ Startup (ลบก่อน + ใส่ใหม่ทุกครั้ง) ──
                 Managers.InstallerManager.CopyShortcutToStartup()
 
-                ' ── ตรวจสอบการอัปเดตที่ค้างรอรีสตาร์ทตอนเริ่มโปรแกรม ──
                 CheckPendingRestartUpdate()
 
-                ' ── เปิดหน้าจอหลัก ──
                 Application.Run(New Forms.MainForm())
 
                 Managers.LogManager.Info("Application shut down normally.")
@@ -77,37 +60,27 @@ Module Program
         End Try
     End Sub
 
-    ''' <summary>
-    ''' ตรวจสอบ updateflag.txt ตอนเริ่มโปรแกรม
-    ''' If the current computer has a pending restart flag AND versions differ,
-    ''' runs the installer and clears the flag.
-    ''' </summary>
     Private Sub CheckPendingRestartUpdate()
         Try
             Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
             Managers.LogManager.Info("Startup restart check for: " & computerName)
 
-            ' ค้นหาข้อมูลเครื่องทดสอบ
             Dim tester As Models.TesterInfo = Managers.ConfigManager.GetTesterByName(computerName)
             If tester Is Nothing Then
                 Managers.LogManager.Info("Computer not in tester config. Skipping restart check.")
                 Return
             End If
 
-            ' ตรวจสอบ Flag (หัวข้อ 5.2)
             Dim flag As Boolean? = Managers.UpdateFlagManager.GetFlag(computerName)
             If Not flag.HasValue OrElse Not flag.Value Then
                 Managers.LogManager.Info("No pending restart update.")
                 Return
             End If
 
-            ' ── ลำดับกระบวนการเมื่อตรวจพบ Flag ──
             Managers.LogManager.Info("Pending restart flag detected. Starting update sequence.")
 
-            ' 3. หากพบ Flag ให้ปิดโปรแกรม ที่เป็นของ registry path (หัวข้อ 5.3)
             Managers.InstallerManager.CloseProgramOfRegistryPath()
 
-            ' 4. เริ่มกระบวนการอัปเดต (ตรวจสอบเวอร์ชันก่อน) (หัวข้อ 5.4)
             Dim currentVersion As String = Managers.VersionManager.ReadRegistryVersion()
             Dim latestVersion As String = Managers.VersionManager.ReadLatestVersion()
 
@@ -117,29 +90,23 @@ Module Program
             End If
 
             If String.Equals(currentVersion, latestVersion, StringComparison.OrdinalIgnoreCase) Then
-                ' อัปเดตเสร็จแล้วในระบบ — ล้าง Flag เก่าทิ้ง
                 Managers.LogManager.Info("Versions match. Clearing stale restart flag.")
                 Managers.UpdateFlagManager.SetFlag(computerName, False)
                 Return
             End If
 
-            ' เรียกใช้ Installer
             Managers.LogManager.Info("Running pending restart update. " & _
                                      currentVersion & " → " & latestVersion)
 
-            ' ปิดโปรแกรมเป้าหมายก่อนทำการอัปเดต
             Managers.InstallerManager.KillTargetProcess()
             Dim success As Boolean = Managers.InstallerManager.RunInstaller(tester.TesterType)
 
             If success Then
-                ' ตรวจสอบว่าติดตั้งสำเร็จจริงหรือไม่
                 Dim verified As Boolean = Managers.InstallerManager.VerifyInstallation()
 
                 If verified Then
-                    ' เปิดโปรแกรมใหม่หลังอัปเดตเสร็จ
                     Managers.InstallerManager.StartProgramOfRegistryPath()
 
-                    ' คัดลอก Shortcut ไปยังโฟลเดอร์ Startup
                     Managers.InstallerManager.CopyShortcutToStartup()
 
                     Managers.UpdateFlagManager.SetFlag(computerName, False)

@@ -1,4 +1,4 @@
-Option Strict On
+﻿Option Strict On
 Option Explicit On
 
 Imports System.ComponentModel
@@ -6,9 +6,6 @@ Imports System.Windows.Forms
 
 Namespace Workers
 
-    ''' <summary>
-    ''' Event Args สำหรับ Event UpdateCompleted
-    ''' </summary>
     Public Class UpdateCompletedEventArgs
         Inherits EventArgs
 
@@ -21,18 +18,6 @@ Namespace Workers
         End Sub
     End Class
 
-    ''' <summary>
-    ''' ตัวจัดการ BackgroundWorker ที่ดำเนินการตรวจสอบอัปเดตทั้งขั้นตอน:
-    ''' 1. Get ComputerName
-    ''' 2. Find in TesterType.csv
-    ''' 3. Check scheduled time
-    ''' 4. Read versions (registry + file)
-    ''' 5. Check updateflag.txt for pending restart
-    ''' 6. Execute mode-specific strategy
-    ''' 
-    ''' งานหนักทั้งหมดทำงานบน Background Thread
-    ''' NormalStrategy ใช้ Control.Invoke สำหรับแสดงหน้าต่าง
-    ''' </summary>
     Public Class UpdateWorker
         Implements IDisposable
 
@@ -41,13 +26,8 @@ Namespace Workers
         Private _disposed As Boolean
         Private _lastRunDate As DateTime = DateTime.MinValue
 
-        ''' <summary>เกิดขึ้นเมื่อการตรวจสอบอัปเดตเสร็จ (บน UI Thread)</summary>
         Public Event UpdateCompleted As EventHandler(Of UpdateCompletedEventArgs)
 
-        ''' <summary>
-        ''' Creates an UpdateWorker.
-        ''' </summary>
-        ''' <param name="invokeControl">Control for UI thread marshaling (passed to NormalStrategy).</param>
         Public Sub New(invokeControl As Control)
             _invokeControl = invokeControl
             _worker = New BackgroundWorker()
@@ -56,7 +36,6 @@ Namespace Workers
             AddHandler _worker.RunWorkerCompleted, AddressOf WorkCompleted
         End Sub
 
-        ''' <summary>True หากกำลังตรวจสอบอัปเดตอยู่</summary>
         Public ReadOnly Property IsBusy As Boolean
             Get
                 Return _worker.IsBusy
@@ -65,9 +44,6 @@ Namespace Workers
 
         Private _isManual As Boolean = False
 
-        ''' <summary>
-        ''' เริ่มตรวจสอบอัปเดตแบบ Async ไม่ทำอะไรหากกำลังทำงานอยู่
-        ''' </summary>
         Public Sub RunAsync(Optional isManual As Boolean = False)
             If _worker.IsBusy Then
                 Managers.LogManager.Warn("Update worker is already running. Skipping.")
@@ -76,8 +52,7 @@ Namespace Workers
             _isManual = isManual
             _worker.RunWorkerAsync()
         End Sub
-        
-        ''' <summary>ร้องขอยกเลิกการตรวจสอบอัปเดต</summary>
+
         Public Sub Cancel()
             If _worker.IsBusy Then
                 _worker.CancelAsync()
@@ -88,20 +63,16 @@ Namespace Workers
             Try
                 Managers.LogManager.Info("═══ Update check started ═══")
 
-                ' ตรวจสอบว่าถูกยกเลิกหรือไม่
                 If _worker.CancellationPending Then
                     e.Cancel = True
                     Return
                 End If
 
-                ' บันทึก IP Address เมื่อมีการใช้ฟังก์ชันตรวจสอบอัปเดต (หัวข้อ 7)
                 Managers.LogManager.LogIPAddress()
 
-                ' ── ขั้นตอนที่ 1: ดึงชื่อเครื่อง ──
                 Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
                 Managers.LogManager.Info("Computer: " & computerName)
 
-                ' ── ขั้นตอนที่ 2: ค้นหาใน TesterType.csv ──
                 Dim tester As Models.TesterInfo = Managers.ConfigManager.GetTesterByName(computerName)
                 If tester Is Nothing Then
                     Managers.LogManager.Warn("Computer '" & computerName & "' not found in tester config. Skipping.")
@@ -112,18 +83,15 @@ Namespace Workers
                 Managers.LogManager.Info("Type: " & tester.TesterType & ", Mode: " & tester.Mode & _
                                         ", ScheduledTime: " & tester.ScheduledTime.ToString())
 
-                ' ── ขั้นตอนที่ 3: ตรวจสอบเวลาที่กำหนด (หัวข้อ 4) ──
                 Dim now As DateTime = DateTime.Now
                 If Not _isManual Then
                     Dim scheduled As TimeSpan = tester.ScheduledTime
-                    ' เช็กว่าชั่วโมงตรงกับเวลาที่ผู้ใช้ตั้งไว้หรือไม่ (ป้องกันการรันย้อนหลัง)
                     If now.Hour <> scheduled.Hours OrElse now.Minute < scheduled.Minutes Then
                         Managers.LogManager.Info(String.Format("Scheduled hour not matching current hour. Current hour: {0}, Scheduled: {1}. Skipping.", now.Hour, scheduled.Hours))
                         e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.NoAction, "Hour not matching")
                         Return
                     End If
 
-                    ' ── ป้องกันรันซ้ำในวันเดียวกัน ──
                     If _lastRunDate.Date = DateTime.Now.Date Then
                         Managers.LogManager.Info("Already checked today. Skipping.")
                         e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.NoAction, "Already checked today")
@@ -131,22 +99,18 @@ Namespace Workers
                     End If
                 End If
 
-                ' ── ขั้นตอนที่ 4 และ 5: อ่านเวอร์ชัน ──
                 Dim currentVersion As String = Managers.VersionManager.ReadRegistryVersion()
                 Dim latestVersion As String = Managers.VersionManager.ReadLatestVersion()
                 Managers.LogManager.Info("Versions — Current: " & currentVersion & ", Latest: " & latestVersion)
 
-                ' ── สร้าง Context ──
                 Dim context As New Models.UpdateContext()
                 context.Tester = tester
                 context.CurrentVersion = currentVersion
                 context.LatestVersion = latestVersion
 
-                ' ── ขั้นตอนที่ 6: ตรวจสอบ updateflag.txt ก่อน (ตาม Spec) ──
                 Dim flag As Boolean? = Managers.UpdateFlagManager.GetFlag(computerName)
                 context.HasPendingRestartFlag = (flag.HasValue AndAlso flag.Value)
 
-                ' จัดการ Flag รีสตาร์ทค้าง (รอการรีสตาร์ทหรือแอปเริ่มทำงานใหม่ ไม่รันอัปเดตทันทีผ่าน Scheduler)
                 If context.HasPendingRestartFlag AndAlso context.NeedsUpdate Then
                     Managers.LogManager.Info("Pending restart update flag is already set. Waiting for restart.")
                     _lastRunDate = DateTime.Now
@@ -155,9 +119,7 @@ Namespace Workers
                     Return
                 End If
 
-                ' ── ขั้นตอนที่ 7: ตรวจสอบว่าต้องอัปเดตหรือไม่ (หัวข้อ 3) ──
                 If Not context.NeedsUpdate Then
-                    ' ถ้าเวอร์ชันล่าสุดแล้วแต่ Flag ยังเป็น True (เช่น ผู้ใช้อัปเดตเอง) ให้ล้างค่าทิ้ง
                     If context.HasPendingRestartFlag Then
                         Managers.LogManager.Info("App is up to date but restart flag is True. Clearing flag.")
                         Managers.UpdateFlagManager.SetFlag(computerName, False)
@@ -169,7 +131,6 @@ Namespace Workers
                     Return
                 End If
 
-                ' ── ขั้นตอนที่ 7.5: ตรวจสอบการมีอยู่ของโฟลเดอร์ตัวติดตั้งบนเซิร์ฟเวอร์ก่อนเริ่มทำอะไร (หัวข้อ 3 & 6) ──
                 Dim installerFolder As String = Managers.InstallerManager.GetInstallerPath(tester.TesterType)
                 If String.IsNullOrEmpty(installerFolder) OrElse Not IO.Directory.Exists(installerFolder) Then
                     Managers.LogManager.Warn("Installer folder not found on server: " & installerFolder)
@@ -177,12 +138,10 @@ Namespace Workers
                     Return
                 End If
 
-                ' ── ขั้นตอนที่ 8: เลือกและดำเนินการ Strategy ──
                 Dim strategy As Strategies.IUpdateStrategy = _
                     Strategies.StrategyFactory.Create(tester.Mode, _invokeControl)
                 Dim result As Strategies.UpdateResult = strategy.Execute(context)
 
-                ' เซ็ตวันที่รันเฉพาะตอนสำเร็จ/ไม่ต้องอัปเดต (ถ้า Error จะลองใหม่วันเดียวกัน)
                 If result <> Strategies.UpdateResult.[Error] Then
                     _lastRunDate = DateTime.Now
                 End If
@@ -221,7 +180,6 @@ Namespace Workers
                             RemoveHandler _worker.RunWorkerCompleted, AddressOf WorkCompleted
                             _worker.Dispose()
                         Catch ex As InvalidOperationException
-                            ' Worker was busy during shutdown
                         End Try
                     End If
                 End If
