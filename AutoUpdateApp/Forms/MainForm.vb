@@ -1230,7 +1230,7 @@ Namespace Forms
         ' ── ปุ่ม ⚙ ฟันเฟือง (แสดงเมนู debug/test) ──
         Private Sub BtnGear_Click(ByVal sender As Object, ByVal e As EventArgs)
             If _gearMenu IsNot Nothing Then
-                _gearMenu.Show(_btnGear, New Drawing.Point(0, _btnGear.Height))
+                _gearMenu.Show(Cursor.Position)
             End If
         End Sub
 
