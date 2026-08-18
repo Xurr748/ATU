@@ -307,7 +307,7 @@ Namespace Forms
             '
             Me._lblCurrentValue.AutoSize = True
             Me._lblCurrentValue.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
-            Me._lblCurrentValue.Location = New System.Drawing.Point(130, 40)
+            Me._lblCurrentValue.Location = New System.Drawing.Point(165, 40)
             Me._lblCurrentValue.Name = "_lblCurrentValue"
             Me._lblCurrentValue.Size = New System.Drawing.Size(16, 15)
             Me._lblCurrentValue.TabIndex = 1
@@ -327,7 +327,7 @@ Namespace Forms
             '
             Me._lblServerValue.AutoSize = True
             Me._lblServerValue.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
-            Me._lblServerValue.Location = New System.Drawing.Point(130, 62)
+            Me._lblServerValue.Location = New System.Drawing.Point(165, 62)
             Me._lblServerValue.Name = "_lblServerValue"
             Me._lblServerValue.Size = New System.Drawing.Size(16, 15)
             Me._lblServerValue.TabIndex = 3
@@ -347,7 +347,7 @@ Namespace Forms
             '
             Me._lblStatusValue.AutoSize = True
             Me._lblStatusValue.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
-            Me._lblStatusValue.Location = New System.Drawing.Point(130, 84)
+            Me._lblStatusValue.Location = New System.Drawing.Point(165, 84)
             Me._lblStatusValue.Name = "_lblStatusValue"
             Me._lblStatusValue.Size = New System.Drawing.Size(16, 15)
             Me._lblStatusValue.TabIndex = 5
@@ -761,7 +761,7 @@ Namespace Forms
                 If tester IsNot Nothing Then
                     Dim now As DateTime = DateTime.Now
                     Dim scheduled As TimeSpan = tester.ScheduledTime
-                    
+
                     ' ตรวจสอบเวลาปัจจุบันตรงกับชั่วโมงที่กำหนด และยังไม่ได้ทำงานในวันนี้
                     If now.Hour = scheduled.Hours AndAlso now.Minute >= scheduled.Minutes Then
                         If _lastScheduledRunDate.Date <> now.Date Then

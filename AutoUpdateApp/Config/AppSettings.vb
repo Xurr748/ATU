@@ -480,6 +480,32 @@ Namespace Config
             End Get
         End Property
 
+        ' ───────────────────── Post-Install File Copy ─────────────────────
+
+        ''' <summary>เส้นทางไฟล์ต้นทาง (.ini, .txt ฯลฯ) บน Server ที่ต้อง copy หลังติดตั้ง (คั่นด้วย | สำหรับหลายไฟล์)</summary>
+        Public Shared ReadOnly Property CopyFilesSource As String
+            Get
+                Return GetSetting("CopyFilesSource", "")
+            End Get
+        End Property
+
+        ''' <summary>เส้นทางปลายทางที่ต้องวางไฟล์ (โฟลเดอร์)</summary>
+        Public Shared ReadOnly Property CopyFilesDestination As String
+            Get
+                Return GetSetting("CopyFilesDestination", "")
+            End Get
+        End Property
+
+        ' ───────────────────── Auto Launch & Confirm ─────────────────────
+
+        ''' <summary>เปิดแอพเป้าหมายหลังติดตั้งสำเร็จแล้วกดยืนยัน Dialog อัตโนมัติ (true/false)</summary>
+        Public Shared ReadOnly Property AutoConfirmAfterLaunch As Boolean
+            Get
+                Dim val As String = GetSetting("AutoConfirmAfterLaunch", "false")
+                Return String.Equals(val, "true", StringComparison.OrdinalIgnoreCase)
+            End Get
+        End Property
+
     End Class
 
 End Namespace

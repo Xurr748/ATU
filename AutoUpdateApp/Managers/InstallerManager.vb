@@ -3,6 +3,7 @@ Option Explicit On
 
 Imports System.Diagnostics
 Imports System.IO
+Imports System.Runtime.InteropServices
 
 Namespace Managers
 
@@ -205,9 +206,10 @@ Namespace Managers
                 End Try
             End Try
 
-            ' ── เปิดแอพเป้าหมายหลังอัปเดตสำเร็จ ──
+            ' ── หลังติดตั้งสำเร็จ: Copy ไฟล์ config + เปิดแอพเป้าหมาย ──
             If result Then
-                LaunchTargetApp()
+                CopyConfigFiles()
+                LaunchTargetAppWithAutoConfirm()
             End If
 
             Return result
@@ -809,7 +811,203 @@ Namespace Managers
             shortcutType.InvokeMember("Save", System.Reflection.BindingFlags.InvokeMethod, Nothing, shortcut, Nothing)
         End Sub
 
+        ' ═══════════════════════════════════════════════════════════════
+        ' Post-Install: Copy Config Files (.ini, .txt ฯลฯ)
+        ' ═══════════════════════════════════════════════════════════════
+
+        ''' <summary>
+        ''' คัดลอกไฟล์จาก Server ไปวางทับที่ปลายทาง (หลังติดตั้งเสร็จ)
+        ''' config: CopyFilesSource = path ไฟล์ต้นทาง (คั่นด้วย | สำหรับหลายไฟล์)
+        ''' config: CopyFilesDestination = โฟลเดอร์ปลายทาง
+        ''' </summary>
+        Public Shared Sub CopyConfigFiles()
+            Try
+                Dim sources As String = Config.AppSettings.CopyFilesSource
+                Dim destination As String = Config.AppSettings.CopyFilesDestination
+
+                If String.IsNullOrEmpty(sources) Then
+                    LogManager.Info("CopyFilesSource is empty. Skipping post-install file copy.")
+                    Return
+                End If
+
+                If String.IsNullOrEmpty(destination) Then
+                    LogManager.Warn("CopyFilesDestination is empty. Cannot copy files.")
+                    Return
+                End If
+
+                ' สร้างโฟลเดอร์ปลายทางถ้ายังไม่มี
+                If Not Directory.Exists(destination) Then
+                    Directory.CreateDirectory(destination)
+                    LogManager.Info("Created destination directory: " & destination)
+                End If
+
+                ' แยก path ด้วย | สำหรับหลายไฟล์
+                Dim filePaths As String() = sources.Split("|"c)
+
+                For Each srcPath As String In filePaths
+                    Dim trimmedPath As String = srcPath.Trim()
+                    If String.IsNullOrEmpty(trimmedPath) Then Continue For
+
+                    Try
+                        If IO.File.Exists(trimmedPath) Then
+                            ' เป็นไฟล์เดี่ยว → copy ไปวางทับ
+                            Dim fileName As String = Path.GetFileName(trimmedPath)
+                            Dim destFile As String = Path.Combine(destination, fileName)
+                            IO.File.Copy(trimmedPath, destFile, True)
+                            LogManager.Info("Copied file: " & trimmedPath & " -> " & destFile)
+
+                        ElseIf Directory.Exists(trimmedPath) Then
+                            ' เป็นโฟลเดอร์ → copy ทุกไฟล์ในโฟลเดอร์ไปวางทับ
+                            Dim allFiles = Directory.GetFiles(trimmedPath)
+                            For Each f As String In allFiles
+                                Dim fileName As String = Path.GetFileName(f)
+                                Dim destFile As String = Path.Combine(destination, fileName)
+                                IO.File.Copy(f, destFile, True)
+                                LogManager.Info("Copied file: " & f & " -> " & destFile)
+                            Next
+                        Else
+                            LogManager.Warn("Source path not found: " & trimmedPath)
+                        End If
+                    Catch ex As Exception
+                        LogManager.Warn("Failed to copy '" & trimmedPath & "': " & ex.Message)
+                    End Try
+                Next
+
+                LogManager.Info("Post-install file copy completed.")
+            Catch ex As Exception
+                LogManager.[Error]("Error in CopyConfigFiles: " & ex.Message)
+            End Try
+        End Sub
+
+        ' ═══════════════════════════════════════════════════════════════
+        ' Post-Install: Auto Launch + Auto Confirm Dialog
+        ' ═══════════════════════════════════════════════════════════════
+
+        ' ── Win32 API สำหรับค้นหาและกดปุ่มใน Dialog อัตโนมัติ ──
+        <DllImport("user32.dll", SetLastError:=True, CharSet:=CharSet.Auto)>
+        Private Shared Function FindWindow(lpClassName As String, lpWindowName As String) As IntPtr
+        End Function
+
+        <DllImport("user32.dll", SetLastError:=True, CharSet:=CharSet.Auto)>
+        Private Shared Function FindWindowEx(hwndParent As IntPtr, hwndChildAfter As IntPtr, lpszClass As String, lpszWindow As String) As IntPtr
+        End Function
+
+        <DllImport("user32.dll", CharSet:=CharSet.Auto)>
+        Private Shared Function SendMessage(hWnd As IntPtr, msg As UInteger, wParam As IntPtr, lParam As IntPtr) As IntPtr
+        End Function
+
+        <DllImport("user32.dll", SetLastError:=True, CharSet:=CharSet.Auto)>
+        Private Shared Function EnumChildWindows(hWndParent As IntPtr, lpEnumFunc As EnumChildProc, lParam As IntPtr) As Boolean
+        End Function
+
+        <DllImport("user32.dll", CharSet:=CharSet.Auto)>
+        Private Shared Function GetWindowText(hWnd As IntPtr, lpString As System.Text.StringBuilder, nMaxCount As Integer) As Integer
+        End Function
+
+        <DllImport("user32.dll", CharSet:=CharSet.Auto)>
+        Private Shared Function GetClassName(hWnd As IntPtr, lpClassName As System.Text.StringBuilder, nMaxCount As Integer) As Integer
+        End Function
+
+        Private Delegate Function EnumChildProc(hWnd As IntPtr, lParam As IntPtr) As Boolean
+
+        Private Const BM_CLICK As UInteger = &HF5UI
+        Private Const WM_CLOSE As UInteger = &H10UI
+
+        ''' <summary>
+        ''' เปิดแอพเป้าหมายหลังติดตั้ง + กดปุ่ม Yes/OK/ตกลง ใน Dialog อัตโนมัติ
+        ''' </summary>
+        Public Shared Sub LaunchTargetAppWithAutoConfirm()
+            Try
+                ' เปิดแอพเป้าหมาย
+                LaunchTargetApp()
+
+                If Not Config.AppSettings.AutoConfirmAfterLaunch Then
+                    LogManager.Info("AutoConfirmAfterLaunch is disabled. Skipping auto-confirm.")
+                    Return
+                End If
+
+                LogManager.Info("AutoConfirmAfterLaunch enabled. Waiting for dialog windows...")
+
+                ' รอให้แอพเปิดและ dialog ขึ้นมา (ลอง 30 วินาที ทุกๆ 2 วินาที)
+                Dim maxAttempts As Integer = 15
+                Dim confirmed As Boolean = False
+
+                For attempt As Integer = 1 To maxAttempts
+                    Threading.Thread.Sleep(2000)
+
+                    ' ค้นหาหน้าต่าง Dialog (#32770 = Windows Dialog class)
+                    confirmed = TryClickConfirmButtons()
+
+                    If confirmed Then
+                        LogManager.Info("Auto-confirm: Successfully clicked confirm button on attempt " & attempt)
+                        Exit For
+                    End If
+                Next
+
+                If Not confirmed Then
+                    LogManager.Info("Auto-confirm: No dialog found after " & maxAttempts & " attempts. (Normal if app doesn't show dialogs)")
+                End If
+            Catch ex As Exception
+                LogManager.Warn("Error in LaunchTargetAppWithAutoConfirm: " & ex.Message)
+            End Try
+        End Sub
+
+        ''' <summary>
+        ''' ค้นหาทุกหน้าต่าง Dialog (#32770) และลองกดปุ่ม Yes/OK/ตกลง/はい
+        ''' </summary>
+        Private Shared Function TryClickConfirmButtons() As Boolean
+            Dim clicked As Boolean = False
+
+            Try
+                ' ค้นหาหน้าต่าง Dialog ทั้งหมดที่เปิดอยู่
+                Dim dialogHandle As IntPtr = FindWindow("#32770", Nothing)
+
+                If dialogHandle = IntPtr.Zero Then Return False
+
+                ' ค้นหาปุ่มในหน้าต่าง Dialog
+                Dim confirmTexts As String() = {
+                    "Yes", "yes", "YES",
+                    "OK", "Ok", "ok",
+                    "&Yes", "&yes",
+                    "ใช่", "ตกลง", "ยืนยัน",
+                    "はい", "OK"
+                }
+
+                ' วนหา Button ใน Dialog
+                Dim childButtons As New List(Of IntPtr)()
+                EnumChildWindows(dialogHandle, Function(hWnd As IntPtr, lParam As IntPtr) As Boolean
+                                                   Dim className As New System.Text.StringBuilder(256)
+                                                   GetClassName(hWnd, className, 256)
+                                                   If className.ToString() = "Button" Then
+                                                       childButtons.Add(hWnd)
+                                                   End If
+                                                   Return True
+                                               End Function, IntPtr.Zero)
+
+                For Each btnHandle As IntPtr In childButtons
+                    Dim btnText As New System.Text.StringBuilder(256)
+                    GetWindowText(btnHandle, btnText, 256)
+                    Dim text As String = btnText.ToString().Trim()
+
+                    For Each confirmText As String In confirmTexts
+                        If text.Equals(confirmText, StringComparison.OrdinalIgnoreCase) OrElse
+                           text.Replace("&", "").Equals(confirmText.Replace("&", ""), StringComparison.OrdinalIgnoreCase) Then
+                            LogManager.Info("Auto-confirm: Clicking button '" & text & "' in dialog")
+                            SendMessage(btnHandle, BM_CLICK, IntPtr.Zero, IntPtr.Zero)
+                            clicked = True
+                            Exit For
+                        End If
+                    Next
+
+                    If clicked Then Exit For
+                Next
+            Catch ex As Exception
+                LogManager.Warn("Error in TryClickConfirmButtons: " & ex.Message)
+            End Try
+
+            Return clicked
+        End Function
+
     End Class
 
 End Namespace
-
