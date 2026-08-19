@@ -1,4 +1,4 @@
-﻿Option Strict On
+Option Strict On
 Option Explicit On
 
 Imports System.Diagnostics
@@ -623,18 +623,32 @@ Namespace Managers
                     Return
                 End If
 
-                Dim startupFolder As String = Environment.GetFolderPath(Environment.SpecialFolder.Startup)
-                Dim shortcutName As String = Path.GetFileNameWithoutExtension(selfExePath) & ".lnk"
-                Dim shortcutPath As String = Path.Combine(startupFolder, shortcutName)
-
                 Dim selfName As String = Path.GetFileNameWithoutExtension(selfExePath)
+                ' ลบ Shortcut แบบเก่าที่อยู่ใน Startup folder ทิ้ง (เพราะมันใช้ไม่ได้กับโปรแกรมที่ติดสิทธิ์ Admin)
                 RemoveStartupShortcut(selfName)
 
-                LogManager.Info("Adding self to startup: " & shortcutPath)
-                CreateShortcut(shortcutPath, selfExePath)
-                LogManager.Info("Self startup shortcut created successfully.")
+                ' สร้าง Scheduled Task ใหม่เพื่อให้รันตอน logon ด้วยสิทธิ์ Admin อัตโนมัติ (ข้าม UAC Prompt)
+                Dim taskName As String = "AutoUpdateApp_Startup"
+                Dim args As String = String.Format("/create /tn ""{0}"" /tr ""\""{1}\"""" /sc onlogon /rl highest /f", taskName, selfExePath)
+                
+                LogManager.Info("Adding self to startup via Task Scheduler: " & args)
+                
+                Dim psi As New ProcessStartInfo("schtasks.exe", args)
+                psi.WindowStyle = ProcessWindowStyle.Hidden
+                psi.CreateNoWindow = True
+                psi.UseShellExecute = False
+                
+                Using p As Process = Process.Start(psi)
+                    p.WaitForExit()
+                    If p.ExitCode = 0 Then
+                        LogManager.Info("Self startup task created successfully via Task Scheduler.")
+                    Else
+                        LogManager.Warn("Failed to create self startup task. Exit code: " & p.ExitCode)
+                    End If
+                End Using
+
             Catch ex As Exception
-                LogManager.Error("Error adding self to startup.", ex)
+                LogManager.[Error]("Error adding self to startup.", ex)
             End Try
         End Sub
 
