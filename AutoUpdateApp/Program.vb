@@ -1,4 +1,4 @@
-﻿Option Strict On
+Option Strict On
 Option Explicit On
 
 Imports System.Threading
@@ -98,8 +98,13 @@ Module Program
             Managers.LogManager.Info("Running pending restart update. " & _
                                      currentVersion & " → " & latestVersion)
 
-            Managers.InstallerManager.KillTargetProcess()
-            Dim success As Boolean = Managers.InstallerManager.RunInstaller(tester.TesterType)
+            Dim updateForm As New Forms.UpdatingForm()
+            updateForm.TesterType = tester.TesterType
+            
+            ' เปิดหน้าต่างนี้ขึ้นมาค้างไว้ มันจะรันอัปเดตเบื้องหลังแล้วปิดตัวเองเมื่อเสร็จ
+            updateForm.ShowDialog()
+
+            Dim success As Boolean = updateForm.UpdateSuccess
 
             If success Then
                 Dim verified As Boolean = Managers.InstallerManager.VerifyInstallation()
