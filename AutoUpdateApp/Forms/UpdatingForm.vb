@@ -91,7 +91,7 @@ Namespace Forms
 
         Private Sub Worker_Completed(sender As Object, e As RunWorkerCompletedEventArgs)
             _isUpdating = False
-            If e.Error Is Nothing AndAlso e.Result IsNot Nothing Then
+            If e.Error Is Nothing AndAlso Not e.Cancelled AndAlso e.Result IsNot Nothing Then
                 Me.UpdateSuccess = CBool(e.Result)
             Else
                 Me.UpdateSuccess = False

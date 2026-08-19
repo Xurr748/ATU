@@ -495,29 +495,40 @@ Namespace Managers
                     processName = Path.GetFileNameWithoutExtension(targetPath)
                 End If
 
-                For Each proc As Process In Process.GetProcesses()
-                    Try
-                        Dim isTarget As Boolean = False
-                        If Not String.IsNullOrEmpty(processName) AndAlso String.Equals(proc.ProcessName, processName, StringComparison.OrdinalIgnoreCase) Then
-                            isTarget = True
-                        Else
-                            Dim mainModulePath As String = proc.MainModule.FileName
-                            If mainModulePath.StartsWith(targetPath, StringComparison.OrdinalIgnoreCase) Then
-                                isTarget = True
-                            End If
-                        End If
+                Dim allProcesses As Process() = Process.GetProcesses()
+                Try
+                    For Each proc As Process In allProcesses
+                        Try
+                            Dim isTarget As Boolean = False
 
-                        If isTarget Then
-                            LogManager.Info("Closing target process: " & proc.ProcessName & " (PID: " & proc.Id & ")")
-                            proc.CloseMainWindow()
-                            If Not proc.WaitForExit(5000) Then
-                                LogManager.Warn("Process did not exit, force killing: " & proc.ProcessName)
-                                proc.Kill()
+                            If Not String.IsNullOrEmpty(processName) AndAlso String.Equals(proc.ProcessName, processName, StringComparison.OrdinalIgnoreCase) Then
+                                isTarget = True
+                            Else
+                                Try
+                                    Dim mainModulePath As String = proc.MainModule.FileName
+                                    If mainModulePath.StartsWith(targetPath, StringComparison.OrdinalIgnoreCase) Then
+                                        isTarget = True
+                                    End If
+                                Catch
+                                End Try
                             End If
-                        End If
-                    Catch ex As Exception
-                    End Try
-                Next
+
+                            If isTarget Then
+                                LogManager.Info("Closing target process: " & proc.ProcessName & " (PID: " & proc.Id & ")")
+                                proc.CloseMainWindow()
+                                If Not proc.WaitForExit(5000) Then
+                                    LogManager.Warn("Process did not exit, force killing: " & proc.ProcessName)
+                                    proc.Kill()
+                                End If
+                            End If
+                        Catch ex As Exception
+                        End Try
+                    Next
+                Finally
+                    For Each proc As Process In allProcesses
+                        Try : proc.Dispose() : Catch : End Try
+                    Next
+                End Try
             Catch ex As Exception
                 LogManager.Error("Error closing target program of registry path.", ex)
             End Try
@@ -802,29 +813,48 @@ Namespace Managers
         Private Shared Function GetClassName(hWnd As IntPtr, lpClassName As System.Text.StringBuilder, nMaxCount As Integer) As Integer
         End Function
 
+        <DllImport("user32.dll", SetLastError:=True)>
+        Private Shared Function EnumWindows(lpEnumFunc As EnumWindowsProc, lParam As IntPtr) As Boolean
+        End Function
+
+        <DllImport("user32.dll", SetLastError:=True)>
+        Private Shared Function GetWindowThreadProcessId(hWnd As IntPtr, ByRef lpdwProcessId As UInteger) As UInteger
+        End Function
+
+        <DllImport("user32.dll")>
+        Private Shared Function IsWindowVisible(hWnd As IntPtr) As Boolean
+        End Function
+
         Private Delegate Function EnumChildProc(hWnd As IntPtr, lParam As IntPtr) As Boolean
+        Private Delegate Function EnumWindowsProc(hWnd As IntPtr, lParam As IntPtr) As Boolean
 
         Private Const BM_CLICK As UInteger = &HF5UI
         Private Const WM_CLOSE As UInteger = &H10UI
 
         Public Shared Sub LaunchTargetAppWithAutoConfirm()
             Try
-                LaunchTargetApp()
+                Dim launchedProcess As Process = LaunchTargetAppReturnProcess()
+
+                If launchedProcess Is Nothing Then
+                    LogManager.Warn("LaunchTargetAppWithAutoConfirm: Could not get launched process. Skipping auto-confirm.")
+                    Return
+                End If
 
                 If Not Config.AppSettings.AutoConfirmAfterLaunch Then
                     LogManager.Info("AutoConfirmAfterLaunch is disabled. Skipping auto-confirm.")
                     Return
                 End If
 
-                LogManager.Info("AutoConfirmAfterLaunch enabled. Waiting for dialog windows...")
+                LogManager.Info("AutoConfirmAfterLaunch enabled. Watching PID " & launchedProcess.Id & " for dialog windows...")
 
                 Dim maxAttempts As Integer = 15
                 Dim confirmed As Boolean = False
+                Dim targetPid As UInteger = CUInt(launchedProcess.Id)
 
                 For attempt As Integer = 1 To maxAttempts
                     Threading.Thread.Sleep(2000)
 
-                    confirmed = TryClickConfirmButtons()
+                    confirmed = TryClickConfirmButtonsForProcess(targetPid)
 
                     If confirmed Then
                         LogManager.Info("Auto-confirm: Successfully clicked confirm button on attempt " & attempt)
@@ -840,13 +870,64 @@ Namespace Managers
             End Try
         End Sub
 
-        Private Shared Function TryClickConfirmButtons() As Boolean
+        Private Shared Function LaunchTargetAppReturnProcess() As Process
+            Try
+                Dim appPath As String = Config.AppSettings.TargetAppExePath
+
+                If String.IsNullOrEmpty(appPath) Then
+                    appPath = Utilities.RegistryHelper.ReadValue(
+                        Config.AppSettings.RegistryKeyPath, Config.AppSettings.RegistryPathValueName)
+                End If
+
+                If String.IsNullOrEmpty(appPath) Then
+                    LogManager.Warn("TargetAppExePath is empty and could not find path from Registry. Skipping app launch.")
+                    Return Nothing
+                End If
+
+                If IO.Directory.Exists(appPath) Then
+                    Dim exeFiles = IO.Directory.GetFiles(appPath, "*.exe")
+                    If exeFiles.Length > 0 Then
+                        appPath = exeFiles(0)
+                    Else
+                        LogManager.Warn("No .exe found in directory: " & appPath)
+                        Return Nothing
+                    End If
+                End If
+
+                If Not IO.File.Exists(appPath) Then
+                    LogManager.Warn("Target app not found: " & appPath & ". Skipping app launch.")
+                    Return Nothing
+                End If
+
+                LogManager.Info("Launching target app: " & appPath)
+                Return Process.Start(appPath)
+            Catch ex As Exception
+                LogManager.Warn("Failed to launch target app: " & ex.Message)
+                Return Nothing
+            End Try
+        End Function
+
+        Private Shared Function TryClickConfirmButtonsForProcess(targetPid As UInteger) As Boolean
             Dim clicked As Boolean = False
 
             Try
-                Dim dialogHandle As IntPtr = FindWindow("#32770", Nothing)
+                Dim dialogHandles As New List(Of IntPtr)()
 
-                If dialogHandle = IntPtr.Zero Then Return False
+                EnumWindows(Function(hWnd As IntPtr, lParam As IntPtr) As Boolean
+                                Dim windowPid As UInteger = 0
+                                GetWindowThreadProcessId(hWnd, windowPid)
+
+                                If windowPid = targetPid AndAlso IsWindowVisible(hWnd) Then
+                                    Dim className As New System.Text.StringBuilder(256)
+                                    GetClassName(hWnd, className, 256)
+                                    If className.ToString() = "#32770" Then
+                                        dialogHandles.Add(hWnd)
+                                    End If
+                                End If
+                                Return True
+                            End Function, IntPtr.Zero)
+
+                If dialogHandles.Count = 0 Then Return False
 
                 Dim confirmTexts As String() = {
                     "Yes", "yes", "YES",
@@ -856,35 +937,39 @@ Namespace Managers
                     "はい", "OK"
                 }
 
-                Dim childButtons As New List(Of IntPtr)()
-                EnumChildWindows(dialogHandle, Function(hWnd As IntPtr, lParam As IntPtr) As Boolean
-                                                   Dim className As New System.Text.StringBuilder(256)
-                                                   GetClassName(hWnd, className, 256)
-                                                   If className.ToString() = "Button" Then
-                                                       childButtons.Add(hWnd)
-                                                   End If
-                                                   Return True
-                                               End Function, IntPtr.Zero)
-
-                For Each btnHandle As IntPtr In childButtons
-                    Dim btnText As New System.Text.StringBuilder(256)
-                    GetWindowText(btnHandle, btnText, 256)
-                    Dim text As String = btnText.ToString().Trim()
-
-                    For Each confirmText As String In confirmTexts
-                        If text.Equals(confirmText, StringComparison.OrdinalIgnoreCase) OrElse
-                           text.Replace("&", "").Equals(confirmText.Replace("&", ""), StringComparison.OrdinalIgnoreCase) Then
-                            LogManager.Info("Auto-confirm: Clicking button '" & text & "' in dialog")
-                            SendMessage(btnHandle, BM_CLICK, IntPtr.Zero, IntPtr.Zero)
-                            clicked = True
-                            Exit For
-                        End If
-                    Next
-
+                For Each dialogHandle As IntPtr In dialogHandles
                     If clicked Then Exit For
+
+                    Dim childButtons As New List(Of IntPtr)()
+                    EnumChildWindows(dialogHandle, Function(hWnd As IntPtr, lParam As IntPtr) As Boolean
+                                                      Dim cn As New System.Text.StringBuilder(256)
+                                                      GetClassName(hWnd, cn, 256)
+                                                      If cn.ToString() = "Button" Then
+                                                          childButtons.Add(hWnd)
+                                                      End If
+                                                      Return True
+                                                  End Function, IntPtr.Zero)
+
+                    For Each btnHandle As IntPtr In childButtons
+                        Dim btnText As New System.Text.StringBuilder(256)
+                        GetWindowText(btnHandle, btnText, 256)
+                        Dim text As String = btnText.ToString().Trim()
+
+                        For Each confirmText As String In confirmTexts
+                            If text.Equals(confirmText, StringComparison.OrdinalIgnoreCase) OrElse
+                               text.Replace("&", "").Equals(confirmText.Replace("&", ""), StringComparison.OrdinalIgnoreCase) Then
+                                LogManager.Info("Auto-confirm: Clicking button '" & text & "' in dialog of PID " & targetPid.ToString())
+                                SendMessage(btnHandle, BM_CLICK, IntPtr.Zero, IntPtr.Zero)
+                                clicked = True
+                                Exit For
+                            End If
+                        Next
+
+                        If clicked Then Exit For
+                    Next
                 Next
             Catch ex As Exception
-                LogManager.Warn("Error in TryClickConfirmButtons: " & ex.Message)
+                LogManager.Warn("Error in TryClickConfirmButtonsForProcess: " & ex.Message)
             End Try
 
             Return clicked
@@ -893,3 +978,4 @@ Namespace Managers
     End Class
 
 End Namespace
+
