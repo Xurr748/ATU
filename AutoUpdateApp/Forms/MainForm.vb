@@ -1,4 +1,4 @@
-﻿Option Strict On
+Option Strict On
 Option Explicit On
 
 Imports System.Windows.Forms
@@ -26,6 +26,7 @@ Namespace Forms
         Private _lblComNameValue As Label
         Private _lblTypeLabel As Label
         Private _lblTypeValue As Label
+        Private _cboInstallerType As ComboBox
         Private _lblModeLabel As Label
         Private _lblModeValue As Label
         Private _lblTimeLabel As Label
@@ -141,6 +142,7 @@ Namespace Forms
             Me._grpInfo.Controls.Add(Me._lblComNameValue)
             Me._grpInfo.Controls.Add(Me._lblTypeLabel)
             Me._grpInfo.Controls.Add(Me._lblTypeValue)
+            Me._grpInfo.Controls.Add(Me._cboInstallerType)
             Me._grpInfo.Controls.Add(Me._lblModeLabel)
             Me._grpInfo.Controls.Add(Me._lblModeValue)
             Me._grpInfo.Controls.Add(Me._lblTimeLabel)
@@ -185,6 +187,14 @@ Namespace Forms
             Me._lblTypeValue.Size = New System.Drawing.Size(16, 15)
             Me._lblTypeValue.TabIndex = 3
             Me._lblTypeValue.Text = "..."
+            Me._cboInstallerType = New ComboBox()
+            Me._cboInstallerType.DropDownStyle = ComboBoxStyle.DropDownList
+            Me._cboInstallerType.Font = New System.Drawing.Font("Segoe UI", 8.0!)
+            Me._cboInstallerType.Items.AddRange(New Object() {"HE", "LLE"})
+            Me._cboInstallerType.Location = New System.Drawing.Point(200, 59)
+            Me._cboInstallerType.Name = "_cboInstallerType"
+            Me._cboInstallerType.Size = New System.Drawing.Size(60, 21)
+            Me._cboInstallerType.TabIndex = 20
             Me._lblModeLabel.AutoSize = True
             Me._lblModeLabel.Font = New System.Drawing.Font("Segoe UI", 9.0!)
             Me._lblModeLabel.Location = New System.Drawing.Point(16, 84)
@@ -425,10 +435,18 @@ Namespace Forms
                     _lblTypeValue.Text = tester.TesterType
                     _lblModeValue.Text = tester.Mode
                     _lblTimeValue.Text = tester.ScheduledTime.ToString("hh\:mm\:ss")
+
+                    Dim idx As Integer = _cboInstallerType.FindStringExact(tester.TesterType)
+                    If idx >= 0 Then
+                        _cboInstallerType.SelectedIndex = idx
+                    Else
+                        _cboInstallerType.SelectedIndex = 0
+                    End If
                 Else
                     _lblTypeValue.Text = L("NotFoundInConfig")
                     _lblModeValue.Text = "-"
                     _lblTimeValue.Text = "-"
+                    _cboInstallerType.SelectedIndex = 0
                 End If
 
                 Dim currentVer As String = Managers.VersionManager.ReadRegistryVersion()
@@ -1102,15 +1120,18 @@ Namespace Forms
         Private Sub BtnUpdateNow_Click(ByVal sender As Object, ByVal e As EventArgs)
             Try
                 Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
-                Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
-                Dim tester As Models.TesterInfo = Managers.ConfigManager.GetTesterByName(computerName)
 
-                If tester Is Nothing Then
-                    MessageBox.Show(L("MachineNotInSystem"), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                Dim selectedType As String = ""
+                If _cboInstallerType.SelectedItem IsNot Nothing Then
+                    selectedType = _cboInstallerType.SelectedItem.ToString()
+                End If
+
+                If String.IsNullOrEmpty(selectedType) Then
+                    MessageBox.Show("กรุณาเลือกประเภทการติดตั้ง (HE / LLE)", "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning)
                     Return
                 End If
 
-                Dim result = MessageBox.Show(L("ConfirmUpdate"), L("ConfirmTitle"), MessageBoxButtons.YesNo, MessageBoxIcon.Question)
+                Dim result = MessageBox.Show(L("ConfirmUpdate") & vbCrLf & "ติดตั้งแบบ: " & selectedType, L("ConfirmTitle"), MessageBoxButtons.YesNo, MessageBoxIcon.Question)
                 If result = DialogResult.Yes Then
                     _btnUpdateNow.Enabled = False
                     _btnUpdateNow.Text = L("Updating")
@@ -1124,7 +1145,7 @@ Namespace Forms
                     _manualUpdateWorker = New System.ComponentModel.BackgroundWorker()
                     AddHandler _manualUpdateWorker.DoWork, AddressOf ManualUpdate_DoWork
                     AddHandler _manualUpdateWorker.RunWorkerCompleted, AddressOf ManualUpdate_Completed
-                    _manualUpdateWorker.RunWorkerAsync(tester.TesterType)
+                    _manualUpdateWorker.RunWorkerAsync(selectedType)
                 End If
             Catch ex As Exception
                 Managers.LogManager.[Error]("Manual update failed.", ex)
