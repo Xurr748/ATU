@@ -639,8 +639,11 @@ Namespace Managers
                 psi.UseShellExecute = False
                 
                 Using p As Process = Process.Start(psi)
-                    p.WaitForExit()
-                    If p.ExitCode = 0 Then
+                    p.WaitForExit(15000)
+                    If Not p.HasExited Then
+                        LogManager.Warn("schtasks.exe timed out after 15 seconds. Killing process.")
+                        Try : p.Kill() : Catch : End Try
+                    ElseIf p.ExitCode = 0 Then
                         LogManager.Info("Self startup task created successfully via Task Scheduler.")
                     Else
                         LogManager.Warn("Failed to create self startup task. Exit code: " & p.ExitCode)

@@ -9,7 +9,8 @@ Namespace Forms
         Private _lblStatus As Label
         Private _progressBar As ProgressBar
         Private _worker As BackgroundWorker
-        
+        Private _isUpdating As Boolean = False
+
         Public Property TesterType As String
         Public Property UpdateSuccess As Boolean = False
 
@@ -22,7 +23,7 @@ Namespace Forms
             Me._progressBar = New ProgressBar()
             Me._worker = New BackgroundWorker()
             Me.SuspendLayout()
-            
+
             Me._lblStatus.Font = New Font("Segoe UI", 12.0!, FontStyle.Regular, GraphicsUnit.Point, CType(0, Byte))
             Me._lblStatus.Location = New Point(20, 20)
             Me._lblStatus.Name = "lblStatus"
@@ -30,18 +31,18 @@ Namespace Forms
             Me._lblStatus.TabIndex = 0
             Me._lblStatus.Text = "ระบบกำลังทำการอัปเดต กรุณารอสักครู่..."
             Me._lblStatus.TextAlign = ContentAlignment.MiddleCenter
-            
+
             Me._progressBar.Location = New Point(20, 60)
             Me._progressBar.Name = "progressBar"
             Me._progressBar.Size = New Size(460, 30)
             Me._progressBar.Style = ProgressBarStyle.Continuous
             Me._progressBar.TabIndex = 1
-            
+
             Me._worker.WorkerReportsProgress = True
             AddHandler Me._worker.DoWork, AddressOf Worker_DoWork
             AddHandler Me._worker.ProgressChanged, AddressOf Worker_ProgressChanged
             AddHandler Me._worker.RunWorkerCompleted, AddressOf Worker_Completed
-            
+
             Me.AutoScaleDimensions = New SizeF(6.0!, 13.0!)
             Me.AutoScaleMode = AutoScaleMode.Font
             Me.ClientSize = New Size(500, 120)
@@ -50,22 +51,33 @@ Namespace Forms
             Me.FormBorderStyle = FormBorderStyle.FixedDialog
             Me.MaximizeBox = False
             Me.MinimizeBox = False
+            Me.ControlBox = False
             Me.Name = "UpdatingForm"
             Me.StartPosition = FormStartPosition.CenterScreen
             Me.Text = "Auto Update"
             Me.TopMost = True
-            
+
             AddHandler Me.Load, AddressOf UpdatingForm_Load
             Me.ResumeLayout(False)
         End Sub
 
         Private Sub UpdatingForm_Load(sender As Object, e As EventArgs)
-            _worker.RunWorkerAsync()
+            _isUpdating = True
+            _worker.RunWorkerAsync(Me.TesterType)
+        End Sub
+
+        Protected Overrides Sub OnFormClosing(e As FormClosingEventArgs)
+            If _isUpdating AndAlso e.CloseReason = CloseReason.UserClosing Then
+                e.Cancel = True
+                Return
+            End If
+            MyBase.OnFormClosing(e)
         End Sub
 
         Private Sub Worker_DoWork(sender As Object, e As DoWorkEventArgs)
+            Dim tType As String = DirectCast(e.Argument, String)
             Managers.InstallerManager.KillTargetProcess()
-            e.Result = Managers.InstallerManager.RunInstaller(Me.TesterType, Sub(percent, msg)
+            e.Result = Managers.InstallerManager.RunInstaller(tType, Sub(percent, msg)
                 _worker.ReportProgress(percent, msg)
             End Sub)
         End Sub
@@ -78,6 +90,7 @@ Namespace Forms
         End Sub
 
         Private Sub Worker_Completed(sender As Object, e As RunWorkerCompletedEventArgs)
+            _isUpdating = False
             If e.Error Is Nothing AndAlso e.Result IsNot Nothing Then
                 Me.UpdateSuccess = CBool(e.Result)
             Else
