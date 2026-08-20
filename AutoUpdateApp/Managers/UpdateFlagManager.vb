@@ -15,11 +15,24 @@ Namespace Managers
 
         Public Shared Function GetFlag(computerName As String) As Boolean?
             SyncLock _lock
-                Dim entries As List(Of Models.UpdateFlagEntry) = LoadAll()
-                For Each entry In entries
-                    If String.Equals(entry.ComputerName, computerName, StringComparison.OrdinalIgnoreCase) Then
-                        Return entry.UpdateFlag
-                    End If
+                Dim maxRetries As Integer = 5
+                For attempt As Integer = 1 To maxRetries
+                    Try
+                        Dim entries As List(Of Models.UpdateFlagEntry) = LoadAllSafe()
+                        For Each entry In entries
+                            If String.Equals(entry.ComputerName, computerName, StringComparison.OrdinalIgnoreCase) Then
+                                Return entry.UpdateFlag
+                            End If
+                        Next
+                        Return Nothing
+                    Catch ex As IOException
+                        If attempt < maxRetries Then
+                            Threading.Thread.Sleep(300 * attempt)
+                        Else
+                            LogManager.Warn("GetFlag failed after " & maxRetries & " retries: " & ex.Message)
+                            Return Nothing
+                        End If
+                    End Try
                 Next
                 Return Nothing
             End SyncLock
@@ -28,7 +41,8 @@ Namespace Managers
         Public Shared Sub SetFlag(computerName As String, value As Boolean)
             SyncLock _lock
                 Dim filePath As String = Config.AppSettings.UpdateFlagPath
-                Dim maxRetries As Integer = 5
+                Dim maxRetries As Integer = 10
+                Dim rng As New Random()
 
                 For attempt As Integer = 1 To maxRetries
                     Try
@@ -73,8 +87,9 @@ Namespace Managers
                         Return
                     Catch ex As IOException
                         If attempt < maxRetries Then
+                            Dim delayMs As Integer = (500 * attempt) + rng.Next(0, 300)
                             LogManager.Warn("UpdateFlagManager.SetFlag locked (attempt " & attempt & "/" & maxRetries & "): " & ex.Message)
-                            Threading.Thread.Sleep(500 * attempt)
+                            Threading.Thread.Sleep(delayMs)
                         Else
                             LogManager.Error("UpdateFlagManager.SetFlag failed after " & maxRetries & " attempts.", ex)
                         End If
@@ -83,7 +98,7 @@ Namespace Managers
             End SyncLock
         End Sub
 
-        Private Shared Function LoadAll() As List(Of Models.UpdateFlagEntry)
+        Private Shared Function LoadAllSafe() As List(Of Models.UpdateFlagEntry)
             Dim result As New List(Of Models.UpdateFlagEntry)
             Dim filePath As String = Config.AppSettings.UpdateFlagPath
 
@@ -91,26 +106,12 @@ Namespace Managers
                 Return result
             End If
 
-            Try
-                Dim rows As List(Of String()) = Utilities.CsvParser.ParseFile(filePath, hasHeader:=True)
-                For Each row In rows
-                    If row.Length >= 2 Then
-                        Dim entry As New Models.UpdateFlagEntry()
-                        entry.ComputerName = row(0)
-
-                        Dim flag As Boolean
-                        If Boolean.TryParse(row(1), flag) Then
-                            entry.UpdateFlag = flag
-                        End If
-
-                        result.Add(entry)
-                    End If
-                Next
-            Catch ex As Exception
-                LogManager.Warn("Failed to read updateflag.txt (possibly locked): " & ex.Message)
-            End Try
-
-            Return result
+            Using fs As New FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)
+                Using reader As New StreamReader(fs, Encoding.UTF8)
+                    Dim content As String = reader.ReadToEnd()
+                    Return ParseEntries(content)
+                End Using
+            End Using
         End Function
 
         Private Shared Function ParseEntries(content As String) As List(Of Models.UpdateFlagEntry)
