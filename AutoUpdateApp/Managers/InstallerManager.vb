@@ -684,19 +684,50 @@ Namespace Managers
             Try
                 If String.IsNullOrEmpty(folderPath) Then Return
 
+                Dim filesToRemove As New List(Of String)()
+
                 Dim shortcutPath As String = Path.Combine(folderPath, shortcutBaseName & ".lnk")
-                If File.Exists(shortcutPath) Then
-                    File.Delete(shortcutPath)
-                    LogManager.Info("Removed startup shortcut: " & shortcutPath)
-                End If
+                If File.Exists(shortcutPath) Then filesToRemove.Add(shortcutPath)
 
                 Dim exePath As String = Path.Combine(folderPath, shortcutBaseName & ".exe")
-                If File.Exists(exePath) Then
-                    File.Delete(exePath)
-                    LogManager.Info("Removed startup exe: " & exePath)
-                End If
+                If File.Exists(exePath) Then filesToRemove.Add(exePath)
+
+                For Each filePath As String In filesToRemove
+                    Try
+                        File.Delete(filePath)
+                        LogManager.Info("Removed startup file: " & filePath)
+                    Catch exAccess As UnauthorizedAccessException
+                        LogManager.Warn("Access denied deleting " & filePath & ". Trying elevated delete...")
+                        TryElevatedDelete(filePath)
+                    End Try
+                Next
             Catch ex As Exception
                 LogManager.Warn("Could not remove shortcut from " & folderPath & ": " & ex.Message)
+            End Try
+        End Sub
+
+        Private Shared Sub TryElevatedDelete(filePath As String)
+            Try
+                Dim psi As New ProcessStartInfo()
+                psi.FileName = "cmd.exe"
+                psi.Arguments = "/c del /f /q """ & filePath & """"
+                psi.Verb = "runas"
+                psi.WindowStyle = ProcessWindowStyle.Hidden
+                psi.CreateNoWindow = True
+                psi.UseShellExecute = True
+
+                Using p As Process = Process.Start(psi)
+                    p.WaitForExit(10000)
+                    If p.HasExited AndAlso p.ExitCode = 0 Then
+                        LogManager.Info("Elevated delete succeeded: " & filePath)
+                    Else
+                        LogManager.Warn("Elevated delete may have failed for: " & filePath)
+                    End If
+                End Using
+            Catch exUac As System.ComponentModel.Win32Exception
+                LogManager.Warn("UAC was declined or elevated delete failed: " & exUac.Message)
+            Catch ex As Exception
+                LogManager.Warn("Error during elevated delete: " & ex.Message)
             End Try
         End Sub
 
