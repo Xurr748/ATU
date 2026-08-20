@@ -814,8 +814,62 @@ Namespace Managers
                 Next
 
                 LogManager.Info("Post-install file copy completed.")
+
+                PatchIniTesterName(destination)
             Catch ex As Exception
                 LogManager.[Error]("Error in CopyConfigFiles: " & ex.Message)
+            End Try
+        End Sub
+
+        Private Shared Sub PatchIniTesterName(folderPath As String)
+            Try
+                If String.IsNullOrEmpty(folderPath) OrElse Not Directory.Exists(folderPath) Then Return
+
+                Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
+                If String.IsNullOrEmpty(computerName) Then
+                    LogManager.Warn("PatchIniTesterName: ComputerName is empty. Skipping.")
+                    Return
+                End If
+
+                Dim iniFiles As String() = Directory.GetFiles(folderPath, "*.ini")
+                If iniFiles.Length = 0 Then Return
+
+                For Each iniFile As String In iniFiles
+                    Try
+                        Dim lines As String() = IO.File.ReadAllLines(iniFile, System.Text.Encoding.Default)
+                        Dim inTesterSection As Boolean = False
+                        Dim changed As Boolean = False
+
+                        For i As Integer = 0 To lines.Length - 1
+                            Dim trimmed As String = lines(i).Trim()
+
+                            If trimmed.StartsWith("[") AndAlso trimmed.EndsWith("]") Then
+                                inTesterSection = trimmed.Equals("[Tester_Settings]", StringComparison.OrdinalIgnoreCase)
+                                Continue For
+                            End If
+
+                            If inTesterSection AndAlso Not trimmed.StartsWith(";") Then
+                                If trimmed.StartsWith("NAME", StringComparison.OrdinalIgnoreCase) Then
+                                    Dim eqPos As Integer = trimmed.IndexOf("="c)
+                                    If eqPos >= 0 Then
+                                        Dim prefix As String = lines(i).Substring(0, lines(i).IndexOf("="c) + 1)
+                                        lines(i) = prefix & " """ & computerName & """"
+                                        changed = True
+                                        LogManager.Info("PatchIniTesterName: " & Path.GetFileName(iniFile) & " -> NAME = """ & computerName & """")
+                                    End If
+                                End If
+                            End If
+                        Next
+
+                        If changed Then
+                            IO.File.WriteAllLines(iniFile, lines, System.Text.Encoding.Default)
+                        End If
+                    Catch ex As Exception
+                        LogManager.Warn("PatchIniTesterName failed for " & iniFile & ": " & ex.Message)
+                    End Try
+                Next
+            Catch ex As Exception
+                LogManager.Warn("PatchIniTesterName error: " & ex.Message)
             End Try
         End Sub
 
