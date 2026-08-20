@@ -25,6 +25,7 @@ Namespace Managers
         End Function
 
         Public Shared Function RunInstaller(testerType As String, Optional progressCallback As Action(Of Integer, String) = Nothing) As Boolean
+            LogManager.Info("═══ เริ่มติดตั้ง ═══ ประเภทที่เลือก: " & testerType & " ═══")
             Dim installerFolder As String = GetInstallerPath(testerType)
 
             If String.IsNullOrEmpty(installerFolder) Then
