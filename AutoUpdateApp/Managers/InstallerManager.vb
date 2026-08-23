@@ -639,9 +639,34 @@ Namespace Managers
                 ' ลบ Shortcut แบบเก่าที่อยู่ใน Startup folder ทิ้ง (เพราะมันใช้ไม่ได้กับโปรแกรมที่ติดสิทธิ์ Admin)
                 RemoveStartupShortcut(selfName)
 
+                Dim destFolderPath As String = Config.AppSettings.LocalExeDestinationPath
+                Dim scheduledExePath As String = selfExePath
+
+                If Not String.IsNullOrEmpty(destFolderPath) Then
+                    If Not Directory.Exists(destFolderPath) Then
+                        Directory.CreateDirectory(destFolderPath)
+                    End If
+                    Dim copiedExePath As String = Path.Combine(destFolderPath, Path.GetFileName(selfExePath))
+                    
+                    ' ถ้าตัวเองรันอยู่ที่ path ปลายทางอยู่แล้ว ไม่ต้องก๊อป
+                    If Not String.Equals(selfExePath, copiedExePath, StringComparison.OrdinalIgnoreCase) Then
+                        Try
+                            File.Copy(selfExePath, copiedExePath, True)
+                            LogManager.Info("Copied executable to local destination: " & copiedExePath)
+                        Catch ex As Exception
+                            LogManager.Warn("Failed to copy executable to local destination. Using original path. Error: " & ex.Message)
+                        End Try
+                    End If
+                    
+                    ' ให้ task scheduler ใช้ path ปลายทาง
+                    If File.Exists(copiedExePath) Then
+                        scheduledExePath = copiedExePath
+                    End If
+                End If
+
                 ' สร้าง Scheduled Task ใหม่เพื่อให้รันตอน logon ด้วยสิทธิ์ Admin อัตโนมัติ (ข้าม UAC Prompt)
                 Dim taskName As String = "AutoUpdateApp_Startup"
-                Dim args As String = String.Format("/create /tn ""{0}"" /tr ""\""{1}\"""" /sc onlogon /rl highest /f", taskName, selfExePath)
+                Dim args As String = String.Format("/create /tn ""{0}"" /tr ""\""{1}\"""" /sc onlogon /rl highest /f", taskName, scheduledExePath)
                 
                 LogManager.Info("Adding self to startup via Task Scheduler: " & args)
                 

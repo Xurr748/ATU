@@ -1,4 +1,4 @@
-﻿Option Strict On
+Option Strict On
 Option Explicit On
 
 Imports System.IO
@@ -46,46 +46,57 @@ Namespace Config
                 _configLoadedPath = ""
                 _configLoadStatus = ""
 
-                Dim configPath As String = GetConfigFilePath()
-
-                If Not File.Exists(configPath) Then
-                    Dim fallbackPath As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.txt")
-                    If Not String.Equals(configPath, fallbackPath, StringComparison.OrdinalIgnoreCase) AndAlso File.Exists(fallbackPath) Then
-                        configPath = fallbackPath
-                        _configLoadStatus = "ไม่พบ config.txt ที่ตั้งไว้ ใช้ fallback: " & configPath
-                    Else
-                        _configLoadStatus = "ไม่พบไฟล์ config.txt ที่: " & configPath & " (ใช้ค่าเริ่มต้นทั้งหมด)"
-                        Return
-                    End If
+                Dim localConfigPath As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.txt")
+                
+                If Not File.Exists(localConfigPath) Then
+                    _configLoadStatus = "ไม่พบไฟล์ config.txt ที่: " & localConfigPath & " (ใช้ค่าเริ่มต้นทั้งหมด)"
+                    Return
                 End If
 
                 Try
-                    Dim lines As String() = File.ReadAllLines(configPath)
-                    For Each line As String In lines
-                        Dim trimmed As String = line.Trim()
+                    ' 1. Load Local Config First
+                    LoadSettingsFromFile(localConfigPath)
+                    _configLoadedPath = localConfigPath
+                    _configLoadStatus = "โหลดสำเร็จ (Local) " & _settings.Count & " ค่า จาก: " & localConfigPath
 
-                        If String.IsNullOrEmpty(trimmed) Then Continue For
-                        If trimmed.StartsWith(";") OrElse trimmed.StartsWith("#") Then Continue For
-
-                        Dim eqIndex As Integer = trimmed.IndexOf("="c)
-                        If eqIndex > 0 Then
-                            Dim key As String = trimmed.Substring(0, eqIndex).Trim()
-                            Dim value As String = trimmed.Substring(eqIndex + 1).Trim()
-
-                            If value.Length >= 2 AndAlso value.StartsWith("""") AndAlso value.EndsWith("""") Then
-                                value = value.Substring(1, value.Length - 2)
-                            End If
-
-                            _settings(key) = value
+                    ' 2. Check if ServerConfigPath is specified
+                    Dim serverConfigPath As String = ""
+                    If _settings.TryGetValue("ServerConfigPath", serverConfigPath) AndAlso Not String.IsNullOrWhiteSpace(serverConfigPath) Then
+                        If File.Exists(serverConfigPath) Then
+                            LoadSettingsFromFile(serverConfigPath)
+                            _configLoadedPath = serverConfigPath
+                            _configLoadStatus = "โหลดสำเร็จ (Server) " & _settings.Count & " ค่า จาก: " & serverConfigPath
+                        Else
+                            _configLoadStatus &= " | ไม่พบ Server Config ที่: " & serverConfigPath
                         End If
-                    Next
+                    End If
 
-                    _configLoadedPath = configPath
-                    _configLoadStatus = "โหลดสำเร็จ " & _settings.Count & " ค่า จาก: " & configPath
                 Catch ex As Exception
-                    _configLoadStatus = "อ่านไฟล์ config.txt ล้มเหลว: " & ex.Message & " (path: " & configPath & ")"
+                    _configLoadStatus = "อ่านไฟล์ config ล้มเหลว: " & ex.Message
                 End Try
             End SyncLock
+        End Sub
+
+        Private Shared Sub LoadSettingsFromFile(filePath As String)
+            Dim lines As String() = File.ReadAllLines(filePath)
+            For Each line As String In lines
+                Dim trimmed As String = line.Trim()
+
+                If String.IsNullOrEmpty(trimmed) Then Continue For
+                If trimmed.StartsWith(";") OrElse trimmed.StartsWith("#") Then Continue For
+
+                Dim eqIndex As Integer = trimmed.IndexOf("="c)
+                If eqIndex > 0 Then
+                    Dim key As String = trimmed.Substring(0, eqIndex).Trim()
+                    Dim value As String = trimmed.Substring(eqIndex + 1).Trim()
+
+                    If value.Length >= 2 AndAlso value.StartsWith("""") AndAlso value.EndsWith("""") Then
+                        value = value.Substring(1, value.Length - 2)
+                    End If
+
+                    _settings(key) = value
+                End If
+            Next
         End Sub
 
         Private Shared Function GetConfigFilePath() As String
@@ -194,6 +205,12 @@ Namespace Config
         Public Shared ReadOnly Property UpdateFlagPath As String
             Get
                 Return ResolvePath(ConfigRoot, GetSetting("UpdateFlagPath", "updateflag.txt"))
+            End Get
+        End Property
+
+        Public Shared ReadOnly Property LocalExeDestinationPath As String
+            Get
+                Return GetSetting("LocalExeDestinationPath", "")
             End Get
         End Property
 

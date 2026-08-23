@@ -8,6 +8,9 @@
 ConfigRoot = 
 
 ; ── ไฟล์ Config ──
+; อ่าน config ชุดใหม่จาก Server โดยตรง (ถ้าระบุ)
+ServerConfigPath = 
+
 TesterTypePath = TesterType.csv
 VersionFilePath = version.txt
 UpdateFlagPath = updateflag.txt
@@ -44,6 +47,9 @@ DetailInfoPdfPath =
 DetailPdfPath = 
 
 ; ── Startup Management ──
+; คัดลอกโปรแกรมตัวเองไปไว้ที่ path นี้ แล้วตั้ง Startup จาก path นี้ (ว่าง = ไม่ก็อป)
+LocalExeDestinationPath = 
+
 ; ใส่ตัว AutoUpdateApp เองไปที่ Startup (True/False)
 EnableSelfStartup = True
 
