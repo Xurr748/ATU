@@ -46,33 +46,55 @@ Namespace Config
                 _configLoadedPath = ""
                 _configLoadStatus = ""
 
-                Dim localConfigPath As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.txt")
+                Dim serverConfigPath As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "serverconfig.txt")
+                Dim realConfigPath As String = ""
                 
-                If Not File.Exists(localConfigPath) Then
-                    _configLoadStatus = "ไม่พบไฟล์ config.txt ที่: " & localConfigPath & " (ใช้ค่าเริ่มต้นทั้งหมด)"
+                ' 1. อ่านไฟล์ serverconfig.txt เพื่อหาว่า config จริงอยู่ที่ไหน
+                If File.Exists(serverConfigPath) Then
+                    Try
+                        Dim lines As String() = File.ReadAllLines(serverConfigPath)
+                        For Each line As String In lines
+                            Dim trimmed As String = line.Trim()
+                            If trimmed.StartsWith(";") OrElse trimmed.StartsWith("#") Then Continue For
+                            
+                            Dim eqIndex As Integer = trimmed.IndexOf("="c)
+                            If eqIndex > 0 Then
+                                Dim key As String = trimmed.Substring(0, eqIndex).Trim()
+                                If key.Equals("ConfigPath", StringComparison.OrdinalIgnoreCase) Then
+                                    realConfigPath = trimmed.Substring(eqIndex + 1).Trim()
+                                    If realConfigPath.StartsWith("""") AndAlso realConfigPath.EndsWith("""") Then
+                                        realConfigPath = realConfigPath.Substring(1, realConfigPath.Length - 2)
+                                    End If
+                                    Exit For
+                                End If
+                            End If
+                        Next
+                    Catch ex As Exception
+                        _configLoadStatus = "อ่านไฟล์ serverconfig.txt ล้มเหลว: " & ex.Message
+                        Return
+                    End Try
+                Else
+                    _configLoadStatus = "ไม่พบไฟล์ระบุตำแหน่ง (serverconfig.txt) ที่: " & serverConfigPath
+                    Return
+                End If
+
+                If String.IsNullOrEmpty(realConfigPath) Then
+                    _configLoadStatus = "ไฟล์ serverconfig.txt ไม่มีบรรทัด ConfigPath=..."
+                    Return
+                End If
+
+                ' 2. ไปโหลด Config จริงจาก Path ที่ได้มา
+                If Not File.Exists(realConfigPath) Then
+                    _configLoadStatus = "ไม่พบไฟล์ Config จริงที่: " & realConfigPath
                     Return
                 End If
 
                 Try
-                    ' 1. Load Local Config First
-                    LoadSettingsFromFile(localConfigPath)
-                    _configLoadedPath = localConfigPath
-                    _configLoadStatus = "โหลดสำเร็จ (Local) " & _settings.Count & " ค่า จาก: " & localConfigPath
-
-                    ' 2. Check if ServerConfigPath is specified
-                    Dim serverConfigPath As String = ""
-                    If _settings.TryGetValue("ServerConfigPath", serverConfigPath) AndAlso Not String.IsNullOrWhiteSpace(serverConfigPath) Then
-                        If File.Exists(serverConfigPath) Then
-                            LoadSettingsFromFile(serverConfigPath)
-                            _configLoadedPath = serverConfigPath
-                            _configLoadStatus = "โหลดสำเร็จ (Server) " & _settings.Count & " ค่า จาก: " & serverConfigPath
-                        Else
-                            _configLoadStatus &= " | ไม่พบ Server Config ที่: " & serverConfigPath
-                        End If
-                    End If
-
+                    LoadSettingsFromFile(realConfigPath)
+                    _configLoadedPath = realConfigPath
+                    _configLoadStatus = "โหลดสำเร็จ " & _settings.Count & " ค่า จาก: " & realConfigPath
                 Catch ex As Exception
-                    _configLoadStatus = "อ่านไฟล์ config ล้มเหลว: " & ex.Message
+                    _configLoadStatus = "อ่านไฟล์ Config จริงล้มเหลว: " & ex.Message
                 End Try
             End SyncLock
         End Sub

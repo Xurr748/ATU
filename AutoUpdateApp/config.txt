@@ -1,74 +1,39 @@
-; ═══════════════════════════════════════════════════════════════
-; AutoUpdateApp Configuration
-; แก้ไขไฟล์นี้แทน App.config — ไม่ต้องคอมไพล์ใหม่
-; รูปแบบ: Key = Value (บรรทัด ; หรือ # เป็น comment)
+﻿; ═══════════════════════════════════════════════════════════════
+; AutoUpdateApp Configuration (Real Config Template)
 ; ═══════════════════════════════════════════════════════════════
 
-; ── โฟลเดอร์หลัก (path อื่นที่เป็น relative จะรวมกับ ConfigRoot อัตโนมัติ) ──
 ConfigRoot = 
-
-; ── ไฟล์ Config ──
-; อ่าน config ชุดใหม่จาก Server โดยตรง (ถ้าระบุ)
-ServerConfigPath = 
 
 TesterTypePath = TesterType.csv
 VersionFilePath = version.txt
 UpdateFlagPath = updateflag.txt
 
-; ── Installer ──
 InstallerPathHE = 
 InstallerPathLLE = 
 InstallerArgs = /silent /norestart
-
-; โฟลเดอร์ Local สำหรับก็อป Installer มาจาก Server (ว่าง = ใช้ %TEMP%)
 LocalInstallerPath = 
-
-; ชื่อโปรแกรมสำหรับค้นหา GUID ถอนการติดตั้ง (ใช้ใน uninstall.bat)
 UninstallProductName = RSX5000
 
-; ── Registry (อ่านเวอร์ชันโปรแกรมปัจจุบัน) ──
 RegistryKeyPath = HKEY_LOCAL_MACHINE\SOFTWARE\Spandnix\RSX5000
 RegistryValueName = Version
 RegistryPathValueName = Path
 
-; ── ข้อมูลบริษัท ──
 FolderName = Logs
-
-; ── Log (โครงสร้าง: LogPath\FolderName\{ShortId}\) ──
 LogPath = 
 LogFileName = {ComputerName}_Logs.txt
 LogLevel = Info
 
-; ── ตัวตั้งเวลาตรวจสอบอัปเดต (นาที) ──
 PollingIntervalMinutes = 60
 
-; ── เอกสาร PDF (ปุ่ม Details) ──
 DetailInfoPdfPath = 
 DetailPdfPath = 
 
-; ── Startup Management ──
-; คัดลอกโปรแกรมตัวเองไปไว้ที่ path นี้ แล้วตั้ง Startup จาก path นี้ (ว่าง = ไม่ก็อป)
 LocalExeDestinationPath = 
-
-; ใส่ตัว AutoUpdateApp เองไปที่ Startup (True/False)
 EnableSelfStartup = True
-
-; ใส่ Target App ไปที่ Startup หลังอัปเดตสำเร็จ (True/False)
 EnableTargetStartup = True
-
-; ลบ Shortcut เดิมที่ชื่อตรงกันก่อนสร้างใหม่ (True/False)
 RemoveOldStartupShortcut = True
-
-; ชื่อ Shortcut (ว่าง = ใช้ชื่อ exe จาก registry อัตโนมัติ)
 StartupShortcutName = 
 
-; ── ภาษา (th, en, jp) ──
 Language = th
-
-; ── เปิดแอพหลังอัปเดตสำเร็จ (ว่าง = ดึง path จาก Registry อัตโนมัติ) ──
 TargetAppExePath = 
-
-; ── รายชื่อ Process ที่ต้องปิดก่อนอัปเดต (คั่นด้วย , ไม่ต้องใส่ .exe) ──
-; ว่าง = ใช้ชื่อจาก UninstallProductName อย่างเดียว
-; ตัวอย่าง: RSX5000,RSX5000_Helper,SomeOtherApp
 KillProcessList = RSX5000
