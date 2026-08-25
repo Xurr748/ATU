@@ -66,6 +66,7 @@ Namespace Forms
         Private _restartPromptShown As Boolean = False
         Private _falseCount As Integer = 0
         Private WithEvents _restartCheckTimer As Timer
+        Private WithEvents _refreshTimer As Timer
 
         Private _tempComName As String = ""
         Private _tempType As String = ""
@@ -473,10 +474,20 @@ Namespace Forms
                     _lblStatusValue.Text = L("StatusUpToDate")
                     _lblStatusValue.ForeColor = Color.FromArgb(46, 204, 113)
                     If _btnUpdateNow IsNot Nothing Then _btnUpdateNow.Enabled = False
+                    Managers.InstallerManager.CopyShortcutToStartup()
                 Else
                     _lblStatusValue.Text = L("StatusUpdateAvailable") & " (" & serverVer & ")"
                     _lblStatusValue.ForeColor = Color.FromArgb(41, 128, 185)
                     If _btnUpdateNow IsNot Nothing Then _btnUpdateNow.Enabled = True
+                    ' Version ไม่ตรง → ลบ RSX5000 ออกจาก Startup All Users ทันที
+                    Dim shortcutName As String = Config.AppSettings.StartupShortcutName
+                    If String.IsNullOrEmpty(shortcutName) Then
+                        shortcutName = Config.AppSettings.UninstallProductName
+                    End If
+                    If Not String.IsNullOrEmpty(shortcutName) Then
+                        Managers.InstallerManager.RemoveStartupShortcut(shortcutName)
+                        Managers.LogManager.Info("Version mismatch: removed " & shortcutName & " from startup.")
+                    End If
                 End If
 
             Catch ex As Exception
@@ -601,6 +612,11 @@ Namespace Forms
             _restartCheckTimer.Interval = 60000
             AddHandler _restartCheckTimer.Tick, AddressOf RestartCheckTimer_Tick
             _restartCheckTimer.Start()
+
+            _refreshTimer = New System.Windows.Forms.Timer()
+            _refreshTimer.Interval = 5000
+            AddHandler _refreshTimer.Tick, AddressOf RefreshTimer_Tick
+            _refreshTimer.Start()
 
             CheckAndTrackUpdateFlag()
 
@@ -778,6 +794,15 @@ Namespace Forms
                 End If
             Catch ex As Exception
                 Managers.LogManager.Warn("RestartCheckTimer error: " & ex.Message)
+            End Try
+        End Sub
+
+        Private Sub RefreshTimer_Tick(ByVal sender As Object, ByVal e As EventArgs)
+            Try
+                Config.AppSettings.Reload()
+                LoadInfo()
+            Catch ex As Exception
+                Managers.LogManager.Warn("RefreshTimer error: " & ex.Message)
             End Try
         End Sub
 
@@ -1283,6 +1308,11 @@ Namespace Forms
                     RemoveHandler _btnAnimTimer.Tick, AddressOf BtnAnimTimer_Tick
                     _btnAnimTimer.Dispose()
                     _btnAnimTimer = Nothing
+                End If
+                If _refreshTimer IsNot Nothing Then
+                    RemoveHandler _refreshTimer.Tick, AddressOf RefreshTimer_Tick
+                    _refreshTimer.Dispose()
+                    _refreshTimer = Nothing
                 End If
                 If _contextMenu IsNot Nothing Then _contextMenu.Dispose()
                 If _notifyIcon IsNot Nothing Then
