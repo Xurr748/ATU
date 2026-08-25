@@ -635,39 +635,54 @@ Namespace Managers
                     Return
                 End If
 
+                Dim selfDir As String = Path.GetDirectoryName(selfExePath)
                 Dim selfName As String = Path.GetFileNameWithoutExtension(selfExePath)
-                ' ลบ Shortcut แบบเก่าที่อยู่ใน Startup folder ทิ้ง (เพราะมันใช้ไม่ได้กับโปรแกรมที่ติดสิทธิ์ Admin)
                 RemoveStartupShortcut(selfName)
 
                 Dim destFolderPath As String = Config.AppSettings.LocalExeDestinationPath
                 Dim scheduledExePath As String = selfExePath
 
                 If Not String.IsNullOrEmpty(destFolderPath) Then
-                    If Not Directory.Exists(destFolderPath) Then
-                        Directory.CreateDirectory(destFolderPath)
-                    End If
-                    Dim copiedExePath As String = Path.Combine(destFolderPath, Path.GetFileName(selfExePath))
-                    
-                    ' ถ้าตัวเองรันอยู่ที่ path ปลายทางอยู่แล้ว ไม่ต้องก๊อป
-                    If Not String.Equals(selfExePath, copiedExePath, StringComparison.OrdinalIgnoreCase) Then
-                        Try
-                            File.Copy(selfExePath, copiedExePath, True)
-                            LogManager.Info("Copied executable to local destination: " & copiedExePath)
-                        Catch ex As Exception
-                            LogManager.Warn("Failed to copy executable to local destination. Using original path. Error: " & ex.Message)
-                        End Try
-                    End If
-                    
-                    ' ให้ task scheduler ใช้ path ปลายทาง
-                    If File.Exists(copiedExePath) Then
-                        scheduledExePath = copiedExePath
-                    End If
+                    Try
+                        If Not Directory.Exists(destFolderPath) Then
+                            Directory.CreateDirectory(destFolderPath)
+                            LogManager.Info("Created destination folder: " & destFolderPath)
+                        End If
+
+                        Dim destExePath As String = Path.Combine(destFolderPath, Path.GetFileName(selfExePath))
+                        
+                        ' ก๊อป exe ไปวาง (ถ้ายังไม่ได้รันจาก path ปลายทาง)
+                        If Not String.Equals(selfExePath, destExePath, StringComparison.OrdinalIgnoreCase) Then
+                            File.Copy(selfExePath, destExePath, True)
+                            LogManager.Info("Copied exe to: " & destExePath)
+                        End If
+
+                        ' ก๊อป serverconfig.txt ไปวางข้างๆ exe ที่ปลายทาง
+                        Dim srcServerConfig As String = Path.Combine(selfDir, "serverconfig.txt")
+                        Dim destServerConfig As String = Path.Combine(destFolderPath, "serverconfig.txt")
+                        If File.Exists(srcServerConfig) Then
+                            If Not String.Equals(srcServerConfig, destServerConfig, StringComparison.OrdinalIgnoreCase) Then
+                                File.Copy(srcServerConfig, destServerConfig, True)
+                                LogManager.Info("Copied serverconfig.txt to: " & destServerConfig)
+                            End If
+                        Else
+                            LogManager.Warn("serverconfig.txt not found at: " & srcServerConfig)
+                        End If
+
+                        ' ใช้ path ปลายทางสำหรับ Task Scheduler
+                        If File.Exists(destExePath) Then
+                            scheduledExePath = destExePath
+                        End If
+                    Catch ex As Exception
+                        LogManager.Warn("Failed to copy files to destination: " & ex.Message & ". Using original path.")
+                    End Try
                 End If
 
-                ' สร้าง Scheduled Task ใหม่เพื่อให้รันตอน logon ด้วยสิทธิ์ Admin อัตโนมัติ (ข้าม UAC Prompt)
+                ' สร้าง Scheduled Task ให้รันตอน logon ด้วยสิทธิ์ Admin
                 Dim taskName As String = "AutoUpdateApp_Startup"
                 Dim args As String = String.Format("/create /tn ""{0}"" /tr ""\""{1}\"""" /sc onlogon /rl highest /f", taskName, scheduledExePath)
                 
+                LogManager.Info("Task Scheduler exe path: " & scheduledExePath)
                 LogManager.Info("Adding self to startup via Task Scheduler: " & args)
                 
                 Dim psi As New ProcessStartInfo("schtasks.exe", args)
