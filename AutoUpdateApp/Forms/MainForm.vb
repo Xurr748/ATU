@@ -712,9 +712,9 @@ Namespace Forms
             If msg.Contains("Not in config") Then Return L("MsgNotInConfig")
             If msg.Contains("Hour not matching") Then Return L("MsgHourNotMatching")
             If msg.Contains("Already checked today") Then Return L("MsgAlreadyCheckedToday")
-            If msg.Contains("Up to Date") OrElse msg.Contains("เวอร์ชันล่าสุด") Then Return L("MsgUpToDate")
+            If msg.Contains("Up to Date") Then Return L("MsgUpToDate")
             If msg.Contains("Waiting for restart") OrElse msg.Contains("Pending restart") Then Return L("MsgPendingRestart")
-            If msg.Contains("ไม่พบไฟล์อัปเดต") OrElse msg.Contains("Installer folder not found") Then Return L("MsgInstallerNotFound")
+            If msg.Contains("Installer folder not found") Then Return L("MsgInstallerNotFound")
             If msg.Contains("Cancelled") Then Return L("MsgCancelled")
 
             Return msg
@@ -1214,7 +1214,8 @@ Namespace Forms
         Private Sub ResetUpdateButton()
             If _btnUpdateNow IsNot Nothing Then
                 _btnUpdateNow.Enabled = True
-                _btnUpdateNow.Text = "อัปเดตทันที"
+                Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
+                _btnUpdateNow.Text = L("BtnUpdateNow")
             End If
         End Sub
 
@@ -1229,13 +1230,11 @@ Namespace Forms
 
         Private Sub BtnLang_Click(ByVal sender As Object, ByVal e As EventArgs)
             Dim currentLang As String = Config.LanguageManager.CurrentLanguage.ToLower()
-            Dim nextLang As String = "th"
-            If currentLang = "th" Then
-                nextLang = "en"
-            ElseIf currentLang = "en" Then
+            Dim nextLang As String = "en"
+            If currentLang = "en" Then
                 nextLang = "jp"
-            ElseIf currentLang = "jp" Then
-                nextLang = "th"
+            Else
+                nextLang = "en"
             End If
 
             SwitchLanguage(nextLang)

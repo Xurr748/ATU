@@ -24,11 +24,11 @@ Module Program
                 Managers.LogManager.Info("Exe directory: " & AppDomain.CurrentDomain.BaseDirectory)
 
                 If Not Config.AppSettings.IsLoaded Then
-                    Dim msg As String = "ไม่สามารถโหลด Config ได้!" & Environment.NewLine & _
+                    Dim msg As String = "Failed to load Config!" & Environment.NewLine & _
                                         Config.AppSettings.LoadStatus & Environment.NewLine & Environment.NewLine & _
-                                        "กรุณาตรวจสอบว่า:" & Environment.NewLine & _
-                                        "1) serverconfig.txt อยู่ข้างๆ exe และมีบรรทัด ConfigPath=..." & Environment.NewLine & _
-                                        "2) ไฟล์ config.txt ที่ระบุไว้มีอยู่จริงบน Server"
+                                        "Please check that:" & Environment.NewLine & _
+                                        "1) serverconfig.txt is located next to the exe and contains ConfigPath=..." & Environment.NewLine & _
+                                        "2) The specified config.txt file exists on the Server"
                     Managers.LogManager.[Error](msg)
                     MessageBox.Show(msg, "Config Error", MessageBoxButtons.OK, MessageBoxIcon.Warning)
                 End If
@@ -101,7 +101,6 @@ Module Program
             Dim updateForm As New Forms.UpdatingForm()
             updateForm.TesterType = tester.TesterType
             
-            ' เปิดหน้าต่างนี้ขึ้นมาค้างไว้ มันจะรันอัปเดตเบื้องหลังแล้วปิดตัวเองเมื่อเสร็จ
             updateForm.ShowDialog()
 
             Dim success As Boolean = updateForm.UpdateSuccess

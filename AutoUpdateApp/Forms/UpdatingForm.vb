@@ -29,7 +29,7 @@ Namespace Forms
             Me._lblStatus.Name = "lblStatus"
             Me._lblStatus.Size = New Size(460, 30)
             Me._lblStatus.TabIndex = 0
-            Me._lblStatus.Text = "ระบบกำลังทำการอัปเดต กรุณารอสักครู่..."
+            Me._lblStatus.Text = "System is updating. Please wait..."
             Me._lblStatus.TextAlign = ContentAlignment.MiddleCenter
 
             Me._progressBar.Location = New Point(20, 60)
