@@ -24,11 +24,11 @@ Module Program
                 Managers.LogManager.Info("Exe directory: " & AppDomain.CurrentDomain.BaseDirectory)
 
                 If Not Config.AppSettings.IsLoaded Then
-                    Dim msg As String = "ไม่สามารถโหลด config.txt ได้!" & Environment.NewLine & _
+                    Dim msg As String = "ไม่สามารถโหลด Config ได้!" & Environment.NewLine & _
                                         Config.AppSettings.LoadStatus & Environment.NewLine & Environment.NewLine & _
                                         "กรุณาตรวจสอบว่า:" & Environment.NewLine & _
-                                        "1) config.txt อยู่ข้างๆ exe  หรือ" & Environment.NewLine & _
-                                        "2) ตั้ง ConfigFilePath ใน AutoUpdateApp.exe.config"
+                                        "1) serverconfig.txt อยู่ข้างๆ exe และมีบรรทัด ConfigPath=..." & Environment.NewLine & _
+                                        "2) ไฟล์ config.txt ที่ระบุไว้มีอยู่จริงบน Server"
                     Managers.LogManager.[Error](msg)
                     MessageBox.Show(msg, "Config Error", MessageBoxButtons.OK, MessageBoxIcon.Warning)
                 End If

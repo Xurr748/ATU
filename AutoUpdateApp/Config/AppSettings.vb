@@ -93,6 +93,31 @@ Namespace Config
                     LoadSettingsFromFile(realConfigPath)
                     _configLoadedPath = realConfigPath
                     _configLoadStatus = "โหลดสำเร็จ " & _settings.Count & " ค่า จาก: " & realConfigPath
+
+                    ' 3. อ่าน Language ที่เซฟไว้ใน serverconfig.txt (local) ทับค่าจาก server
+                    Try
+                        Dim scLines As String() = File.ReadAllLines(serverConfigPath)
+                        For Each scLine As String In scLines
+                            Dim scTrimmed As String = scLine.Trim()
+                            If scTrimmed.StartsWith(";") OrElse scTrimmed.StartsWith("#") Then Continue For
+                            Dim scEq As Integer = scTrimmed.IndexOf("="c)
+                            If scEq > 0 Then
+                                Dim scKey As String = scTrimmed.Substring(0, scEq).Trim()
+                                If scKey.Equals("Language", StringComparison.OrdinalIgnoreCase) Then
+                                    Dim scVal As String = scTrimmed.Substring(scEq + 1).Trim()
+                                    If scVal.StartsWith("""") AndAlso scVal.EndsWith("""") Then
+                                        scVal = scVal.Substring(1, scVal.Length - 2)
+                                    End If
+                                    If Not String.IsNullOrEmpty(scVal) Then
+                                        _settings("Language") = scVal
+                                    End If
+                                    Exit For
+                                End If
+                            End If
+                        Next
+                    Catch
+                    End Try
+
                 Catch ex As Exception
                     _configLoadStatus = "อ่านไฟล์ Config จริงล้มเหลว: " & ex.Message
                 End Try
@@ -120,17 +145,6 @@ Namespace Config
                 End If
             Next
         End Sub
-
-        Private Shared Function GetConfigFilePath() As String
-            Try
-                Dim customPath As String = System.Configuration.ConfigurationManager.AppSettings("ConfigFilePath")
-                If Not String.IsNullOrWhiteSpace(customPath) Then
-                    Return customPath
-                End If
-            Catch
-            End Try
-            Return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.txt")
-        End Function
 
         Private Shared Function GetSetting(key As String, Optional defaultValue As String = "") As String
             EnsureLoaded()
@@ -383,17 +397,15 @@ Namespace Config
             SyncLock _lock
                 _settings("Language") = lang.ToLower()
 
-                Dim configPath As String = _configLoadedPath
-                If String.IsNullOrEmpty(configPath) Then
-                    configPath = GetConfigFilePath()
-                End If
+                ' บันทึกภาษาลง serverconfig.txt (ไฟล์ local ข้างๆ exe) ไม่ไปเขียนลง config บน server
+                Dim localPath As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "serverconfig.txt")
 
                 Try
                     Dim lines As New List(Of String)()
                     Dim found As Boolean = False
 
-                    If File.Exists(configPath) Then
-                        Dim fileLines As String() = File.ReadAllLines(configPath)
+                    If File.Exists(localPath) Then
+                        Dim fileLines As String() = File.ReadAllLines(localPath)
                         For Each line As String In fileLines
                             Dim trimmed As String = line.Trim()
                             If Not trimmed.StartsWith(";") AndAlso Not trimmed.StartsWith("#") AndAlso trimmed.Contains("=") Then
@@ -415,9 +427,9 @@ Namespace Config
                         lines.Add("Language = " & lang.ToLower())
                     End If
 
-                    File.WriteAllLines(configPath, lines.ToArray())
+                    File.WriteAllLines(localPath, lines.ToArray())
                 Catch ex As Exception
-                    Managers.LogManager.Warn("ไม่สามารถบันทึกภาษาลง config.txt ได้: " & ex.Message)
+                    Managers.LogManager.Warn("ไม่สามารถบันทึกภาษาลง serverconfig.txt ได้: " & ex.Message)
                 End Try
             End SyncLock
         End Sub

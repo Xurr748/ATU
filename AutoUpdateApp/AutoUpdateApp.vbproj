@@ -112,9 +112,10 @@
       <SubType>Designer</SubType>
     </None>
     <None Include="app.manifest" />
-    <Content Include="config.txt">
+    <Content Include="serverconfig.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <None Include="config.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />
 </Project>
