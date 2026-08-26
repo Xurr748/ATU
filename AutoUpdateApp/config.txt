@@ -1,4 +1,4 @@
-﻿; ═══════════════════════════════════════════════════════════════
+; ═══════════════════════════════════════════════════════════════
 ; AutoUpdateApp Configuration (Real Config Template)
 ; ═══════════════════════════════════════════════════════════════
 
@@ -28,12 +28,12 @@ PollingIntervalMinutes = 60
 DetailInfoPdfPath = 
 DetailPdfPath = 
 
-LocalExeDestinationPath = 
+LocalExeDestinationPath = C:\RSX-5000\AutoUpdate
 EnableSelfStartup = True
 EnableTargetStartup = True
 RemoveOldStartupShortcut = True
 StartupShortcutName = 
 
-Language = th
+Language = en
 TargetAppExePath = 
 KillProcessList = RSX5000
