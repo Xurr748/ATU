@@ -127,12 +127,12 @@ Namespace Forms
             Me._contextMenu.Size = New System.Drawing.Size(144, 54)
             Me._mnuCheckNow.Name = "_mnuCheckNow"
             Me._mnuCheckNow.Size = New System.Drawing.Size(143, 22)
-            Me._mnuCheckNow.Text = "ตรวจสอบตอนนี้"
+            Me._mnuCheckNow.Text = "Check for updates"
             Me._mnuSeparator.Name = "_mnuSeparator"
             Me._mnuSeparator.Size = New System.Drawing.Size(140, 6)
             Me._mnuExit.Name = "_mnuExit"
             Me._mnuExit.Size = New System.Drawing.Size(143, 22)
-            Me._mnuExit.Text = "ออก"
+            Me._mnuExit.Text = "Exit"
             Me._notifyIcon.ContextMenuStrip = Me._contextMenu
             Me._notifyIcon.Icon = CType(resources.GetObject("_notifyIcon.Icon"), System.Drawing.Icon)
             Me._notifyIcon.Text = "Auto Update"
@@ -159,14 +159,14 @@ Namespace Forms
             Me._lblInfoTitle.Name = "_lblInfoTitle"
             Me._lblInfoTitle.Size = New System.Drawing.Size(124, 19)
             Me._lblInfoTitle.TabIndex = 0
-            Me._lblInfoTitle.Text = "ข้อมูลเครื่องทดสอบ"
+            Me._lblInfoTitle.Text = "Test Machine Info"
             Me._lblComNameLabel.AutoSize = True
             Me._lblComNameLabel.Font = New System.Drawing.Font("Segoe UI", 9.0!)
             Me._lblComNameLabel.Location = New System.Drawing.Point(16, 40)
             Me._lblComNameLabel.Name = "_lblComNameLabel"
             Me._lblComNameLabel.Size = New System.Drawing.Size(49, 15)
             Me._lblComNameLabel.TabIndex = 0
-            Me._lblComNameLabel.Text = "ชื่อเครื่อง:"
+            Me._lblComNameLabel.Text = "Computer:"
             Me._lblComNameValue.AutoSize = True
             Me._lblComNameValue.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
             Me._lblComNameValue.Location = New System.Drawing.Point(130, 40)
@@ -180,7 +180,7 @@ Namespace Forms
             Me._lblTypeLabel.Name = "_lblTypeLabel"
             Me._lblTypeLabel.Size = New System.Drawing.Size(43, 15)
             Me._lblTypeLabel.TabIndex = 2
-            Me._lblTypeLabel.Text = "ประเภท:"
+            Me._lblTypeLabel.Text = "Type:"
             Me._lblTypeValue.AutoSize = True
             Me._lblTypeValue.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
             Me._lblTypeValue.Location = New System.Drawing.Point(130, 62)
@@ -202,7 +202,7 @@ Namespace Forms
             Me._lblModeLabel.Name = "_lblModeLabel"
             Me._lblModeLabel.Size = New System.Drawing.Size(36, 15)
             Me._lblModeLabel.TabIndex = 4
-            Me._lblModeLabel.Text = "โหมด:"
+            Me._lblModeLabel.Text = "Mode:"
             Me._lblModeValue.AutoSize = True
             Me._lblModeValue.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
             Me._lblModeValue.Location = New System.Drawing.Point(130, 84)
@@ -216,7 +216,7 @@ Namespace Forms
             Me._lblTimeLabel.Name = "_lblTimeLabel"
             Me._lblTimeLabel.Size = New System.Drawing.Size(71, 15)
             Me._lblTimeLabel.TabIndex = 6
-            Me._lblTimeLabel.Text = "เวลาตรวจสอบ:"
+            Me._lblTimeLabel.Text = "Check Time:"
             Me._lblTimeValue.AutoSize = True
             Me._lblTimeValue.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
             Me._lblTimeValue.Location = New System.Drawing.Point(130, 106)
@@ -243,14 +243,14 @@ Namespace Forms
             Me._lblVersionTitle.Name = "_lblVersionTitle"
             Me._lblVersionTitle.Size = New System.Drawing.Size(109, 19)
             Me._lblVersionTitle.TabIndex = 0
-            Me._lblVersionTitle.Text = "สถานะซอฟต์แวร์"
+            Me._lblVersionTitle.Text = "Software Status"
             Me._lblCurrentLabel.AutoSize = True
             Me._lblCurrentLabel.Font = New System.Drawing.Font("Segoe UI", 9.0!)
             Me._lblCurrentLabel.Location = New System.Drawing.Point(16, 40)
             Me._lblCurrentLabel.Name = "_lblCurrentLabel"
             Me._lblCurrentLabel.Size = New System.Drawing.Size(76, 15)
             Me._lblCurrentLabel.TabIndex = 0
-            Me._lblCurrentLabel.Text = "เวอร์ชันปัจจุบัน:"
+            Me._lblCurrentLabel.Text = "Current Version:"
             Me._lblCurrentValue.AutoSize = True
             Me._lblCurrentValue.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
             Me._lblCurrentValue.Location = New System.Drawing.Point(130, 40)
@@ -264,7 +264,7 @@ Namespace Forms
             Me._lblServerLabel.Name = "_lblServerLabel"
             Me._lblServerLabel.Size = New System.Drawing.Size(78, 15)
             Me._lblServerLabel.TabIndex = 2
-            Me._lblServerLabel.Text = "เวอร์ชัน Server:"
+            Me._lblServerLabel.Text = "Server Version:"
             Me._lblServerValue.AutoSize = True
             Me._lblServerValue.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
             Me._lblServerValue.Location = New System.Drawing.Point(130, 62)
@@ -278,7 +278,7 @@ Namespace Forms
             Me._lblStatusLabel.Name = "_lblStatusLabel"
             Me._lblStatusLabel.Size = New System.Drawing.Size(39, 15)
             Me._lblStatusLabel.TabIndex = 4
-            Me._lblStatusLabel.Text = "สถานะ:"
+            Me._lblStatusLabel.Text = "Status:"
             Me._lblStatusValue.AutoSize = True
             Me._lblStatusValue.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
             Me._lblStatusValue.Location = New System.Drawing.Point(130, 84)
@@ -296,7 +296,7 @@ Namespace Forms
             Me._btnCheckNow.Name = "_btnCheckNow"
             Me._btnCheckNow.Size = New System.Drawing.Size(93, 32)
             Me._btnCheckNow.TabIndex = 4
-            Me._btnCheckNow.Text = "ตรวจสอบ"
+            Me._btnCheckNow.Text = "Check"
             Me._btnCheckNow.UseVisualStyleBackColor = False
             Me._btnRefreshInfo.BackColor = System.Drawing.Color.White
             Me._btnRefreshInfo.Cursor = System.Windows.Forms.Cursors.Hand
@@ -308,7 +308,7 @@ Namespace Forms
             Me._btnRefreshInfo.Name = "_btnRefreshInfo"
             Me._btnRefreshInfo.Size = New System.Drawing.Size(93, 32)
             Me._btnRefreshInfo.TabIndex = 5
-            Me._btnRefreshInfo.Text = "รีเฟรช"
+            Me._btnRefreshInfo.Text = "Refresh"
             Me._btnRefreshInfo.UseVisualStyleBackColor = False
             Me._btnUpdateNow.BackColor = System.Drawing.Color.FromArgb(CType(CType(9, Byte), Integer), CType(CType(132, Byte), Integer), CType(CType(227, Byte), Integer))
             Me._btnUpdateNow.Cursor = System.Windows.Forms.Cursors.Hand
@@ -320,7 +320,7 @@ Namespace Forms
             Me._btnUpdateNow.Name = "_btnUpdateNow"
             Me._btnUpdateNow.Size = New System.Drawing.Size(370, 34)
             Me._btnUpdateNow.TabIndex = 3
-            Me._btnUpdateNow.Text = "อัปเดตทันที"
+            Me._btnUpdateNow.Text = "Update Now"
             Me._btnUpdateNow.UseVisualStyleBackColor = False
             Me._btnUpdateNow.Visible = False
             Me._btnDetails.BackColor = System.Drawing.Color.White
@@ -345,7 +345,7 @@ Namespace Forms
             Me._btnConfigDebug.Name = "_btnConfigDebug"
             Me._btnConfigDebug.Size = New System.Drawing.Size(370, 28)
             Me._btnConfigDebug.TabIndex = 8
-            Me._btnConfigDebug.Text = "[Debug] ดู Config ที่โหลดแล้ว"
+            Me._btnConfigDebug.Text = "[Debug] View loaded Config"
             Me._btnConfigDebug.UseVisualStyleBackColor = False
             Me._btnConfigDebug.Visible = False
             Me._btnLang.BackColor = System.Drawing.Color.FromArgb(CType(CType(52, Byte), Integer), CType(CType(73, Byte), Integer), CType(CType(94, Byte), Integer))
@@ -479,7 +479,7 @@ Namespace Forms
                     _lblStatusValue.Text = L("StatusUpdateAvailable") & " (" & serverVer & ")"
                     _lblStatusValue.ForeColor = Color.FromArgb(41, 128, 185)
                     If _btnUpdateNow IsNot Nothing Then _btnUpdateNow.Enabled = True
-                    ' Version ไม่ตรง → ลบ RSX5000 ออกจาก Startup All Users ทันที
+                    ' Version mismatch: remove RSX5000 from Startup All Users immediately
                     Dim shortcutName As String = Config.AppSettings.StartupShortcutName
                     If String.IsNullOrEmpty(shortcutName) Then
                         shortcutName = Config.AppSettings.UninstallProductName
@@ -491,7 +491,7 @@ Namespace Forms
                 End If
 
             Catch ex As Exception
-                Managers.LogManager.[Error]("เกิดข้อผิดพลาดตอนโหลดข้อมูล UI", ex)
+                Managers.LogManager.[Error]("Error loading UI data", ex)
                 _lblStatusValue.Text = "Error: " & ex.Message
                 _lblStatusValue.ForeColor = Color.Red
             End Try
@@ -951,7 +951,7 @@ Namespace Forms
 
         Private Sub AddPdfFolderMenu(menu As ContextMenuStrip, groupName As String, folderPath As String)
             If String.IsNullOrEmpty(folderPath) Then
-                Dim mnu As New ToolStripMenuItem(groupName & "  (ยังไม่ได้ตั้ง path)")
+                Dim mnu As New ToolStripMenuItem(groupName & "  (path not set)")
                 mnu.Enabled = False
                 menu.Items.Add(mnu)
                 Return
@@ -968,7 +968,7 @@ Namespace Forms
             End If
 
             If Not IO.Directory.Exists(folderPath) Then
-                Dim mnu As New ToolStripMenuItem(groupName & "  (หาโฟลเดอร์ไม่เจอ)")
+                Dim mnu As New ToolStripMenuItem(groupName & "  (empty)")
                 mnu.Enabled = False
                 menu.Items.Add(mnu)
                 Return
@@ -976,7 +976,7 @@ Namespace Forms
 
             Dim pdfFiles = New IO.DirectoryInfo(folderPath).GetFiles("*.pdf")
             If pdfFiles.Length = 0 Then
-                Dim mnu As New ToolStripMenuItem(groupName & "  (ไม่มีไฟล์ PDF)")
+                Dim mnu As New ToolStripMenuItem(groupName & "  (no PDF)")
                 mnu.Enabled = False
                 menu.Items.Add(mnu)
                 Return
@@ -993,7 +993,7 @@ Namespace Forms
                                       End Sub
                 menu.Items.Add(mnu)
             Else
-                Dim parent As New ToolStripMenuItem(groupName & "  (" & pdfFiles.Length & " ไฟล์)")
+                Dim parent As New ToolStripMenuItem(groupName & "  (" & pdfFiles.Length & " files)")
                 For Each f As IO.FileInfo In pdfFiles
                     Dim filePath As String = f.FullName
                     Dim label As String = f.Name & "  [" & f.LastWriteTime.ToString("dd/MM/yy HH:mm") & "]"
@@ -1014,7 +1014,7 @@ Namespace Forms
                     MessageBox.Show(L("PromptFileNotFound") & filePath, L("PromptFileNotFoundTitle"), MessageBoxButtons.OK, MessageBoxIcon.Warning)
                     Return
                 End If
-                Managers.LogManager.Info("เปิด PDF: " & filePath)
+                Managers.LogManager.Info("Opening PDF: " & filePath)
 
                 Try
                     Process.Start(filePath)
@@ -1086,7 +1086,7 @@ Namespace Forms
                         End If
                     Next
                     fileToOpen = latestPdf.FullName
-                    Managers.LogManager.Info("เปิด PDF ล่าสุดจากโฟลเดอร์: " & fileToOpen)
+                    Managers.LogManager.Info("Opening latest PDF from folder: " & fileToOpen)
                 End If
 
                 If Not IO.File.Exists(fileToOpen) Then
@@ -1104,8 +1104,8 @@ Namespace Forms
         Private Sub SetupGearMenu()
             If _gearMenu Is Nothing Then Return
             _gearMenu.Items.Clear()
-            _gearMenu.Items.Add("[Debug] ดู Config ที่โหลดแล้ว", Nothing, AddressOf BtnConfigDebug_Click)
-            _gearMenu.Items.Add("[Test] แสดง RestartNoticeForm", Nothing, AddressOf BtnTestRestart_Click)
+            _gearMenu.Items.Add("[Debug] View loaded Config", Nothing, AddressOf BtnConfigDebug_Click)
+            _gearMenu.Items.Add("[Test] Show RestartNoticeForm", Nothing, AddressOf BtnTestRestart_Click)
         End Sub
 
         Private Sub BtnGear_Click(ByVal sender As Object, ByVal e As EventArgs)
@@ -1152,11 +1152,11 @@ Namespace Forms
                 End If
 
                 If String.IsNullOrEmpty(selectedType) Then
-                    MessageBox.Show("กรุณาเลือกประเภทการติดตั้ง (HE / LLE)", "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+                    MessageBox.Show("Please select installer type (HE / LLE)", "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning)
                     Return
                 End If
 
-                Dim result = MessageBox.Show(L("ConfirmUpdate") & vbCrLf & "ติดตั้งแบบ: " & selectedType, L("ConfirmTitle"), MessageBoxButtons.YesNo, MessageBoxIcon.Question)
+                Dim result = MessageBox.Show(L("ConfirmUpdate") & vbCrLf & "Install type: " & selectedType, L("ConfirmTitle"), MessageBoxButtons.YesNo, MessageBoxIcon.Question)
                 If result = DialogResult.Yes Then
                     _btnUpdateNow.Enabled = False
                     _btnUpdateNow.Text = L("Updating")

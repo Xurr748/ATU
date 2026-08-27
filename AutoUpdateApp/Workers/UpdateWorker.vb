@@ -1,4 +1,4 @@
-﻿Option Strict On
+Option Strict On
 Option Explicit On
 
 Imports System.ComponentModel
@@ -127,14 +127,14 @@ Namespace Workers
 
                     Managers.LogManager.Info("Application is up to date.")
                     _lastRunDate = DateTime.Now
-                    e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.NoAction, "โปรแกรมเป็นเวอร์ชันล่าสุดแล้ว (Up to Date)")
+                    e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.NoAction, "Already up to date")
                     Return
                 End If
 
                 Dim installerFolder As String = Managers.InstallerManager.GetInstallerPath(tester.TesterType)
                 If String.IsNullOrEmpty(installerFolder) OrElse Not IO.Directory.Exists(installerFolder) Then
                     Managers.LogManager.Warn("Installer folder not found on server: " & installerFolder)
-                    e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.Error, "ไม่พบไฟล์อัปเดต")
+                    e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.Error, "Installer files not found on server")
                     Return
                 End If
 

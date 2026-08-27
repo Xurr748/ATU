@@ -49,10 +49,10 @@ Namespace Config
                 Dim serverConfigPath As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "serverconfig.txt")
                 Dim realConfigPath As String = ""
                 
-                ' 1. อ่านไฟล์ serverconfig.txt เพื่อหาว่า config จริงอยู่ที่ไหน
+                ' 1. Read serverconfig.txt to find real config path
                 If File.Exists(serverConfigPath) Then
                     Try
-                        Dim lines As String() = File.ReadAllLines(serverConfigPath)
+                        Dim lines As String() = SafeReadAllLines(serverConfigPath)
                         For Each line As String In lines
                             Dim trimmed As String = line.Trim()
                             If trimmed.StartsWith(";") OrElse trimmed.StartsWith("#") Then Continue For
@@ -70,33 +70,33 @@ Namespace Config
                             End If
                         Next
                     Catch ex As Exception
-                        _configLoadStatus = "อ่านไฟล์ serverconfig.txt ล้มเหลว: " & ex.Message
+                        _configLoadStatus = "Failed to read serverconfig.txt: " & ex.Message
                         Return
                     End Try
                 Else
-                    _configLoadStatus = "ไม่พบไฟล์ระบุตำแหน่ง (serverconfig.txt) ที่: " & serverConfigPath
+                    _configLoadStatus = "serverconfig.txt not found at: " & serverConfigPath
                     Return
                 End If
 
                 If String.IsNullOrEmpty(realConfigPath) Then
-                    _configLoadStatus = "ไฟล์ serverconfig.txt ไม่มีบรรทัด ConfigPath=..."
+                    _configLoadStatus = "serverconfig.txt does not contain ConfigPath=..."
                     Return
                 End If
 
-                ' 2. ไปโหลด Config จริงจาก Path ที่ได้มา
+                ' 2. Load real Config from the specified Path
                 If Not File.Exists(realConfigPath) Then
-                    _configLoadStatus = "ไม่พบไฟล์ Config จริงที่: " & realConfigPath
+                    _configLoadStatus = "Real config file not found at: " & realConfigPath
                     Return
                 End If
 
                 Try
                     LoadSettingsFromFile(realConfigPath)
                     _configLoadedPath = realConfigPath
-                    _configLoadStatus = "โหลดสำเร็จ " & _settings.Count & " ค่า จาก: " & realConfigPath
+                    _configLoadStatus = "Loaded " & _settings.Count & " settings from: " & realConfigPath
 
-                    ' 3. อ่าน Language ที่เซฟไว้ใน serverconfig.txt (local) ทับค่าจาก server
+                    ' 3. Read Language override from serverconfig.txt (local)
                     Try
-                        Dim scLines As String() = File.ReadAllLines(serverConfigPath)
+                        Dim scLines As String() = SafeReadAllLines(serverConfigPath)
                         For Each scLine As String In scLines
                             Dim scTrimmed As String = scLine.Trim()
                             If scTrimmed.StartsWith(";") OrElse scTrimmed.StartsWith("#") Then Continue For
@@ -119,13 +119,13 @@ Namespace Config
                     End Try
 
                 Catch ex As Exception
-                    _configLoadStatus = "อ่านไฟล์ Config จริงล้มเหลว: " & ex.Message
+                    _configLoadStatus = "Failed to read real Config file: " & ex.Message
                 End Try
             End SyncLock
         End Sub
 
         Private Shared Sub LoadSettingsFromFile(filePath As String)
-            Dim lines As String() = File.ReadAllLines(filePath)
+            Dim lines As String() = SafeReadAllLines(filePath)
             For Each line As String In lines
                 Dim trimmed As String = line.Trim()
 
@@ -145,6 +145,28 @@ Namespace Config
                 End If
             Next
         End Sub
+
+        Private Shared Function SafeReadAllLines(filePath As String) As String()
+            For attempt As Integer = 1 To 5
+                Try
+                    Using fs As New FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)
+                        Using reader As New StreamReader(fs)
+                            Dim lines As New List(Of String)()
+                            Dim line As String = reader.ReadLine()
+                            While line IsNot Nothing
+                                lines.Add(line)
+                                line = reader.ReadLine()
+                            End While
+                            Return lines.ToArray()
+                        End Using
+                    End Using
+                Catch ex As IOException
+                    If attempt = 5 Then Throw
+                    Threading.Thread.Sleep(100 + (attempt * 50))
+                End Try
+            Next
+            Return New String() {}
+        End Function
 
         Private Shared Function GetSetting(key As String, Optional defaultValue As String = "") As String
             EnsureLoaded()
@@ -204,9 +226,9 @@ Namespace Config
 
         Private Shared Sub CheckKey(issues As List(Of String), keyName As String, currentValue As String, defaultValue As String)
             If String.IsNullOrEmpty(currentValue) Then
-                issues.Add("[ค่าว่าง] " & keyName & " = (ไม่มีค่า)")
+                issues.Add("[Empty] " & keyName & " = (no value)")
             ElseIf Not String.IsNullOrEmpty(defaultValue) AndAlso String.Equals(currentValue, defaultValue, StringComparison.OrdinalIgnoreCase) Then
-                issues.Add("[ค่าเริ่มต้น] " & keyName & " = " & currentValue & " (อาจยังไม่ได้ตั้งค่าจริง)")
+                issues.Add("[OK] " & keyName & " = " & currentValue & " (may not be set yet)")
             Else
                 issues.Add("[OK] " & keyName & " = " & currentValue)
             End If
@@ -215,7 +237,7 @@ Namespace Config
         Private Shared Sub CheckPathExists(issues As List(Of String), keyName As String, pathValue As String)
             If String.IsNullOrEmpty(pathValue) Then Return
             If Not File.Exists(pathValue) AndAlso Not IO.Directory.Exists(pathValue) Then
-                issues.Add("[หาไม่เจอ] " & keyName & " path ไม่มีอยู่จริง: " & pathValue)
+                issues.Add("[Warning] " & keyName & " path not found: " & pathValue)
             End If
         End Sub
 
@@ -386,7 +408,7 @@ Namespace Config
 
         Public Shared ReadOnly Property Language As String
             Get
-                Return GetSetting("Language", "th")
+                Return GetSetting("Language", "en")
             End Get
         End Property
 
@@ -397,7 +419,7 @@ Namespace Config
             SyncLock _lock
                 _settings("Language") = lang.ToLower()
 
-                ' บันทึกภาษาลง serverconfig.txt (ไฟล์ local ข้างๆ exe) ไม่ไปเขียนลง config บน server
+                ' Save to local serverconfig.txt instead of server config
                 Dim localPath As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "serverconfig.txt")
 
                 Try
@@ -423,13 +445,13 @@ Namespace Config
 
                     If Not found Then
                         lines.Add("")
-                        lines.Add("; ── ภาษาที่บันทึกจากการเปลี่ยนภาษา ──")
+                        lines.Add("; Language setting saved by app")
                         lines.Add("Language = " & lang.ToLower())
                     End If
 
                     File.WriteAllLines(localPath, lines.ToArray())
                 Catch ex As Exception
-                    Managers.LogManager.Warn("ไม่สามารถบันทึกภาษาลง serverconfig.txt ได้: " & ex.Message)
+                    Managers.LogManager.Warn("Failed to save to serverconfig.txt: " & ex.Message)
                 End Try
             End SyncLock
         End Sub

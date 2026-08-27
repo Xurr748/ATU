@@ -1,4 +1,4 @@
-﻿Option Strict On
+Option Strict On
 Option Explicit On
 
 Imports System.IO
@@ -16,7 +16,17 @@ Namespace Utilities
         Public Shared Function ReadAllLinesSafe(filePath As String, Optional maxRetries As Integer = 3) As String()
             For attempt As Integer = 1 To maxRetries
                 Try
-                    Return File.ReadAllLines(filePath)
+                    Using fs As New FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)
+                        Using reader As New StreamReader(fs)
+                            Dim lines As New System.Collections.Generic.List(Of String)()
+                            Dim line As String = reader.ReadLine()
+                            While line IsNot Nothing
+                                lines.Add(line)
+                                line = reader.ReadLine()
+                            End While
+                            Return lines.ToArray()
+                        End Using
+                    End Using
                 Catch ex As Exception
                     If attempt = maxRetries Then
                         Managers.LogManager.Warn("Failed to read lines from file: " & filePath & " - " & ex.Message)
@@ -31,7 +41,11 @@ Namespace Utilities
         Public Shared Function ReadAllTextSafe(filePath As String, Optional maxRetries As Integer = 3) As String
             For attempt As Integer = 1 To maxRetries
                 Try
-                    Return File.ReadAllText(filePath)
+                    Using fs As New FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)
+                        Using reader As New StreamReader(fs)
+                            Return reader.ReadToEnd()
+                        End Using
+                    End Using
                 Catch ex As Exception
                     If attempt = maxRetries Then
                         Managers.LogManager.Warn("Failed to read text from file: " & filePath & " - " & ex.Message)

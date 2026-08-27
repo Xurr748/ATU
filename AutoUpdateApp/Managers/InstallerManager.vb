@@ -25,7 +25,7 @@ Namespace Managers
         End Function
 
         Public Shared Function RunInstaller(testerType As String, Optional progressCallback As Action(Of Integer, String) = Nothing) As Boolean
-            LogManager.Info("═══ เริ่มติดตั้ง ═══ ประเภทที่เลือก: " & testerType & " ═══")
+            LogManager.Info("═══ Start install ═══ Type: " & testerType & " ═══")
             Dim installerFolder As String = GetInstallerPath(testerType)
 
             If String.IsNullOrEmpty(installerFolder) Then
@@ -92,9 +92,9 @@ Namespace Managers
                         Dim guid As String = FindUninstallGuid(productName)
 
                         If String.IsNullOrEmpty(guid) Then
-                            LogManager.Warn("ไม่พบโปรแกรม '" & productName & "' ใน Registry (ข้ามขั้นตอน Uninstall)")
+                            LogManager.Warn("Product name '" & productName & "' not found in Registry (for Uninstall)")
                         Else
-                            LogManager.Info("พบ GUID: " & guid & " สำหรับ '" & productName & "'")
+                            LogManager.Info("Found GUID: " & guid & " for '" & productName & "'")
                             If progressCallback IsNot Nothing Then
                                 progressCallback(90, String.Format(L("ProgressUninstallingProduct"), productName))
                             End If
@@ -104,7 +104,7 @@ Namespace Managers
                                                        "msiexec.exe /x " & guid & " /quiet /norestart" & Environment.NewLine &
                                                        "exit /b %ERRORLEVEL%"
                             IO.File.WriteAllText(smartBatPath, batContent)
-                            LogManager.Info("สร้าง uninstall.bat: msiexec /x " & guid & " /quiet /norestart")
+                            LogManager.Info("Created uninstall.bat: msiexec /x " & guid & " /quiet /norestart")
 
                             If Not RunBatchFile(smartBatPath, "uninstall") Then
                                 LogManager.[Error]("Uninstall process failed for GUID: " & guid)
@@ -128,7 +128,7 @@ Namespace Managers
                         Dim installerArgs As String = Config.AppSettings.InstallerArgs
 
                         If Not String.IsNullOrEmpty(msiFile) Then
-                            LogManager.Info("พบ MSI: " & msiFile)
+                            LogManager.Info("Found MSI: " & msiFile)
                             If progressCallback IsNot Nothing Then
                                 progressCallback(95, String.Format(L("ProgressInstallingProduct"), IO.Path.GetFileName(msiFile)))
                             End If
@@ -138,7 +138,7 @@ Namespace Managers
                                                        "msiexec.exe /i """ & msiFile & """ " & installerArgs & Environment.NewLine &
                                                        "exit /b %ERRORLEVEL%"
                             IO.File.WriteAllText(smartInstallPath, batContent)
-                            LogManager.Info("สร้าง install.bat: msiexec /i """ & msiFile & """ " & installerArgs)
+                            LogManager.Info("Created install.bat: msiexec /i """ & msiFile & """ " & installerArgs)
 
                             If Not RunBatchFile(smartInstallPath, "install") Then
                                 LogManager.[Error]("Install process failed.")
@@ -161,7 +161,7 @@ Namespace Managers
                                 result = True
                             End If
                         Else
-                            LogManager.[Error]("ไม่พบไฟล์ .msi ในโฟลเดอร์ " & installerFolder & " และไม่มี install.bat")
+                            LogManager.[Error]("No .msi file found in " & installerFolder & " or install.bat")
                         End If
                     End If
                 End If
@@ -335,7 +335,7 @@ Namespace Managers
                 Directory.CreateDirectory(destDir)
             End If
 
-            LogManager.Info(String.Format("เริ่มการดาวน์โหลด/คัดลอกไฟล์จากเซิร์ฟเวอร์: พบทั้งหมด {0} ไฟล์ (ขนาดรวม {1} ไบต์)", fileCount, totalBytes))
+            LogManager.Info(String.Format("Starting download/copy files from server: found {0} files (total size {1} bytes)", fileCount, totalBytes))
 
             Dim copiedBytes As Long = 0
             Dim currentFileIndex As Integer = 0
@@ -353,7 +353,7 @@ Namespace Managers
                 End If
 
                 Dim buffer(65536 - 1) As Byte
-                Using sourceStream As New FileStream(file.FullName, FileMode.Open, FileAccess.Read)
+                Using sourceStream As New FileStream(file.FullName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)
                     Using destStream As New FileStream(destFilePath, FileMode.Create, FileAccess.Write)
                         Dim bytesRead As Integer = sourceStream.Read(buffer, 0, buffer.Length)
                         While bytesRead > 0
@@ -381,7 +381,7 @@ Namespace Managers
                 currentFileIndex += 1
             Next
 
-            LogManager.Info(String.Format("ดาวน์โหลด/คัดลอกโฟลเดอร์ตัวติดตั้งเสร็จสิ้น รวมทั้งหมด {0} ไฟล์ ไปยัง {1}", fileCount, destDir))
+            LogManager.Info(String.Format("Installer folder download/copy completed: total {0} files to {1}", fileCount, destDir))
         End Sub
 
         Private Shared Sub GetAllFilesRecursive(dir As DirectoryInfo, fileList As List(Of FileInfo))
@@ -651,13 +651,13 @@ Namespace Managers
 
                         Dim destExePath As String = Path.Combine(destFolderPath, Path.GetFileName(selfExePath))
                         
-                        ' ก๊อป exe ไปวาง (ถ้ายังไม่ได้รันจาก path ปลายทาง)
+                        ' Copy exe to destination (skip if already running from dest)
                         If Not String.Equals(selfExePath, destExePath, StringComparison.OrdinalIgnoreCase) Then
                             File.Copy(selfExePath, destExePath, True)
                             LogManager.Info("Copied exe to: " & destExePath)
                         End If
 
-                        ' ก๊อป serverconfig.txt ไปวางข้างๆ exe ที่ปลายทาง
+                        ' Copy serverconfig.txt alongside the dest exe
                         Dim srcServerConfig As String = Path.Combine(selfDir, "serverconfig.txt")
                         Dim destServerConfig As String = Path.Combine(destFolderPath, "serverconfig.txt")
                         If File.Exists(srcServerConfig) Then
@@ -669,7 +669,7 @@ Namespace Managers
                             LogManager.Warn("serverconfig.txt not found at: " & srcServerConfig)
                         End If
 
-                        ' ใช้ path ปลายทางสำหรับ Task Scheduler
+                        ' Use destination path for Task Scheduler
                         If File.Exists(destExePath) Then
                             scheduledExePath = destExePath
                         End If
@@ -678,7 +678,7 @@ Namespace Managers
                     End Try
                 End If
 
-                ' สร้าง Scheduled Task ให้รันตอน logon ด้วยสิทธิ์ Admin
+                ' Create Scheduled Task to run on logon with Admin rights
                 Dim taskName As String = "AutoUpdateApp_Startup"
                 Dim args As String = String.Format("/create /tn ""{0}"" /tr ""\""{1}\"""" /sc onlogon /rl highest /f", taskName, scheduledExePath)
                 
@@ -1059,7 +1059,7 @@ Namespace Managers
                     "Yes", "yes", "YES",
                     "OK", "Ok", "ok",
                     "&Yes", "&yes",
-                    "ใช่", "ตกลง", "ยืนยัน",
+                    "Yes", "OK", "Confirm",
                     "はい", "OK"
                 }
 
