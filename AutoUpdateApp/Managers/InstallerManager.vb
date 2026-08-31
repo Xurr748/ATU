@@ -651,8 +651,27 @@ Namespace Managers
 
                         Dim destExePath As String = Path.Combine(destFolderPath, Path.GetFileName(selfExePath))
                         
+                        ' Clean up old .old files in destination
+                        Try
+                            For Each oldFile In Directory.GetFiles(destFolderPath, "*.old")
+                                Try
+                                    File.Delete(oldFile)
+                                Catch
+                                End Try
+                            Next
+                        Catch
+                        End Try
+
                         ' Copy exe to destination (skip if already running from dest)
                         If Not String.Equals(selfExePath, destExePath, StringComparison.OrdinalIgnoreCase) Then
+                            If File.Exists(destExePath) Then
+                                Try
+                                    ' Rename existing to avoid file in use error
+                                    Dim backupPath As String = destExePath & "." & Guid.NewGuid().ToString("N") & ".old"
+                                    File.Move(destExePath, backupPath)
+                                Catch
+                                End Try
+                            End If
                             File.Copy(selfExePath, destExePath, True)
                             LogManager.Info("Copied exe to: " & destExePath)
                         End If
@@ -662,6 +681,14 @@ Namespace Managers
                         Dim destServerConfig As String = Path.Combine(destFolderPath, "serverconfig.txt")
                         If File.Exists(srcServerConfig) Then
                             If Not String.Equals(srcServerConfig, destServerConfig, StringComparison.OrdinalIgnoreCase) Then
+                                If File.Exists(destServerConfig) Then
+                                    Try
+                                        ' Rename existing to avoid file in use error
+                                        Dim backupPath As String = destServerConfig & "." & Guid.NewGuid().ToString("N") & ".old"
+                                        File.Move(destServerConfig, backupPath)
+                                    Catch
+                                    End Try
+                                End If
                                 File.Copy(srcServerConfig, destServerConfig, True)
                                 LogManager.Info("Copied serverconfig.txt to: " & destServerConfig)
                             End If
