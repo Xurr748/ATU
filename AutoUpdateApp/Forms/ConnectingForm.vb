@@ -91,6 +91,10 @@ Namespace Forms
                 _retryTimer.Stop()
                 Managers.LogManager.Info("Server config loaded on attempt " & _attemptCount.ToString())
                 Me.Close()
+            ElseIf Config.AppSettings.IsLocalConfigError Then
+                _retryTimer.Stop()
+                Managers.LogManager.Info("Local config error (will not retry): " & Config.AppSettings.LoadStatus)
+                Me.Close()
             Else
                 Dim status As String = Config.AppSettings.LoadStatus
                 Managers.LogManager.Info("Server connection attempt " & _attemptCount.ToString() & " failed: " & status)

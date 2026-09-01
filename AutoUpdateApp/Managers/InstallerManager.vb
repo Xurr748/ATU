@@ -664,16 +664,19 @@ Namespace Managers
 
                         ' Copy exe to destination (skip if already running from dest)
                         If Not String.Equals(selfExePath, destExePath, StringComparison.OrdinalIgnoreCase) Then
-                            If File.Exists(destExePath) Then
-                                Try
-                                    ' Rename existing to avoid file in use error
-                                    Dim backupPath As String = destExePath & "." & Guid.NewGuid().ToString("N") & ".old"
-                                    File.Move(destExePath, backupPath)
-                                Catch
-                                End Try
-                            End If
-                            File.Copy(selfExePath, destExePath, True)
-                            LogManager.Info("Copied exe to: " & destExePath)
+                            Try
+                                If File.Exists(destExePath) Then
+                                    Try
+                                        Dim backupPath As String = destExePath & "." & Guid.NewGuid().ToString("N") & ".old"
+                                        File.Move(destExePath, backupPath)
+                                    Catch
+                                    End Try
+                                End If
+                                File.Copy(selfExePath, destExePath, True)
+                                LogManager.Info("Copied exe to: " & destExePath)
+                            Catch exCopy As Exception
+                                LogManager.Warn("Could not copy exe (file may be in use): " & exCopy.Message)
+                            End Try
                         End If
 
                         ' Copy serverconfig.txt alongside the dest exe
@@ -681,16 +684,19 @@ Namespace Managers
                         Dim destServerConfig As String = Path.Combine(destFolderPath, "serverconfig.txt")
                         If File.Exists(srcServerConfig) Then
                             If Not String.Equals(srcServerConfig, destServerConfig, StringComparison.OrdinalIgnoreCase) Then
-                                If File.Exists(destServerConfig) Then
-                                    Try
-                                        ' Rename existing to avoid file in use error
-                                        Dim backupPath As String = destServerConfig & "." & Guid.NewGuid().ToString("N") & ".old"
-                                        File.Move(destServerConfig, backupPath)
-                                    Catch
-                                    End Try
-                                End If
-                                File.Copy(srcServerConfig, destServerConfig, True)
-                                LogManager.Info("Copied serverconfig.txt to: " & destServerConfig)
+                                Try
+                                    If File.Exists(destServerConfig) Then
+                                        Try
+                                            Dim backupPath As String = destServerConfig & "." & Guid.NewGuid().ToString("N") & ".old"
+                                            File.Move(destServerConfig, backupPath)
+                                        Catch
+                                        End Try
+                                    End If
+                                    File.Copy(srcServerConfig, destServerConfig, True)
+                                    LogManager.Info("Copied serverconfig.txt to: " & destServerConfig)
+                                Catch exCopy As Exception
+                                    LogManager.Warn("Could not copy serverconfig.txt (file may be in use): " & exCopy.Message)
+                                End Try
                             End If
                         Else
                             LogManager.Warn("serverconfig.txt not found at: " & srcServerConfig)

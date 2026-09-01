@@ -11,6 +11,7 @@ Namespace Config
         Private Shared _settings As Dictionary(Of String, String)
         Private Shared _configLoadedPath As String = ""
         Private Shared _configLoadStatus As String = ""
+        Private Shared _isLocalError As Boolean = False
 
         Private Sub New()
         End Sub
@@ -36,6 +37,13 @@ Namespace Config
             End Get
         End Property
 
+        Public Shared ReadOnly Property IsLocalConfigError As Boolean
+            Get
+                EnsureLoaded()
+                Return _isLocalError
+            End Get
+        End Property
+
         Private Shared Sub EnsureLoaded()
             If _settings IsNot Nothing Then Return
 
@@ -45,6 +53,7 @@ Namespace Config
                 _settings = New Dictionary(Of String, String)(StringComparer.OrdinalIgnoreCase)
                 _configLoadedPath = ""
                 _configLoadStatus = ""
+                _isLocalError = False
 
                 Dim serverConfigPath As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "serverconfig.txt")
                 Dim realConfigPath As String = ""
@@ -71,24 +80,25 @@ Namespace Config
                         Next
                     Catch ex As Exception
                         _configLoadStatus = "Failed to read serverconfig.txt: " & ex.Message
+                        _isLocalError = True
                         Return
                     End Try
                 Else
                     _configLoadStatus = "serverconfig.txt not found at: " & serverConfigPath
+                    _isLocalError = True
                     Return
                 End If
 
                 If String.IsNullOrEmpty(realConfigPath) Then
                     _configLoadStatus = "serverconfig.txt does not contain ConfigPath=..."
+                    _isLocalError = True
                     Return
                 End If
 
                 ' 2. Load real Config from the specified Path
-                If Not File.Exists(realConfigPath) Then
-                    _configLoadStatus = "Real config file not found at: " & realConfigPath
-                    Return
-                End If
-
+                '    Do NOT use File.Exists() for network paths - it returns false
+                '    on UNC paths when WiFi/network is not ready yet.
+                '    Instead, try to read directly and catch exceptions.
                 Try
                     LoadSettingsFromFile(realConfigPath)
                     _configLoadedPath = realConfigPath
@@ -119,7 +129,7 @@ Namespace Config
                     End Try
 
                 Catch ex As Exception
-                    _configLoadStatus = "Failed to read real Config file: " & ex.Message
+                    _configLoadStatus = "Server config unreachable: " & realConfigPath & " - " & ex.Message
                 End Try
             End SyncLock
         End Sub
@@ -402,6 +412,7 @@ Namespace Config
                 _settings = Nothing
                 _configLoadedPath = ""
                 _configLoadStatus = ""
+                _isLocalError = False
             End SyncLock
         End Sub
 
