@@ -1,4 +1,4 @@
-﻿Option Strict On
+Option Strict On
 Option Explicit On
 
 Imports System.IO
@@ -59,24 +59,43 @@ Namespace Managers
         End Sub
 
         Private Shared Sub WriteLog(level As String, message As String)
-            Try
-                Dim sb As New StringBuilder(128)
-                sb.Append("["c)
-                sb.Append(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"))
-                sb.Append("] [")
-                sb.Append(level)
-                sb.Append("] ")
-                sb.AppendLine(message)
+            Dim sb As New StringBuilder(128)
+            sb.Append("["c)
+            sb.Append(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"))
+            sb.Append("] [")
+            sb.Append(level)
+            sb.Append("] ")
+            sb.AppendLine(message)
 
-                SyncLock _lock
+            Dim text As String = sb.ToString()
+
+            SyncLock _lock
+                Try
                     Dim dir As String = LogDirectory
                     If Not Directory.Exists(dir) Then
                         Directory.CreateDirectory(dir)
                     End If
-                    File.AppendAllText(LogsFilePath, sb.ToString())
-                End SyncLock
-            Catch
-            End Try
+                    AppendTextSafe(LogsFilePath, text)
+                Catch
+                    Try
+                        Dim fallbackDir As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs")
+                        If Not Directory.Exists(fallbackDir) Then
+                            Directory.CreateDirectory(fallbackDir)
+                        End If
+                        Dim fallbackFile As String = Path.Combine(fallbackDir, "AutoUpdate_Log.txt")
+                        AppendTextSafe(fallbackFile, text)
+                    Catch
+                        System.Diagnostics.Debug.Write(text)
+                    End Try
+                End Try
+            End SyncLock
+        End Sub
+
+        Private Shared Sub AppendTextSafe(filePath As String, text As String)
+            Using fs As New FileStream(filePath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite)
+                Dim bytes As Byte() = Encoding.UTF8.GetBytes(text)
+                fs.Write(bytes, 0, bytes.Length)
+            End Using
         End Sub
 
         Public Shared Sub LogIPAddress()
@@ -93,15 +112,23 @@ Namespace Managers
 
                     Dim lastIP As String = ""
                     If File.Exists(filePath) Then
-                        Dim content As String = File.ReadAllText(filePath).Trim()
-                        Dim lines As String() = content.Split(New String() {Environment.NewLine}, StringSplitOptions.RemoveEmptyEntries)
-                        If lines.Length > 0 Then
-                            Dim lastLine As String = lines(lines.Length - 1).Trim()
-                            Dim bracketEnd As Integer = lastLine.IndexOf("] ")
-                            If bracketEnd >= 0 AndAlso bracketEnd + 2 < lastLine.Length Then
-                                lastIP = lastLine.Substring(bracketEnd + 2).Trim()
+                        Try
+                            Dim content As String = ""
+                            Using fs As New FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)
+                                Using reader As New StreamReader(fs, Encoding.UTF8)
+                                    content = reader.ReadToEnd().Trim()
+                                End Using
+                            End Using
+                            Dim lines As String() = content.Split(New String() {vbCrLf, vbLf, vbCr}, StringSplitOptions.RemoveEmptyEntries)
+                            If lines.Length > 0 Then
+                                Dim lastLine As String = lines(lines.Length - 1).Trim()
+                                Dim bracketEnd As Integer = lastLine.IndexOf("] ")
+                                If bracketEnd >= 0 AndAlso bracketEnd + 2 < lastLine.Length Then
+                                    lastIP = lastLine.Substring(bracketEnd + 2).Trim()
+                                End If
                             End If
-                        End If
+                        Catch
+                        End Try
                     End If
 
                     If Not String.Equals(lastIP, currentIP, StringComparison.OrdinalIgnoreCase) Then
@@ -110,7 +137,7 @@ Namespace Managers
                         sb.Append(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"))
                         sb.Append("] ")
                         sb.AppendLine(currentIP)
-                        File.AppendAllText(filePath, sb.ToString())
+                        AppendTextSafe(filePath, sb.ToString())
                     End If
                 End SyncLock
             Catch
