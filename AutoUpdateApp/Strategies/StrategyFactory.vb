@@ -1,4 +1,4 @@
-﻿Option Strict On
+Option Strict On
 Option Explicit On
 
 Imports System.Windows.Forms
@@ -11,7 +11,12 @@ Namespace Strategies
         End Sub
 
         Public Shared Function Create(mode As String, Optional invokeControl As Control = Nothing) As IUpdateStrategy
-            Select Case mode.ToUpperInvariant()
+            If String.IsNullOrWhiteSpace(mode) Then
+                Managers.LogManager.Warn("Mode is null or empty. Defaulting to EVA (standby).")
+                Return New EvaStrategy()
+            End If
+
+            Select Case mode.Trim().ToUpperInvariant()
                 Case "EVA"
                     Return New EvaStrategy()
                 Case "NORMAL"

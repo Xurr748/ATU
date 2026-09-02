@@ -1,6 +1,7 @@
 Option Strict On
 Option Explicit On
 
+Imports System.Diagnostics
 Imports System.Threading
 Imports System.Windows.Forms
 
@@ -25,18 +26,31 @@ Module Program
 
                 If Not Config.AppSettings.IsLoaded Then
                     Managers.LogManager.Info("Config not loaded on first attempt. Showing connecting form...")
-                    Dim connectForm As New Forms.ConnectingForm()
-                    connectForm.ShowDialog()
+                    Using connectForm As New Forms.ConnectingForm()
+                        connectForm.ShowDialog()
 
-                    If Not connectForm.Connected Then
-                        Dim msg As String = "Failed to load Config!" & Environment.NewLine & _
-                                            Config.AppSettings.LoadStatus & Environment.NewLine & Environment.NewLine & _
-                                            "Please check that:" & Environment.NewLine & _
-                                            "1) serverconfig.txt is located next to the exe and contains ConfigPath=..." & Environment.NewLine & _
-                                            "2) The specified config.txt file exists on the Server"
-                        Managers.LogManager.[Error](msg)
-                        MessageBox.Show(msg, "Config Error", MessageBoxButtons.OK, MessageBoxIcon.Warning)
-                    End If
+                        If connectForm.ShouldRestart Then
+                            Managers.LogManager.Info("Connection timed out. Restarting application...")
+                            Try
+                                Dim selfExe As String = System.Reflection.Assembly.GetExecutingAssembly().Location
+                                Process.Start(selfExe)
+                            Catch ex As Exception
+                                Managers.LogManager.[Error]("Failed to restart: " & ex.Message)
+                            End Try
+                            Return
+                        End If
+
+                        If Not connectForm.Connected Then
+                            Dim msg As String = "Failed to load Config!" & Environment.NewLine & _
+                                                Config.AppSettings.LoadStatus & Environment.NewLine & Environment.NewLine & _
+                                                "Please check that:" & Environment.NewLine & _
+                                                "1) serverconfig.txt is located next to the exe and contains ConfigPath=..." & Environment.NewLine & _
+                                                "2) The specified config.txt file exists on the Server"
+                            Managers.LogManager.[Error](msg)
+                            MessageBox.Show(msg, "Config Error", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+                            Return
+                        End If
+                    End Using
                 End If
 
                 For Each issue As String In Config.AppSettings.ValidateConfig()

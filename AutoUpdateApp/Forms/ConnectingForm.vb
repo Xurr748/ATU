@@ -4,20 +4,23 @@ Option Explicit On
 Imports System.Windows.Forms
 Imports System.Drawing
 Imports System.ComponentModel
+Imports System.Threading
 
 Namespace Forms
     Public Class ConnectingForm
         Inherits Form
 
         Private _lblStatus As Label
-        Private _lblDetail As Label
-        Private _progressBar As ProgressBar
-        Private _retryTimer As Timer
-        Private _attemptCount As Integer = 0
-        Private Const RetryIntervalMs As Integer = 5000
-        Private Const MaxAttempts As Integer = 0
+        Private _lblCountdown As Label
+        Private _countdownTimer As System.Windows.Forms.Timer
+        Private _worker As BackgroundWorker
+        Private _secondsLeft As Integer = 60
+        Private _isConnecting As Boolean = False
+        Private _closing As Boolean = False
+        Private Const TimeoutSeconds As Integer = 60
 
         Public Property Connected As Boolean = False
+        Public Property ShouldRestart As Boolean = False
 
         Public Sub New()
             InitializeComponent()
@@ -25,9 +28,9 @@ Namespace Forms
 
         Private Sub InitializeComponent()
             Me._lblStatus = New Label()
-            Me._lblDetail = New Label()
-            Me._progressBar = New ProgressBar()
-            Me._retryTimer = New Timer()
+            Me._lblCountdown = New Label()
+            Me._countdownTimer = New System.Windows.Forms.Timer()
+            Me._worker = New BackgroundWorker()
             Me.SuspendLayout()
 
             Me._lblStatus.Font = New Font("Segoe UI", 12.0!, FontStyle.Regular, GraphicsUnit.Point, CType(0, Byte))
@@ -38,30 +41,26 @@ Namespace Forms
             Me._lblStatus.Text = "Connecting to server. Please wait..."
             Me._lblStatus.TextAlign = ContentAlignment.MiddleCenter
 
-            Me._progressBar.Location = New Point(20, 55)
-            Me._progressBar.Name = "progressBar"
-            Me._progressBar.Size = New Size(460, 25)
-            Me._progressBar.Style = ProgressBarStyle.Marquee
-            Me._progressBar.MarqueeAnimationSpeed = 30
-            Me._progressBar.TabIndex = 1
+            Me._lblCountdown.Font = New Font("Segoe UI", 36.0!, FontStyle.Bold, GraphicsUnit.Point, CType(0, Byte))
+            Me._lblCountdown.ForeColor = Color.FromArgb(60, 60, 60)
+            Me._lblCountdown.Location = New Point(20, 50)
+            Me._lblCountdown.Name = "lblCountdown"
+            Me._lblCountdown.Size = New Size(460, 60)
+            Me._lblCountdown.TabIndex = 1
+            Me._lblCountdown.Text = "60"
+            Me._lblCountdown.TextAlign = ContentAlignment.MiddleCenter
 
-            Me._lblDetail.Font = New Font("Segoe UI", 8.5!, FontStyle.Italic, GraphicsUnit.Point, CType(0, Byte))
-            Me._lblDetail.ForeColor = Color.FromArgb(100, 100, 100)
-            Me._lblDetail.Location = New Point(20, 88)
-            Me._lblDetail.Name = "lblDetail"
-            Me._lblDetail.Size = New Size(460, 20)
-            Me._lblDetail.TabIndex = 2
-            Me._lblDetail.Text = "Waiting for server..."
-            Me._lblDetail.TextAlign = ContentAlignment.MiddleCenter
+            Me._countdownTimer.Interval = 1000
 
-            Me._retryTimer.Interval = RetryIntervalMs
+            Me._worker.WorkerSupportsCancellation = True
+            AddHandler Me._worker.DoWork, AddressOf Worker_DoWork
+            AddHandler Me._worker.RunWorkerCompleted, AddressOf Worker_Completed
 
             Me.AutoScaleDimensions = New SizeF(6.0!, 13.0!)
             Me.AutoScaleMode = AutoScaleMode.Font
             Me.ClientSize = New Size(500, 120)
-            Me.Controls.Add(Me._progressBar)
+            Me.Controls.Add(Me._lblCountdown)
             Me.Controls.Add(Me._lblStatus)
-            Me.Controls.Add(Me._lblDetail)
             Me.FormBorderStyle = FormBorderStyle.FixedDialog
             Me.MaximizeBox = False
             Me.MinimizeBox = False
@@ -72,44 +71,82 @@ Namespace Forms
             Me.TopMost = True
 
             AddHandler Me.Load, AddressOf ConnectingForm_Load
-            AddHandler Me._retryTimer.Tick, AddressOf RetryTimer_Tick
+            AddHandler Me._countdownTimer.Tick, AddressOf CountdownTimer_Tick
             Me.ResumeLayout(False)
         End Sub
 
         Private Sub ConnectingForm_Load(sender As Object, e As EventArgs)
-            TryConnect()
+            _secondsLeft = TimeoutSeconds
+            _lblCountdown.Text = _secondsLeft.ToString()
+            _countdownTimer.Start()
+            StartBackgroundConnect()
         End Sub
 
-        Private Sub TryConnect()
-            _attemptCount += 1
-            _lblDetail.Text = "Attempt " & _attemptCount.ToString() & "..."
+        Private Sub StartBackgroundConnect()
+            If _closing Then Return
+            If _worker.IsBusy Then Return
+            _isConnecting = True
+            _worker.RunWorkerAsync()
+        End Sub
 
+        Private Sub Worker_DoWork(sender As Object, e As DoWorkEventArgs)
             Config.AppSettings.Reload()
+            Dim dummy As Boolean = Config.AppSettings.IsLoaded
+        End Sub
+
+        Private Sub Worker_Completed(sender As Object, e As RunWorkerCompletedEventArgs)
+            _isConnecting = False
+            If _closing Then Return
 
             If Config.AppSettings.IsLoaded Then
                 Connected = True
-                _retryTimer.Stop()
-                Managers.LogManager.Info("Server config loaded on attempt " & _attemptCount.ToString())
+                _countdownTimer.Stop()
+                Managers.LogManager.Info("Server config loaded successfully.")
+                _closing = True
                 Me.Close()
-            ElseIf Config.AppSettings.IsLocalConfigError Then
-                _retryTimer.Stop()
+                Return
+            End If
+
+            If Config.AppSettings.IsLocalConfigError Then
+                _countdownTimer.Stop()
                 Managers.LogManager.Info("Local config error (will not retry): " & Config.AppSettings.LoadStatus)
+                _closing = True
                 Me.Close()
-            Else
-                Dim status As String = Config.AppSettings.LoadStatus
-                Managers.LogManager.Info("Server connection attempt " & _attemptCount.ToString() & " failed: " & status)
-                _lblDetail.Text = "Attempt " & _attemptCount.ToString() & " - Retrying in " & (RetryIntervalMs \ 1000).ToString() & "s..."
-                _retryTimer.Start()
+                Return
+            End If
+
+            Dim status As String = Config.AppSettings.LoadStatus
+            Managers.LogManager.Info("Server connection failed: " & status)
+
+            If _secondsLeft > 0 Then
+                _lblStatus.Text = "Connecting to server. Please wait..."
             End If
         End Sub
 
-        Private Sub RetryTimer_Tick(sender As Object, e As EventArgs)
-            _retryTimer.Stop()
-            TryConnect()
+        Private Sub CountdownTimer_Tick(sender As Object, e As EventArgs)
+            _secondsLeft -= 1
+            If _secondsLeft >= 0 Then
+                _lblCountdown.Text = _secondsLeft.ToString()
+            End If
+
+            If _secondsLeft <= 0 Then
+                _countdownTimer.Stop()
+                If Connected Then Return
+
+                Managers.LogManager.Info("Connection timeout after " & TimeoutSeconds.ToString() & "s. Will restart app.")
+                ShouldRestart = True
+                _closing = True
+                Me.Close()
+                Return
+            End If
+
+            If Not _isConnecting AndAlso Not Connected AndAlso Not _closing Then
+                StartBackgroundConnect()
+            End If
         End Sub
 
         Protected Overrides Sub OnFormClosing(e As FormClosingEventArgs)
-            If Not Connected AndAlso e.CloseReason = CloseReason.UserClosing Then
+            If Not _closing AndAlso e.CloseReason = CloseReason.UserClosing Then
                 e.Cancel = True
                 Return
             End If
@@ -118,11 +155,18 @@ Namespace Forms
 
         Protected Overrides Sub Dispose(disposing As Boolean)
             If disposing Then
-                If _retryTimer IsNot Nothing Then
-                    _retryTimer.Stop()
-                    RemoveHandler _retryTimer.Tick, AddressOf RetryTimer_Tick
-                    _retryTimer.Dispose()
-                    _retryTimer = Nothing
+                _closing = True
+                If _countdownTimer IsNot Nothing Then
+                    _countdownTimer.Stop()
+                    RemoveHandler _countdownTimer.Tick, AddressOf CountdownTimer_Tick
+                    _countdownTimer.Dispose()
+                    _countdownTimer = Nothing
+                End If
+                If _worker IsNot Nothing Then
+                    RemoveHandler _worker.DoWork, AddressOf Worker_DoWork
+                    RemoveHandler _worker.RunWorkerCompleted, AddressOf Worker_Completed
+                    _worker.Dispose()
+                    _worker = Nothing
                 End If
             End If
             MyBase.Dispose(disposing)
