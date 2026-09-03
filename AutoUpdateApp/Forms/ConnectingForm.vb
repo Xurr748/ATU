@@ -139,6 +139,20 @@ Namespace Forms
                 _lblCountdown.Text = _secondsLeft.ToString()
             End If
 
+            If Not Connected AndAlso Not _closing Then
+                Try
+                    If Config.AppSettings.IsLoaded Then
+                        Connected = True
+                        _countdownTimer.Stop()
+                        Managers.LogManager.Info("Server config loaded (failsafe check). Closing connecting form.")
+                        _closing = True
+                        Me.Close()
+                        Return
+                    End If
+                Catch
+                End Try
+            End If
+
             If _secondsLeft <= 0 Then
                 _countdownTimer.Stop()
                 If Connected Then Return
