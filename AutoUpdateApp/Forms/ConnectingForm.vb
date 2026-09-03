@@ -91,36 +91,46 @@ Namespace Forms
 
         Private Sub Worker_DoWork(sender As Object, e As DoWorkEventArgs)
             Config.AppSettings.Reload()
-            Dim dummy As Boolean = Config.AppSettings.IsLoaded
+
+            Dim loaded As Boolean = Config.AppSettings.IsLoaded
+            Dim isLocal As Boolean = Config.AppSettings.IsLocalConfigError
+            Dim status As String = Config.AppSettings.LoadStatus
+
+            e.Result = New String() {loaded.ToString(), isLocal.ToString(), status}
         End Sub
 
         Private Sub Worker_Completed(sender As Object, e As RunWorkerCompletedEventArgs)
             _isConnecting = False
             If _closing Then Return
 
-            If Config.AppSettings.IsLoaded Then
+            If e.Error IsNot Nothing Then
+                Managers.LogManager.Info("Connection attempt error: " & e.Error.Message)
+                Return
+            End If
+
+            Dim resultArr As String() = DirectCast(e.Result, String())
+            Dim loaded As Boolean = Boolean.Parse(resultArr(0))
+            Dim isLocal As Boolean = Boolean.Parse(resultArr(1))
+            Dim status As String = resultArr(2)
+
+            If loaded Then
                 Connected = True
                 _countdownTimer.Stop()
-                Managers.LogManager.Info("Server config loaded successfully.")
+                Managers.LogManager.Info("Server config loaded successfully. Status: " & status)
                 _closing = True
                 Me.Close()
                 Return
             End If
 
-            If Config.AppSettings.IsLocalConfigError Then
+            If isLocal Then
                 _countdownTimer.Stop()
-                Managers.LogManager.Info("Local config error (will not retry): " & Config.AppSettings.LoadStatus)
+                Managers.LogManager.Info("Local config error (will not retry): " & status)
                 _closing = True
                 Me.Close()
                 Return
             End If
 
-            Dim status As String = Config.AppSettings.LoadStatus
             Managers.LogManager.Info("Server connection failed: " & status)
-
-            If _secondsLeft > 0 Then
-                _lblStatus.Text = "Connecting to server. Please wait..."
-            End If
         End Sub
 
         Private Sub CountdownTimer_Tick(sender As Object, e As EventArgs)
@@ -146,7 +156,7 @@ Namespace Forms
         End Sub
 
         Protected Overrides Sub OnFormClosing(e As FormClosingEventArgs)
-            If Not _closing AndAlso e.CloseReason = CloseReason.UserClosing Then
+            If Not _closing AndAlso Not Connected Then
                 e.Cancel = True
                 Return
             End If
