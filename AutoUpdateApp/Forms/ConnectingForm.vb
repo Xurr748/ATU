@@ -14,7 +14,7 @@ Namespace Forms
         Private _lblCountdown As Label
         Private _countdownTimer As System.Windows.Forms.Timer
         Private _worker As BackgroundWorker
-        Private _secondsLeft As Integer = 60
+        Private _secondsElapsed As Integer = 0
         Private _isConnecting As Boolean = False
         Private _closing As Boolean = False
         Private Const TimeoutSeconds As Integer = 60
@@ -76,8 +76,8 @@ Namespace Forms
         End Sub
 
         Private Sub ConnectingForm_Load(sender As Object, e As EventArgs)
-            _secondsLeft = TimeoutSeconds
-            _lblCountdown.Text = _secondsLeft.ToString()
+            _secondsElapsed = 0
+            _lblCountdown.Text = "0"
             _countdownTimer.Start()
             StartBackgroundConnect()
         End Sub
@@ -134,10 +134,8 @@ Namespace Forms
         End Sub
 
         Private Sub CountdownTimer_Tick(sender As Object, e As EventArgs)
-            _secondsLeft -= 1
-            If _secondsLeft >= 0 Then
-                _lblCountdown.Text = _secondsLeft.ToString()
-            End If
+            _secondsElapsed += 1
+            _lblCountdown.Text = _secondsElapsed.ToString()
 
             If Not Connected AndAlso Not _closing Then
                 Try
@@ -153,7 +151,7 @@ Namespace Forms
                 End Try
             End If
 
-            If _secondsLeft <= 0 Then
+            If _secondsElapsed >= TimeoutSeconds Then
                 _countdownTimer.Stop()
                 If Connected Then Return
 
