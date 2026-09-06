@@ -19,28 +19,36 @@ Namespace Config
         Public Shared ReadOnly Property LoadedConfigPath As String
             Get
                 EnsureLoaded()
-                Return _configLoadedPath
+                SyncLock _lock
+                    Return _configLoadedPath
+                End SyncLock
             End Get
         End Property
 
         Public Shared ReadOnly Property LoadStatus As String
             Get
                 EnsureLoaded()
-                Return _configLoadStatus
+                SyncLock _lock
+                    Return _configLoadStatus
+                End SyncLock
             End Get
         End Property
 
         Public Shared ReadOnly Property IsLoaded As Boolean
             Get
                 EnsureLoaded()
-                Return Not String.IsNullOrEmpty(_configLoadedPath)
+                SyncLock _lock
+                    Return Not String.IsNullOrEmpty(_configLoadedPath)
+                End SyncLock
             End Get
         End Property
 
         Public Shared ReadOnly Property IsLocalConfigError As Boolean
             Get
                 EnsureLoaded()
-                Return _isLocalError
+                SyncLock _lock
+                    Return _isLocalError
+                End SyncLock
             End Get
         End Property
 
@@ -103,6 +111,7 @@ Namespace Config
                     LoadSettingsFromFile(realConfigPath)
                     _configLoadedPath = realConfigPath
                     _configLoadStatus = "Loaded " & _settings.Count & " settings from: " & realConfigPath
+                    Managers.LogManager.Info("CONFIG_LOADED: " & _settings.Count.ToString() & " settings from " & realConfigPath)
 
                     ' 3. Read Language override from serverconfig.txt (local)
                     Try

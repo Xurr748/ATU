@@ -163,6 +163,32 @@ Namespace Managers
             End SyncLock
         End Sub
 
+        Public Shared Function LogContains(keyword As String) As Boolean
+            Try
+                Dim filePath As String = LogsFilePath
+                If SearchFileForKeyword(filePath, keyword) Then Return True
+
+                Dim fallbackFile As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs", "AutoUpdate_Log.txt")
+                If SearchFileForKeyword(fallbackFile, keyword) Then Return True
+            Catch
+            End Try
+            Return False
+        End Function
+
+        Private Shared Function SearchFileForKeyword(filePath As String, keyword As String) As Boolean
+            Try
+                If Not File.Exists(filePath) Then Return False
+                Using fs As New FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)
+                    Using reader As New StreamReader(fs, Encoding.UTF8)
+                        Dim content As String = reader.ReadToEnd()
+                        Return content.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) >= 0
+                    End Using
+                End Using
+            Catch
+                Return False
+            End Try
+        End Function
+
     End Class
 
 End Namespace

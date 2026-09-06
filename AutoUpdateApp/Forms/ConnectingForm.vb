@@ -138,17 +138,27 @@ Namespace Forms
             _lblCountdown.Text = _secondsElapsed.ToString()
 
             If Not Connected AndAlso Not _closing Then
+                Dim configReady As Boolean = False
                 Try
-                    If Config.AppSettings.IsLoaded Then
-                        Connected = True
-                        _countdownTimer.Stop()
-                        Managers.LogManager.Info("Server config loaded (failsafe check). Closing connecting form.")
-                        _closing = True
-                        Me.Close()
-                        Return
-                    End If
+                    configReady = Config.AppSettings.IsLoaded
                 Catch
                 End Try
+
+                If Not configReady Then
+                    Try
+                        configReady = Managers.LogManager.LogContains("CONFIG_LOADED:")
+                    Catch
+                    End Try
+                End If
+
+                If configReady Then
+                    Connected = True
+                    _countdownTimer.Stop()
+                    Managers.LogManager.Info("Server config verified loaded (failsafe). Closing connecting form.")
+                    _closing = True
+                    Me.Close()
+                    Return
+                End If
             End If
 
             If _secondsElapsed >= TimeoutSeconds Then
