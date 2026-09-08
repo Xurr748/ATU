@@ -93,8 +93,26 @@ Module Program
 
         Managers.LogManager.Info("Config not loaded. Waiting for network/server (timeout: " & timeoutSeconds.ToString() & "s)...")
 
+        Dim serverHost As String = ExtractServerHost(Config.AppSettings.LoadStatus)
+        If Not String.IsNullOrEmpty(serverHost) Then
+            Managers.LogManager.Info("Server host detected: " & serverHost)
+        End If
+
         Do While DateTime.Now < deadline
-            WaitForNetwork(3000)
+            If Not IsNetworkAvailable() Then
+                Thread.Sleep(1000)
+                Continue Do
+            End If
+
+            If Not String.IsNullOrEmpty(serverHost) Then
+                If Not PingHost(serverHost) Then
+                    Dim remaining As Integer = Math.Max(0, CInt((deadline - DateTime.Now).TotalSeconds))
+                    Managers.LogManager.Info("Ping " & serverHost & " failed. " & remaining.ToString() & "s remaining.")
+                    Thread.Sleep(2000)
+                    Continue Do
+                End If
+                Managers.LogManager.Info("Ping " & serverHost & " OK. Attempting config load...")
+            End If
 
             Config.AppSettings.Reload()
             If Config.AppSettings.IsLoaded Then
@@ -108,8 +126,8 @@ Module Program
                 Return True
             End If
 
-            Dim remaining As Integer = CInt((deadline - DateTime.Now).TotalSeconds)
-            Managers.LogManager.Info("Retry... " & remaining.ToString() & "s remaining. Status: " & Config.AppSettings.LoadStatus)
+            Dim secs As Integer = Math.Max(0, CInt((deadline - DateTime.Now).TotalSeconds))
+            Managers.LogManager.Info("Config load failed. " & secs.ToString() & "s remaining. Status: " & Config.AppSettings.LoadStatus)
 
             Thread.Sleep(RetryIntervalMs)
         Loop
@@ -117,14 +135,40 @@ Module Program
         Return False
     End Function
 
-    Private Sub WaitForNetwork(maxWaitMs As Integer)
-        Dim waited As Integer = 0
-        Do While waited < maxWaitMs
-            If IsNetworkAvailable() Then Return
-            Thread.Sleep(500)
-            waited += 500
-        Loop
-    End Sub
+    Private Function PingHost(host As String) As Boolean
+        Try
+            Using pinger As New Ping()
+                Dim reply As PingReply = pinger.Send(host, 1500)
+                Return reply.Status = IPStatus.Success
+            End Using
+        Catch
+            Return False
+        End Try
+    End Function
+
+    Private Function ExtractServerHost(loadStatus As String) As String
+        Try
+            Dim configPath As String = Config.AppSettings.LoadedConfigPath
+            If String.IsNullOrEmpty(configPath) Then
+                If Not String.IsNullOrEmpty(loadStatus) Then
+                    Dim uncIdx As Integer = loadStatus.IndexOf("\\")
+                    If uncIdx >= 0 Then
+                        Dim pathPart As String = loadStatus.Substring(uncIdx)
+                        Dim parts As String() = pathPart.Split(New Char() {"\"c}, StringSplitOptions.RemoveEmptyEntries)
+                        If parts.Length >= 1 Then Return parts(0)
+                    End If
+                End If
+                Return ""
+            End If
+
+            If configPath.StartsWith("\\") Then
+                Dim parts As String() = configPath.Substring(2).Split(New Char() {"\"c}, StringSplitOptions.RemoveEmptyEntries)
+                If parts.Length >= 1 Then Return parts(0)
+            End If
+        Catch
+        End Try
+        Return ""
+    End Function
 
     Private Function IsNetworkAvailable() As Boolean
         Try
