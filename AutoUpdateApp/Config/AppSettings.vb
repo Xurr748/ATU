@@ -65,8 +65,9 @@ Namespace Config
 
                 Dim serverConfigPath As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "serverconfig.txt")
                 Dim realConfigPath As String = ""
+                Dim altConfigPath As String = ""
                 
-                ' 1. Read serverconfig.txt to find real config path
+                ' 1. Read serverconfig.txt to find real config path + alt path
                 If File.Exists(serverConfigPath) Then
                     Try
                         Dim lines As String() = SafeReadAllLines(serverConfigPath)
@@ -77,12 +78,15 @@ Namespace Config
                             Dim eqIndex As Integer = trimmed.IndexOf("="c)
                             If eqIndex > 0 Then
                                 Dim key As String = trimmed.Substring(0, eqIndex).Trim()
+                                Dim val As String = trimmed.Substring(eqIndex + 1).Trim()
+                                If val.StartsWith("""") AndAlso val.EndsWith("""") Then
+                                    val = val.Substring(1, val.Length - 2)
+                                End If
+
                                 If key.Equals("ConfigPath", StringComparison.OrdinalIgnoreCase) Then
-                                    realConfigPath = trimmed.Substring(eqIndex + 1).Trim()
-                                    If realConfigPath.StartsWith("""") AndAlso realConfigPath.EndsWith("""") Then
-                                        realConfigPath = realConfigPath.Substring(1, realConfigPath.Length - 2)
-                                    End If
-                                    Exit For
+                                    realConfigPath = val
+                                ElseIf key.Equals("ConfigPathAlt", StringComparison.OrdinalIgnoreCase) Then
+                                    altConfigPath = val
                                 End If
                             End If
                         Next
@@ -103,43 +107,53 @@ Namespace Config
                     Return
                 End If
 
-                ' 2. Load real Config from the specified Path
-                '    Do NOT use File.Exists() for network paths - it returns false
-                '    on UNC paths when WiFi/network is not ready yet.
-                '    Instead, try to read directly and catch exceptions.
-                Try
-                    LoadSettingsFromFile(realConfigPath)
-                    _configLoadedPath = realConfigPath
-                    _configLoadStatus = "Loaded " & _settings.Count & " settings from: " & realConfigPath
-                    Managers.LogManager.Info("CONFIG_LOADED: " & _settings.Count.ToString() & " settings from " & realConfigPath)
+                ' 2. Try primary path first, then alt path
+                Dim pathsToTry As New List(Of String)()
+                pathsToTry.Add(realConfigPath)
+                If Not String.IsNullOrEmpty(altConfigPath) Then
+                    pathsToTry.Add(altConfigPath)
+                End If
 
-                    ' 3. Read Language override from serverconfig.txt (local)
+                Dim lastError As String = ""
+                For Each configPath As String In pathsToTry
                     Try
-                        Dim scLines As String() = SafeReadAllLines(serverConfigPath)
-                        For Each scLine As String In scLines
-                            Dim scTrimmed As String = scLine.Trim()
-                            If scTrimmed.StartsWith(";") OrElse scTrimmed.StartsWith("#") Then Continue For
-                            Dim scEq As Integer = scTrimmed.IndexOf("="c)
-                            If scEq > 0 Then
-                                Dim scKey As String = scTrimmed.Substring(0, scEq).Trim()
-                                If scKey.Equals("Language", StringComparison.OrdinalIgnoreCase) Then
-                                    Dim scVal As String = scTrimmed.Substring(scEq + 1).Trim()
-                                    If scVal.StartsWith("""") AndAlso scVal.EndsWith("""") Then
-                                        scVal = scVal.Substring(1, scVal.Length - 2)
-                                    End If
-                                    If Not String.IsNullOrEmpty(scVal) Then
-                                        _settings("Language") = scVal
-                                    End If
-                                    Exit For
-                                End If
-                            End If
-                        Next
-                    Catch
-                    End Try
+                        LoadSettingsFromFile(configPath)
+                        _configLoadedPath = configPath
+                        _configLoadStatus = "Loaded " & _settings.Count & " settings from: " & configPath
+                        Managers.LogManager.Info("CONFIG_LOADED: " & _settings.Count.ToString() & " settings from " & configPath)
 
-                Catch ex As Exception
-                    _configLoadStatus = "Server config unreachable: " & realConfigPath & " - " & ex.Message
-                End Try
+                        ' 3. Read Language override from serverconfig.txt (local)
+                        Try
+                            Dim scLines As String() = SafeReadAllLines(serverConfigPath)
+                            For Each scLine As String In scLines
+                                Dim scTrimmed As String = scLine.Trim()
+                                If scTrimmed.StartsWith(";") OrElse scTrimmed.StartsWith("#") Then Continue For
+                                Dim scEq As Integer = scTrimmed.IndexOf("="c)
+                                If scEq > 0 Then
+                                    Dim scKey As String = scTrimmed.Substring(0, scEq).Trim()
+                                    If scKey.Equals("Language", StringComparison.OrdinalIgnoreCase) Then
+                                        Dim scVal As String = scTrimmed.Substring(scEq + 1).Trim()
+                                        If scVal.StartsWith("""") AndAlso scVal.EndsWith("""") Then
+                                            scVal = scVal.Substring(1, scVal.Length - 2)
+                                        End If
+                                        If Not String.IsNullOrEmpty(scVal) Then
+                                            _settings("Language") = scVal
+                                        End If
+                                        Exit For
+                                    End If
+                                End If
+                            Next
+                        Catch
+                        End Try
+
+                        Return
+                    Catch ex As Exception
+                        lastError = configPath & " - " & ex.Message
+                        _settings.Clear()
+                    End Try
+                Next
+
+                _configLoadStatus = "Server config unreachable: " & lastError
             End SyncLock
         End Sub
 
