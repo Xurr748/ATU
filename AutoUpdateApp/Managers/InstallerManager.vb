@@ -713,7 +713,7 @@ Namespace Managers
 
                 ' Create Scheduled Task to run on logon with Admin rights
                 Dim taskName As String = "AutoUpdateApp_Startup"
-                Dim args As String = String.Format("/create /tn ""{0}"" /tr ""\""{1}\"""" /sc onlogon /rl highest /f", taskName, scheduledExePath)
+                Dim args As String = String.Format("/create /tn ""{0}"" /tr """"""{1}"""""" /sc onlogon /rl highest /delay 0000:30 /f", taskName, scheduledExePath)
                 
                 LogManager.Info("Task Scheduler exe path: " & scheduledExePath)
                 LogManager.Info("Adding self to startup via Task Scheduler: " & args)

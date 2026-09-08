@@ -98,11 +98,22 @@ Module Program
             Managers.LogManager.Info("Server host detected: " & serverHost)
         End If
 
-        Do While DateTime.Now < deadline
-            If Not IsNetworkAvailable() Then
-                Thread.Sleep(1000)
-                Continue Do
-            End If
+        Dim networkSignal As New ManualResetEvent(False)
+        Dim networkHandler As NetworkAvailabilityChangedEventHandler = _
+            Sub(s, ev)
+                If ev.IsAvailable Then
+                    networkSignal.Set()
+                End If
+            End Sub
+
+        AddHandler NetworkChange.NetworkAvailabilityChanged, networkHandler
+
+        Try
+            Do While DateTime.Now < deadline
+                If Not IsNetworkAvailable() Then
+                    networkSignal.WaitOne(1000)
+                    Continue Do
+                End If
 
             If Not String.IsNullOrEmpty(serverHost) Then
                 If Not PingHost(serverHost) Then
@@ -130,9 +141,13 @@ Module Program
             Managers.LogManager.Info("Config load failed. " & secs.ToString() & "s remaining. Status: " & Config.AppSettings.LoadStatus)
 
             Thread.Sleep(RetryIntervalMs)
-        Loop
+            Loop
 
-        Return False
+            Return False
+        Finally
+            RemoveHandler NetworkChange.NetworkAvailabilityChanged, networkHandler
+            networkSignal.Dispose()
+        End Try
     End Function
 
     Private Function PingHost(host As String) As Boolean
