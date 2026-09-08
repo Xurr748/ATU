@@ -2,15 +2,22 @@ Option Strict On
 Option Explicit On
 
 Imports System.Diagnostics
+Imports System.IO
+Imports System.Net.NetworkInformation
 Imports System.Threading
 Imports System.Windows.Forms
 
 Module Program
 
     Private Const MutexName As String = "Local\AutoUpdateApp_SingleInstance"
+    Private Const ConnectionTimeoutSeconds As Integer = 30
+    Private Const RetryIntervalMs As Integer = 3000
+    Private Const MaxRestartAttempts As Integer = 20
 
     Sub Main()
         Try
+            Dim restartCount As Integer = GetRestartCount()
+
             Dim createdNew As Boolean
             Using mutex As New Mutex(True, MutexName, createdNew)
                 If Not createdNew Then
@@ -20,44 +27,39 @@ Module Program
                 Application.EnableVisualStyles()
                 Application.SetCompatibleTextRenderingDefault(False)
 
-                Managers.LogManager.Info("═══════════════════════════════════════")
-                Managers.LogManager.Info("Application starting.")
+                Managers.LogManager.Info("===================================")
+                Managers.LogManager.Info("Application starting. (restart #" & restartCount.ToString() & ")")
                 Managers.LogManager.Info("Exe directory: " & AppDomain.CurrentDomain.BaseDirectory)
 
-                If Not Config.AppSettings.IsLoaded Then
-                    Managers.LogManager.Info("Config not loaded on first attempt. Showing connecting form...")
-                    Using connectForm As New Forms.ConnectingForm()
-                        connectForm.ShowDialog()
+                If Not WaitForConfig(ConnectionTimeoutSeconds) Then
+                    If Config.AppSettings.IsLocalConfigError Then
+                        Dim msg As String = "Config error: " & Config.AppSettings.LoadStatus & Environment.NewLine & _
+                                            "Please check serverconfig.txt"
+                        Managers.LogManager.[Error](msg)
+                        MessageBox.Show(msg, "Config Error", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+                        Return
+                    End If
 
-                        If connectForm.ShouldRestart Then
-                            Managers.LogManager.Info("Connection timed out. Restarting application...")
-                            Try
-                                Dim selfExe As String = System.Reflection.Assembly.GetExecutingAssembly().Location
-                                Process.Start(selfExe)
-                            Catch ex As Exception
-                                Managers.LogManager.[Error]("Failed to restart: " & ex.Message)
-                            End Try
-                            Return
-                        End If
+                    If restartCount >= MaxRestartAttempts Then
+                        Dim msg As String = "Failed to connect after " & MaxRestartAttempts.ToString() & " restart attempts." & _
+                                            Environment.NewLine & "Last status: " & Config.AppSettings.LoadStatus
+                        Managers.LogManager.[Error](msg)
+                        MessageBox.Show(msg, "Connection Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+                        Return
+                    End If
 
-                        If Not connectForm.Connected Then
-                            Dim msg As String = "Failed to load Config!" & Environment.NewLine & _
-                                                Config.AppSettings.LoadStatus & Environment.NewLine & Environment.NewLine & _
-                                                "Please check that:" & Environment.NewLine & _
-                                                "1) serverconfig.txt is located next to the exe and contains ConfigPath=..." & Environment.NewLine & _
-                                                "2) The specified config.txt file exists on the Server"
-                            Managers.LogManager.[Error](msg)
-                            MessageBox.Show(msg, "Config Error", MessageBoxButtons.OK, MessageBoxIcon.Warning)
-                            Return
-                        End If
-                    End Using
+                    Managers.LogManager.Info("Config not loaded after " & ConnectionTimeoutSeconds.ToString() & "s. Scheduling restart #" & (restartCount + 1).ToString())
+                    RestartSelf(restartCount + 1)
+                    Return
                 End If
+
+                Managers.LogManager.Info("Config loaded successfully.")
 
                 For Each issue As String In Config.AppSettings.ValidateConfig()
                     Managers.LogManager.Info(issue)
                 Next
 
-                Managers.LogManager.Info("═══════════════════════════════════════")
+                Managers.LogManager.Info("===================================")
 
                 Managers.InstallerManager.AddSelfToStartup()
 
@@ -80,6 +82,103 @@ Module Program
         End Try
     End Sub
 
+    Private Function WaitForConfig(timeoutSeconds As Integer) As Boolean
+        Dim deadline As DateTime = DateTime.Now.AddSeconds(timeoutSeconds)
+
+        Config.AppSettings.Reload()
+        If Config.AppSettings.IsLoaded Then Return True
+        If Config.AppSettings.IsLocalConfigError Then Return False
+
+        If Managers.LogManager.LogContains("CONFIG_LOADED:") Then Return True
+
+        Managers.LogManager.Info("Config not loaded. Waiting for network/server (timeout: " & timeoutSeconds.ToString() & "s)...")
+
+        Do While DateTime.Now < deadline
+            WaitForNetwork(3000)
+
+            Config.AppSettings.Reload()
+            If Config.AppSettings.IsLoaded Then
+                Managers.LogManager.Info("Config loaded after retry.")
+                Return True
+            End If
+            If Config.AppSettings.IsLocalConfigError Then Return False
+
+            If Managers.LogManager.LogContains("CONFIG_LOADED:") Then
+                Managers.LogManager.Info("Config confirmed loaded via log check.")
+                Return True
+            End If
+
+            Dim remaining As Integer = CInt((deadline - DateTime.Now).TotalSeconds)
+            Managers.LogManager.Info("Retry... " & remaining.ToString() & "s remaining. Status: " & Config.AppSettings.LoadStatus)
+
+            Thread.Sleep(RetryIntervalMs)
+        Loop
+
+        Return False
+    End Function
+
+    Private Sub WaitForNetwork(maxWaitMs As Integer)
+        Dim waited As Integer = 0
+        Do While waited < maxWaitMs
+            If IsNetworkAvailable() Then Return
+            Thread.Sleep(500)
+            waited += 500
+        Loop
+    End Sub
+
+    Private Function IsNetworkAvailable() As Boolean
+        Try
+            For Each ni As NetworkInterface In NetworkInterface.GetAllNetworkInterfaces()
+                If ni.OperationalStatus = OperationalStatus.Up AndAlso _
+                   (ni.NetworkInterfaceType = NetworkInterfaceType.Ethernet OrElse _
+                    ni.NetworkInterfaceType = NetworkInterfaceType.Wireless80211) Then
+
+                    For Each addr In ni.GetIPProperties().UnicastAddresses
+                        If addr.Address.AddressFamily = System.Net.Sockets.AddressFamily.InterNetwork Then
+                            Dim ip As String = addr.Address.ToString()
+                            If Not ip.StartsWith("169.254.") AndAlso ip <> "127.0.0.1" AndAlso ip <> "0.0.0.0" Then
+                                Return True
+                            End If
+                        End If
+                    Next
+                End If
+            Next
+        Catch
+        End Try
+        Return False
+    End Function
+
+    Private Function GetRestartCount() As Integer
+        Try
+            Dim args As String() = Environment.GetCommandLineArgs()
+            For Each arg As String In args
+                If arg.StartsWith("/restart:", StringComparison.OrdinalIgnoreCase) Then
+                    Dim countStr As String = arg.Substring("/restart:".Length)
+                    Dim count As Integer
+                    If Integer.TryParse(countStr, count) Then
+                        Return count
+                    End If
+                End If
+            Next
+        Catch
+        End Try
+        Return 0
+    End Function
+
+    Private Sub RestartSelf(newCount As Integer)
+        Try
+            Thread.Sleep(2000)
+
+            Dim selfExe As String = System.Reflection.Assembly.GetExecutingAssembly().Location
+            Dim psi As New ProcessStartInfo(selfExe, "/restart:" & newCount.ToString())
+            psi.UseShellExecute = True
+            Process.Start(psi)
+            Managers.LogManager.Info("Restart process launched.")
+        Catch ex As Exception
+            Managers.LogManager.[Error]("Failed to restart: " & ex.Message)
+        End Try
+    End Sub
+
     Private Sub CheckPendingRestartUpdate()
         Try
             Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
@@ -99,8 +198,6 @@ Module Program
 
             Managers.LogManager.Info("Pending restart flag detected. Starting update sequence.")
 
-            Managers.InstallerManager.CloseProgramOfRegistryPath()
-
             Dim currentVersion As String = Managers.VersionManager.ReadRegistryVersion()
             Dim latestVersion As String = Managers.VersionManager.ReadLatestVersion()
 
@@ -116,31 +213,29 @@ Module Program
             End If
 
             Managers.LogManager.Info("Running pending restart update. " & _
-                                     currentVersion & " → " & latestVersion)
+                                     currentVersion & " -> " & latestVersion)
 
-            Dim updateForm As New Forms.UpdatingForm()
-            updateForm.TesterType = tester.TesterType
-            
-            updateForm.ShowDialog()
+            Managers.InstallerManager.CloseProgramOfRegistryPath()
 
-            Dim success As Boolean = updateForm.UpdateSuccess
+            Using updateForm As New Forms.UpdatingForm()
+                updateForm.TesterType = tester.TesterType
+                updateForm.ShowDialog()
 
-            If success Then
-                Dim verified As Boolean = Managers.InstallerManager.VerifyInstallation()
+                If updateForm.UpdateSuccess Then
+                    Dim verified As Boolean = Managers.InstallerManager.VerifyInstallation()
 
-                If verified Then
-                    Managers.InstallerManager.StartProgramOfRegistryPath()
-
-                    Managers.InstallerManager.CopyShortcutToStartup()
-
-                    Managers.UpdateFlagManager.SetFlag(computerName, False)
-                    Managers.LogManager.Info("Restart update completed and verified successfully.")
+                    If verified Then
+                        Managers.InstallerManager.StartProgramOfRegistryPath()
+                        Managers.InstallerManager.CopyShortcutToStartup()
+                        Managers.UpdateFlagManager.SetFlag(computerName, False)
+                        Managers.LogManager.Info("Restart update completed and verified successfully.")
+                    Else
+                        Managers.LogManager.Warn("Install script ran but version not yet updated. Flag remains for retry.")
+                    End If
                 Else
-                    Managers.LogManager.Warn("Install script ran but version not yet updated. Flag remains for retry.")
+                    Managers.LogManager.[Error]("Restart update failed. Flag will remain for retry.")
                 End If
-            Else
-                Managers.LogManager.[Error]("Restart update failed. Flag will remain for retry.")
-            End If
+            End Using
 
         Catch ex As Exception
             Managers.LogManager.[Error]("Error during startup restart check.", ex)
