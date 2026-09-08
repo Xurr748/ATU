@@ -1,9 +1,13 @@
 ; ═══════════════════════════════════════════════════════════════
 ; Server Config
 ; This file sits next to the exe. It only specifies the real config path on the Server.
-; ConfigPath    = Primary path (UNC / IP-based)
-; ConfigPathAlt = Alternate path (mapped drive letter, e.g. P:\)
+;
+; ConfigPath = Primary path (UNC / IP-based)
+; AltDrive   = Drive letter mapped to server (auto-converts ConfigPath)
+;              Example: ConfigPath = \\111.12.2.115\rx50\config\config.txt
+;                       AltDrive = P
+;                       Auto-generates: P:\rx50\config\config.txt
 ; ═══════════════════════════════════════════════════════════════
 
 ConfigPath = "C:\RSX-5000\config.txt"
-; ConfigPathAlt = "P:\RSX-5000\config.txt"
+; AltDrive = P

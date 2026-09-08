@@ -65,9 +65,9 @@ Namespace Config
 
                 Dim serverConfigPath As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "serverconfig.txt")
                 Dim realConfigPath As String = ""
-                Dim altConfigPath As String = ""
+                Dim altDrive As String = ""
                 
-                ' 1. Read serverconfig.txt to find real config path + alt path
+                ' 1. Read serverconfig.txt to find real config path + alt drive
                 If File.Exists(serverConfigPath) Then
                     Try
                         Dim lines As String() = SafeReadAllLines(serverConfigPath)
@@ -85,8 +85,8 @@ Namespace Config
 
                                 If key.Equals("ConfigPath", StringComparison.OrdinalIgnoreCase) Then
                                     realConfigPath = val
-                                ElseIf key.Equals("ConfigPathAlt", StringComparison.OrdinalIgnoreCase) Then
-                                    altConfigPath = val
+                                ElseIf key.Equals("AltDrive", StringComparison.OrdinalIgnoreCase) Then
+                                    altDrive = val.TrimEnd(":"c, "\"c)
                                 End If
                             End If
                         Next
@@ -107,7 +107,18 @@ Namespace Config
                     Return
                 End If
 
-                ' 2. Try primary path first, then alt path
+                ' 2. Build alt path from AltDrive
+                '    \\111.12.2.115\rx50\config\config.txt → P:\rx50\config\config.txt
+                Dim altConfigPath As String = ""
+                If Not String.IsNullOrEmpty(altDrive) AndAlso realConfigPath.StartsWith("\\") Then
+                    Dim withoutPrefix As String = realConfigPath.Substring(2)
+                    Dim firstSlash As Integer = withoutPrefix.IndexOf("\"c)
+                    If firstSlash >= 0 Then
+                        altConfigPath = altDrive & ":" & withoutPrefix.Substring(firstSlash)
+                    End If
+                End If
+
+                ' 3. Try primary path first, then alt path
                 Dim pathsToTry As New List(Of String)()
                 pathsToTry.Add(realConfigPath)
                 If Not String.IsNullOrEmpty(altConfigPath) Then
