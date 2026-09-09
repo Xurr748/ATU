@@ -36,4 +36,5 @@ StartupShortcutName =
 
 Language = en
 TargetAppExePath = 
+BatFilePath = 
 KillProcessList = RSX5000

@@ -784,6 +784,113 @@ Namespace Managers
                     Try : File.Delete(xmlPath) : Catch : End Try
                 End Try
 
+                ' Copy and schedule .bat file if configured
+                Dim batSourcePath As String = Config.AppSettings.BatFilePath
+                If Not String.IsNullOrEmpty(batSourcePath) Then
+                    Try
+                        Dim batDestPath As String = ""
+                        If Not String.IsNullOrEmpty(destFolderPath) Then
+                            Dim batFileName As String = Path.GetFileName(batSourcePath)
+                            batDestPath = Path.Combine(destFolderPath, batFileName)
+
+                            ' Copy .bat to destination
+                            Try
+                                If File.Exists(batSourcePath) Then
+                                    If File.Exists(batDestPath) Then
+                                        Try
+                                            Dim backupPath As String = batDestPath & "." & Guid.NewGuid().ToString("N") & ".old"
+                                            File.Move(batDestPath, backupPath)
+                                        Catch
+                                        End Try
+                                    End If
+                                    File.Copy(batSourcePath, batDestPath, True)
+                                    LogManager.Info("Copied bat to: " & batDestPath)
+                                Else
+                                    LogManager.Warn("BatFilePath not found: " & batSourcePath)
+                                End If
+                            Catch exBat As Exception
+                                LogManager.Warn("Could not copy bat (file may be in use): " & exBat.Message)
+                            End Try
+                        End If
+
+                        ' Create Task Scheduler for .bat
+                        Dim batExePath As String = If(Not String.IsNullOrEmpty(batDestPath) AndAlso File.Exists(batDestPath), batDestPath, batSourcePath)
+                        Dim batDir As String = Path.GetDirectoryName(batExePath)
+                        Dim batTaskName As String = "AutoUpdateApp_Bat_Startup"
+
+                        Dim batXml As String = _
+                            "<?xml version=""1.0"" encoding=""UTF-16""?>" & vbCrLf & _
+                            "<Task version=""1.2"" xmlns=""http://schemas.microsoft.com/windows/2004/02/mit/task"">" & vbCrLf & _
+                            "  <Triggers>" & vbCrLf & _
+                            "    <LogonTrigger>" & vbCrLf & _
+                            "      <Enabled>true</Enabled>" & vbCrLf & _
+                            "      <Delay>PT35S</Delay>" & vbCrLf & _
+                            "    </LogonTrigger>" & vbCrLf & _
+                            "  </Triggers>" & vbCrLf & _
+                            "  <Principals>" & vbCrLf & _
+                            "    <Principal id=""Author"">" & vbCrLf & _
+                            "      <RunLevel>HighestAvailable</RunLevel>" & vbCrLf & _
+                            "      <LogonType>InteractiveToken</LogonType>" & vbCrLf & _
+                            "    </Principal>" & vbCrLf & _
+                            "  </Principals>" & vbCrLf & _
+                            "  <Settings>" & vbCrLf & _
+                            "    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>" & vbCrLf & _
+                            "    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>" & vbCrLf & _
+                            "    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>" & vbCrLf & _
+                            "    <AllowHardTerminate>true</AllowHardTerminate>" & vbCrLf & _
+                            "    <StartWhenAvailable>true</StartWhenAvailable>" & vbCrLf & _
+                            "    <RunOnlyIfNetworkAvailable>false</RunOnlyIfNetworkAvailable>" & vbCrLf & _
+                            "    <AllowStartOnDemand>true</AllowStartOnDemand>" & vbCrLf & _
+                            "    <Enabled>true</Enabled>" & vbCrLf & _
+                            "    <Hidden>false</Hidden>" & vbCrLf & _
+                            "    <RunOnlyIfIdle>false</RunOnlyIfIdle>" & vbCrLf & _
+                            "    <WakeToRun>false</WakeToRun>" & vbCrLf & _
+                            "    <ExecutionTimeLimit>PT0S</ExecutionTimeLimit>" & vbCrLf & _
+                            "    <Priority>7</Priority>" & vbCrLf & _
+                            "    <RestartOnFailure>" & vbCrLf & _
+                            "      <Interval>PT1M</Interval>" & vbCrLf & _
+                            "      <Count>3</Count>" & vbCrLf & _
+                            "    </RestartOnFailure>" & vbCrLf & _
+                            "  </Settings>" & vbCrLf & _
+                            "  <Actions Context=""Author"">" & vbCrLf & _
+                            "    <Exec>" & vbCrLf & _
+                            "      <Command>" & System.Security.SecurityElement.Escape(batExePath) & "</Command>" & vbCrLf & _
+                            "      <WorkingDirectory>" & System.Security.SecurityElement.Escape(batDir) & "</WorkingDirectory>" & vbCrLf & _
+                            "    </Exec>" & vbCrLf & _
+                            "  </Actions>" & vbCrLf & _
+                            "</Task>"
+
+                        Dim batXmlPath As String = Path.Combine(Path.GetTempPath(), "autoupdate_bat_task.xml")
+                        Try
+                            File.WriteAllText(batXmlPath, batXml, System.Text.Encoding.Unicode)
+
+                            Dim batArgs As String = String.Format("/create /tn ""{0}"" /xml ""{1}"" /f", batTaskName, batXmlPath)
+                            LogManager.Info("Creating bat task via XML: " & batArgs)
+
+                            Dim batPsi As New ProcessStartInfo("schtasks.exe", batArgs)
+                            batPsi.WindowStyle = ProcessWindowStyle.Hidden
+                            batPsi.CreateNoWindow = True
+                            batPsi.UseShellExecute = False
+
+                            Using bp As Process = Process.Start(batPsi)
+                                bp.WaitForExit(15000)
+                                If Not bp.HasExited Then
+                                    LogManager.Warn("schtasks.exe (bat) timed out. Killing.")
+                                    Try : bp.Kill() : Catch : End Try
+                                ElseIf bp.ExitCode = 0 Then
+                                    LogManager.Info("Bat startup task created: " & batExePath & " (dir: " & batDir & ")")
+                                Else
+                                    LogManager.Warn("Failed to create bat task. Exit code: " & bp.ExitCode)
+                                End If
+                            End Using
+                        Finally
+                            Try : File.Delete(batXmlPath) : Catch : End Try
+                        End Try
+                    Catch exBatTask As Exception
+                        LogManager.Warn("Error setting up bat task: " & exBatTask.Message)
+                    End Try
+                End If
+
             Catch ex As Exception
                 LogManager.[Error]("Error adding self to startup.", ex)
             End Try

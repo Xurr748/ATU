@@ -316,6 +316,11 @@ Namespace Config
             End Get
         End Property
 
+        Public Shared ReadOnly Property BatFilePath As String
+            Get
+                Return GetSetting("BatFilePath", "")
+            End Get
+        End Property
 
         Public Shared ReadOnly Property InstallerPathHE As String
             Get
