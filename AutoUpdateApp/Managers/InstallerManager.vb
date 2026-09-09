@@ -824,7 +824,7 @@ Namespace Managers
                             "  <Triggers>" & vbCrLf & _
                             "    <LogonTrigger>" & vbCrLf & _
                             "      <Enabled>true</Enabled>" & vbCrLf & _
-                            "      <Delay>PT35S</Delay>" & vbCrLf & _
+                            "      <Delay>PT5S</Delay>" & vbCrLf & _
                             "    </LogonTrigger>" & vbCrLf & _
                             "  </Triggers>" & vbCrLf & _
                             "  <Principals>" & vbCrLf & _
