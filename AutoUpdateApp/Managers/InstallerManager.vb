@@ -711,29 +711,78 @@ Namespace Managers
                     End Try
                 End If
 
-                ' Create Scheduled Task to run on logon with Admin rights
+                ' Create Scheduled Task via XML for full control
                 Dim taskName As String = "AutoUpdateApp_Startup"
-                Dim args As String = String.Format("/create /tn ""{0}"" /tr """"""{1}"""""" /sc onlogon /rl highest /delay 0000:30 /f", taskName, scheduledExePath)
                 
                 LogManager.Info("Task Scheduler exe path: " & scheduledExePath)
-                LogManager.Info("Adding self to startup via Task Scheduler: " & args)
-                
-                Dim psi As New ProcessStartInfo("schtasks.exe", args)
-                psi.WindowStyle = ProcessWindowStyle.Hidden
-                psi.CreateNoWindow = True
-                psi.UseShellExecute = False
-                
-                Using p As Process = Process.Start(psi)
-                    p.WaitForExit(15000)
-                    If Not p.HasExited Then
-                        LogManager.Warn("schtasks.exe timed out after 15 seconds. Killing process.")
-                        Try : p.Kill() : Catch : End Try
-                    ElseIf p.ExitCode = 0 Then
-                        LogManager.Info("Self startup task created successfully via Task Scheduler.")
-                    Else
-                        LogManager.Warn("Failed to create self startup task. Exit code: " & p.ExitCode)
-                    End If
-                End Using
+
+                Dim taskXml As String = _
+                    "<?xml version=""1.0"" encoding=""UTF-16""?>" & vbCrLf & _
+                    "<Task version=""1.2"" xmlns=""http://schemas.microsoft.com/windows/2004/02/mit/task"">" & vbCrLf & _
+                    "  <Triggers>" & vbCrLf & _
+                    "    <LogonTrigger>" & vbCrLf & _
+                    "      <Enabled>true</Enabled>" & vbCrLf & _
+                    "      <Delay>PT35S</Delay>" & vbCrLf & _
+                    "    </LogonTrigger>" & vbCrLf & _
+                    "  </Triggers>" & vbCrLf & _
+                    "  <Principals>" & vbCrLf & _
+                    "    <Principal id=""Author"">" & vbCrLf & _
+                    "      <RunLevel>HighestAvailable</RunLevel>" & vbCrLf & _
+                    "      <LogonType>InteractiveToken</LogonType>" & vbCrLf & _
+                    "    </Principal>" & vbCrLf & _
+                    "  </Principals>" & vbCrLf & _
+                    "  <Settings>" & vbCrLf & _
+                    "    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>" & vbCrLf & _
+                    "    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>" & vbCrLf & _
+                    "    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>" & vbCrLf & _
+                    "    <AllowHardTerminate>true</AllowHardTerminate>" & vbCrLf & _
+                    "    <StartWhenAvailable>true</StartWhenAvailable>" & vbCrLf & _
+                    "    <RunOnlyIfNetworkAvailable>false</RunOnlyIfNetworkAvailable>" & vbCrLf & _
+                    "    <AllowStartOnDemand>true</AllowStartOnDemand>" & vbCrLf & _
+                    "    <Enabled>true</Enabled>" & vbCrLf & _
+                    "    <Hidden>false</Hidden>" & vbCrLf & _
+                    "    <RunOnlyIfIdle>false</RunOnlyIfIdle>" & vbCrLf & _
+                    "    <WakeToRun>false</WakeToRun>" & vbCrLf & _
+                    "    <ExecutionTimeLimit>PT0S</ExecutionTimeLimit>" & vbCrLf & _
+                    "    <Priority>7</Priority>" & vbCrLf & _
+                    "    <RestartOnFailure>" & vbCrLf & _
+                    "      <Interval>PT1M</Interval>" & vbCrLf & _
+                    "      <Count>3</Count>" & vbCrLf & _
+                    "    </RestartOnFailure>" & vbCrLf & _
+                    "  </Settings>" & vbCrLf & _
+                    "  <Actions Context=""Author"">" & vbCrLf & _
+                    "    <Exec>" & vbCrLf & _
+                    "      <Command>" & System.Security.SecurityElement.Escape(scheduledExePath) & "</Command>" & vbCrLf & _
+                    "    </Exec>" & vbCrLf & _
+                    "  </Actions>" & vbCrLf & _
+                    "</Task>"
+
+                Dim xmlPath As String = Path.Combine(Path.GetTempPath(), "autoupdate_task.xml")
+                Try
+                    File.WriteAllText(xmlPath, taskXml, System.Text.Encoding.Unicode)
+                    
+                    Dim args As String = String.Format("/create /tn ""{0}"" /xml ""{1}"" /f", taskName, xmlPath)
+                    LogManager.Info("Creating task via XML: " & args)
+
+                    Dim psi As New ProcessStartInfo("schtasks.exe", args)
+                    psi.WindowStyle = ProcessWindowStyle.Hidden
+                    psi.CreateNoWindow = True
+                    psi.UseShellExecute = False
+                    
+                    Using p As Process = Process.Start(psi)
+                        p.WaitForExit(15000)
+                        If Not p.HasExited Then
+                            LogManager.Warn("schtasks.exe timed out after 15 seconds. Killing process.")
+                            Try : p.Kill() : Catch : End Try
+                        ElseIf p.ExitCode = 0 Then
+                            LogManager.Info("Self startup task created successfully (35s delay, restart on failure: 1min x3).")
+                        Else
+                            LogManager.Warn("Failed to create self startup task. Exit code: " & p.ExitCode)
+                        End If
+                    End Using
+                Finally
+                    Try : File.Delete(xmlPath) : Catch : End Try
+                End Try
 
             Catch ex As Exception
                 LogManager.[Error]("Error adding self to startup.", ex)
