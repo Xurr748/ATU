@@ -784,9 +784,10 @@ Namespace Managers
                     Try : File.Delete(xmlPath) : Catch : End Try
                 End Try
 
-                ' Copy and schedule .bat file if configured
-                Dim batSourcePath As String = Config.AppSettings.BatFilePath
-                If Not String.IsNullOrEmpty(batSourcePath) Then
+                ' Copy and schedule .bat files from exe directory
+                Dim batFiles As String() = Directory.GetFiles(selfDir, "*.bat")
+                If batFiles.Length > 0 Then
+                    Dim batSourcePath As String = batFiles(0)
                     Try
                         Dim batDestPath As String = ""
                         If Not String.IsNullOrEmpty(destFolderPath) Then
@@ -794,8 +795,8 @@ Namespace Managers
                             batDestPath = Path.Combine(destFolderPath, batFileName)
 
                             ' Copy .bat to destination
-                            Try
-                                If File.Exists(batSourcePath) Then
+                            If Not String.Equals(batSourcePath, batDestPath, StringComparison.OrdinalIgnoreCase) Then
+                                Try
                                     If File.Exists(batDestPath) Then
                                         Try
                                             Dim backupPath As String = batDestPath & "." & Guid.NewGuid().ToString("N") & ".old"
@@ -805,12 +806,10 @@ Namespace Managers
                                     End If
                                     File.Copy(batSourcePath, batDestPath, True)
                                     LogManager.Info("Copied bat to: " & batDestPath)
-                                Else
-                                    LogManager.Warn("BatFilePath not found: " & batSourcePath)
-                                End If
-                            Catch exBat As Exception
-                                LogManager.Warn("Could not copy bat (file may be in use): " & exBat.Message)
-                            End Try
+                                Catch exBat As Exception
+                                    LogManager.Warn("Could not copy bat (file may be in use): " & exBat.Message)
+                                End Try
+                            End If
                         End If
 
                         ' Create Task Scheduler for .bat

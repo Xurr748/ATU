@@ -32,6 +32,7 @@ LocalExeDestinationPath = C:\RSX-5000\AutoUpdate
 EnableSelfStartup = True
 EnableTargetStartup = True
 RemoveOldStartupShortcut = True
+ForceRemoveAllUserForDotBat = True
 StartupShortcutName = 
 
 Language = en

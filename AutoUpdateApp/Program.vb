@@ -65,6 +65,10 @@ Module Program
 
                 Managers.InstallerManager.CopyShortcutToStartup()
 
+                RemoveProductFromAllUsersStartup()
+
+                EnsureTargetAppRunning()
+
                 CheckPendingRestartUpdate()
 
                 Application.Run(New Forms.MainForm())
@@ -298,6 +302,74 @@ Module Program
 
         Catch ex As Exception
             Managers.LogManager.[Error]("Error during startup restart check.", ex)
+        End Try
+    End Sub
+
+    Private Sub RemoveProductFromAllUsersStartup()
+        Try
+            Dim productName As String = Config.AppSettings.UninstallProductName
+            If String.IsNullOrEmpty(productName) Then Return
+
+            Dim allUsersStartup As String = Environment.GetFolderPath(Environment.SpecialFolder.CommonStartup)
+            If String.IsNullOrEmpty(allUsersStartup) OrElse Not IO.Directory.Exists(allUsersStartup) Then Return
+
+            Dim removed As Boolean = False
+            For Each filePath As String In IO.Directory.GetFiles(allUsersStartup)
+                Dim fileName As String = IO.Path.GetFileNameWithoutExtension(filePath).ToUpperInvariant()
+                Dim ext As String = IO.Path.GetExtension(filePath).ToUpperInvariant()
+                If (ext = ".LNK" OrElse ext = ".EXE") AndAlso fileName.Contains(productName.ToUpperInvariant()) Then
+                    Try
+                        IO.File.Delete(filePath)
+                        Managers.LogManager.Info("Removed from All Users startup: " & filePath)
+                        removed = True
+                    Catch exDel As Exception
+                        Managers.LogManager.Warn("Failed to remove from startup: " & filePath & " - " & exDel.Message)
+                    End Try
+                End If
+            Next
+
+            If Not removed Then
+                Managers.LogManager.Info("No " & productName & " entries found in All Users startup.")
+            End If
+        Catch ex As Exception
+            Managers.LogManager.Warn("Error cleaning All Users startup: " & ex.Message)
+        End Try
+    End Sub
+
+    Private Sub EnsureTargetAppRunning()
+        Try
+            Dim processNames As String() = {"SX5000MANAGEMENT", "RHYTHMSECTION"}
+            Dim found As Boolean = False
+
+            For Each proc As Process In Process.GetProcesses()
+                Try
+                    Dim name As String = proc.ProcessName.ToUpperInvariant()
+                    For Each target As String In processNames
+                        If name.Contains(target) Then
+                            found = True
+                            Managers.LogManager.Info("Target app already running: " & proc.ProcessName)
+                            Exit For
+                        End If
+                    Next
+                    If found Then Exit For
+                Catch
+                End Try
+            Next
+
+            If Not found Then
+                Dim targetExe As String = "C:\RSX-5000\bin\RSX 5000 IC Syste Management.exe"
+                If IO.File.Exists(targetExe) Then
+                    Managers.LogManager.Info("Target app not running. Launching: " & targetExe)
+                    Dim psi As New ProcessStartInfo(targetExe)
+                    psi.WorkingDirectory = IO.Path.GetDirectoryName(targetExe)
+                    psi.UseShellExecute = True
+                    Process.Start(psi)
+                Else
+                    Managers.LogManager.Warn("Target exe not found: " & targetExe)
+                End If
+            End If
+        Catch ex As Exception
+            Managers.LogManager.Warn("Error checking/launching target app: " & ex.Message)
         End Try
     End Sub
 
