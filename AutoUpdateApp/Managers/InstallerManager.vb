@@ -299,7 +299,17 @@ Namespace Managers
                     If proc IsNot Nothing Then
                         proc.WaitForExit(1800000)
                         If Not proc.HasExited Then
-                            LogManager.Warn(stepName & " script timed out after 30 minutes.")
+                            LogManager.Warn(stepName & " script timed out after 30 minutes. Killing process...")
+                            Try
+                                Dim killPsi As New ProcessStartInfo("taskkill", String.Format("/F /T /PID {0}", proc.Id))
+                                killPsi.CreateNoWindow = True
+                                killPsi.UseShellExecute = False
+                                Using kp As Process = Process.Start(killPsi)
+                                    If kp IsNot Nothing Then kp.WaitForExit(5000)
+                                End Using
+                            Catch
+                                Try : proc.Kill() : Catch : End Try
+                            End Try
                             Return False
                         End If
                         Dim exitCode As Integer = proc.ExitCode
@@ -753,6 +763,7 @@ Namespace Managers
                     "  <Actions Context=""Author"">" & vbCrLf & _
                     "    <Exec>" & vbCrLf & _
                     "      <Command>" & System.Security.SecurityElement.Escape(scheduledExePath) & "</Command>" & vbCrLf & _
+                    "      <WorkingDirectory>" & System.Security.SecurityElement.Escape(Path.GetDirectoryName(scheduledExePath)) & "</WorkingDirectory>" & vbCrLf & _
                     "    </Exec>" & vbCrLf & _
                     "  </Actions>" & vbCrLf & _
                     "</Task>"

@@ -49,6 +49,7 @@ Module Program
                     End If
 
                     Managers.LogManager.Info("Config not loaded after " & ConnectionTimeoutSeconds.ToString() & "s. Scheduling restart #" & (restartCount + 1).ToString())
+                    Try : mutex.ReleaseMutex() : Catch : End Try
                     RestartSelf(restartCount + 1)
                     Return
                 End If
@@ -67,9 +68,9 @@ Module Program
 
                 RemoveProductFromAllUsersStartup()
 
-                EnsureTargetAppRunning()
-
                 CheckPendingRestartUpdate()
+
+                EnsureTargetAppRunning()
 
                 Application.Run(New Forms.MainForm())
 
@@ -87,13 +88,12 @@ Module Program
     End Sub
 
     Private Function WaitForConfig(timeoutSeconds As Integer) As Boolean
-        Dim deadline As DateTime = DateTime.Now.AddSeconds(timeoutSeconds)
+        Dim sw As Stopwatch = Stopwatch.StartNew()
+        Dim timeoutMs As Long = CLng(timeoutSeconds) * 1000L
 
         Config.AppSettings.Reload()
         If Config.AppSettings.IsLoaded Then Return True
         If Config.AppSettings.IsLocalConfigError Then Return False
-
-        If Managers.LogManager.LogContains("CONFIG_LOADED:") Then Return True
 
         Managers.LogManager.Info("Config not loaded. Waiting for network/server (timeout: " & timeoutSeconds.ToString() & "s)...")
 
@@ -102,53 +102,52 @@ Module Program
             Managers.LogManager.Info("Server host detected: " & serverHost)
         End If
 
-        Dim networkSignal As New ManualResetEvent(False)
+        Dim networkSignal As New AutoResetEvent(False)
+        Dim disposed As Boolean = False
         Dim networkHandler As NetworkAvailabilityChangedEventHandler = _
             Sub(s, ev)
                 If ev.IsAvailable Then
-                    networkSignal.Set()
+                    Try
+                        If Not disposed Then networkSignal.Set()
+                    Catch ex As ObjectDisposedException
+                    End Try
                 End If
             End Sub
 
         AddHandler NetworkChange.NetworkAvailabilityChanged, networkHandler
 
         Try
-            Do While DateTime.Now < deadline
+            Do While sw.ElapsedMilliseconds < timeoutMs
                 If Not IsNetworkAvailable() Then
                     networkSignal.WaitOne(1000)
                     Continue Do
                 End If
 
-            If Not String.IsNullOrEmpty(serverHost) Then
-                If Not PingHost(serverHost) Then
-                    Dim remaining As Integer = Math.Max(0, CInt((deadline - DateTime.Now).TotalSeconds))
-                    Managers.LogManager.Info("Ping " & serverHost & " failed. " & remaining.ToString() & "s remaining.")
-                    Thread.Sleep(2000)
-                    Continue Do
+                If Not String.IsNullOrEmpty(serverHost) Then
+                    If Not PingHost(serverHost) Then
+                        Dim remaining As Integer = Math.Max(0, CInt((timeoutMs - sw.ElapsedMilliseconds) \ 1000L))
+                        Managers.LogManager.Info("Ping " & serverHost & " failed. " & remaining.ToString() & "s remaining. Trying config load anyway...")
+                    Else
+                        Managers.LogManager.Info("Ping " & serverHost & " OK.")
+                    End If
                 End If
-                Managers.LogManager.Info("Ping " & serverHost & " OK. Attempting config load...")
-            End If
 
-            Config.AppSettings.Reload()
-            If Config.AppSettings.IsLoaded Then
-                Managers.LogManager.Info("Config loaded after retry.")
-                Return True
-            End If
-            If Config.AppSettings.IsLocalConfigError Then Return False
+                Config.AppSettings.Reload()
+                If Config.AppSettings.IsLoaded Then
+                    Managers.LogManager.Info("Config loaded after retry.")
+                    Return True
+                End If
+                If Config.AppSettings.IsLocalConfigError Then Return False
 
-            If Managers.LogManager.LogContains("CONFIG_LOADED:") Then
-                Managers.LogManager.Info("Config confirmed loaded via log check.")
-                Return True
-            End If
+                Dim secs As Integer = Math.Max(0, CInt((timeoutMs - sw.ElapsedMilliseconds) \ 1000L))
+                Managers.LogManager.Info("Config load failed. " & secs.ToString() & "s remaining. Status: " & Config.AppSettings.LoadStatus)
 
-            Dim secs As Integer = Math.Max(0, CInt((deadline - DateTime.Now).TotalSeconds))
-            Managers.LogManager.Info("Config load failed. " & secs.ToString() & "s remaining. Status: " & Config.AppSettings.LoadStatus)
-
-            Thread.Sleep(RetryIntervalMs)
+                Thread.Sleep(RetryIntervalMs)
             Loop
 
             Return False
         Finally
+            disposed = True
             RemoveHandler NetworkChange.NetworkAvailabilityChanged, networkHandler
             networkSignal.Dispose()
         End Try
@@ -341,20 +340,27 @@ Module Program
             Dim processNames As String() = {"SX5000MANAGEMENT", "RHYTHMSECTION"}
             Dim found As Boolean = False
 
-            For Each proc As Process In Process.GetProcesses()
-                Try
-                    Dim name As String = proc.ProcessName.ToUpperInvariant()
-                    For Each target As String In processNames
-                        If name.Contains(target) Then
-                            found = True
-                            Managers.LogManager.Info("Target app already running: " & proc.ProcessName)
-                            Exit For
-                        End If
-                    Next
-                    If found Then Exit For
-                Catch
-                End Try
-            Next
+            Dim allProcs As Process() = Process.GetProcesses()
+            Try
+                For Each proc As Process In allProcs
+                    Try
+                        Dim name As String = proc.ProcessName.ToUpperInvariant()
+                        For Each target As String In processNames
+                            If name.Contains(target) Then
+                                found = True
+                                Managers.LogManager.Info("Target app already running: " & proc.ProcessName)
+                                Exit For
+                            End If
+                        Next
+                        If found Then Exit For
+                    Catch
+                    End Try
+                Next
+            Finally
+                For Each proc As Process In allProcs
+                    Try : proc.Dispose() : Catch : End Try
+                Next
+            End Try
 
             If Not found Then
                 Dim targetExe As String = "C:\RSX-5000\bin\RSX 5000 IC Syste Management.exe"
@@ -363,7 +369,8 @@ Module Program
                     Dim psi As New ProcessStartInfo(targetExe)
                     psi.WorkingDirectory = IO.Path.GetDirectoryName(targetExe)
                     psi.UseShellExecute = True
-                    Process.Start(psi)
+                    Using p As Process = Process.Start(psi)
+                    End Using
                 Else
                     Managers.LogManager.Warn("Target exe not found: " & targetExe)
                 End If

@@ -16,15 +16,22 @@ Namespace Managers
 
         Private Shared ReadOnly Property LogDirectory As String
             Get
-                If _logDirectory Is Nothing Then
+                SyncLock _lock
+                    If _logDirectory IsNot Nothing Then Return _logDirectory
+
                     Dim parentDir As String = Config.AppSettings.LogPath
                     Dim company As String = Config.AppSettings.FolderName
                     If String.IsNullOrEmpty(parentDir) Then
                         parentDir = AppDomain.CurrentDomain.BaseDirectory
                     End If
-                    _logDirectory = Path.Combine(parentDir, company, Utilities.EnvironmentHelper.ComputerShortId)
-                End If
-                Return _logDirectory
+                    Dim dirPath As String = Path.Combine(parentDir, company, Utilities.EnvironmentHelper.ComputerShortId)
+
+                    If Config.AppSettings.IsLoaded Then
+                        _logDirectory = dirPath
+                    End If
+
+                    Return dirPath
+                End SyncLock
             End Get
         End Property
 

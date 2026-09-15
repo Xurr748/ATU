@@ -58,7 +58,7 @@ Namespace Config
             SyncLock _lock
                 If _settings IsNot Nothing Then Return
 
-                _settings = New Dictionary(Of String, String)(StringComparer.OrdinalIgnoreCase)
+                Dim tempSettings As New Dictionary(Of String, String)(StringComparer.OrdinalIgnoreCase)
                 _configLoadedPath = ""
                 _configLoadStatus = ""
                 _isLocalError = False
@@ -128,12 +128,13 @@ Namespace Config
                 Dim lastError As String = ""
                 For Each configPath As String In pathsToTry
                     Try
-                        LoadSettingsFromFile(configPath)
+                        tempSettings.Clear()
+                        LoadSettingsFromFile(configPath, tempSettings)
                         _configLoadedPath = configPath
-                        _configLoadStatus = "Loaded " & _settings.Count & " settings from: " & configPath
-                        Managers.LogManager.Info("CONFIG_LOADED: " & _settings.Count.ToString() & " settings from " & configPath)
+                        _configLoadStatus = "Loaded " & tempSettings.Count & " settings from: " & configPath
+                        Managers.LogManager.Info("CONFIG_LOADED: " & tempSettings.Count.ToString() & " settings from " & configPath)
 
-                        ' 3. Read Language override from serverconfig.txt (local)
+                        ' 4. Read Language override from serverconfig.txt (local)
                         Try
                             Dim scLines As String() = SafeReadAllLines(serverConfigPath)
                             For Each scLine As String In scLines
@@ -148,7 +149,7 @@ Namespace Config
                                             scVal = scVal.Substring(1, scVal.Length - 2)
                                         End If
                                         If Not String.IsNullOrEmpty(scVal) Then
-                                            _settings("Language") = scVal
+                                            tempSettings("Language") = scVal
                                         End If
                                         Exit For
                                     End If
@@ -157,10 +158,10 @@ Namespace Config
                         Catch
                         End Try
 
+                        _settings = tempSettings
                         Return
                     Catch ex As Exception
                         lastError = configPath & " - " & ex.Message
-                        _settings.Clear()
                     End Try
                 Next
 
@@ -168,7 +169,7 @@ Namespace Config
             End SyncLock
         End Sub
 
-        Private Shared Sub LoadSettingsFromFile(filePath As String)
+        Private Shared Sub LoadSettingsFromFile(filePath As String, target As Dictionary(Of String, String))
             Dim lines As String() = SafeReadAllLines(filePath)
             For Each line As String In lines
                 Dim trimmed As String = line.Trim()
@@ -185,7 +186,7 @@ Namespace Config
                         value = value.Substring(1, value.Length - 2)
                     End If
 
-                    _settings(key) = value
+                    target(key) = value
                 End If
             Next
         End Sub
@@ -214,12 +215,16 @@ Namespace Config
 
         Private Shared Function GetSetting(key As String, Optional defaultValue As String = "") As String
             EnsureLoaded()
-            Dim value As String = Nothing
-            If _settings.TryGetValue(key, value) Then
-                If Not String.IsNullOrWhiteSpace(value) Then
-                    Return value
+            SyncLock _lock
+                If _settings IsNot Nothing Then
+                    Dim value As String = Nothing
+                    If _settings.TryGetValue(key, value) Then
+                        If Not String.IsNullOrWhiteSpace(value) Then
+                            Return value
+                        End If
+                    End If
                 End If
-            End If
+            End SyncLock
             Return defaultValue
         End Function
 
