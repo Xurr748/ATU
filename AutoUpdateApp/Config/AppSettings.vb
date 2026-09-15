@@ -341,7 +341,7 @@ Namespace Config
 
         Public Shared ReadOnly Property InstallerArgs As String
             Get
-                Return GetSetting("InstallerArgs", "/silent /norestart")
+                Return GetSetting("InstallerArgs", "/quiet /norestart")
             End Get
         End Property
 

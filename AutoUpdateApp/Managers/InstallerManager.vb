@@ -94,20 +94,27 @@ Namespace Managers
                         If String.IsNullOrEmpty(guid) Then
                             LogManager.Warn("Product name '" & productName & "' not found in Registry (for Uninstall)")
                         Else
-                            LogManager.Info("Found GUID: " & guid & " for '" & productName & "'")
+                            LogManager.Info("Found uninstall info: " & guid & " for '" & productName & "'")
                             If progressCallback IsNot Nothing Then
                                 progressCallback(90, String.Format(L("ProgressUninstallingProduct"), productName))
                             End If
 
                             Dim smartBatPath As String = IO.Path.Combine(localFolder, "uninstall.bat")
+                            Dim uninstallCmd As String
+                            If guid.StartsWith("CMD:", StringComparison.OrdinalIgnoreCase) Then
+                                uninstallCmd = guid.Substring(4)
+                            Else
+                                uninstallCmd = "msiexec.exe /x " & guid & " /quiet /norestart"
+                            End If
+
                             Dim batContent As String = "@echo off" & Environment.NewLine &
-                                                       "msiexec.exe /x " & guid & " /quiet /norestart" & Environment.NewLine &
+                                                       uninstallCmd & Environment.NewLine &
                                                        "exit /b %ERRORLEVEL%"
                             IO.File.WriteAllText(smartBatPath, batContent)
-                            LogManager.Info("Created uninstall.bat: msiexec /x " & guid & " /quiet /norestart")
+                            LogManager.Info("Created uninstall.bat: " & uninstallCmd)
 
                             If Not RunBatchFile(smartBatPath, "uninstall") Then
-                                LogManager.[Error]("Uninstall process failed for GUID: " & guid)
+                                LogManager.[Error]("Uninstall process failed for: " & guid)
                                 uninstallSuccess = False
                             End If
                         End If
@@ -228,8 +235,9 @@ Namespace Managers
                     Return Nothing
                 End If
 
-                Dim msiFiles = New IO.DirectoryInfo(folderPath).GetFiles("*.msi")
+                Dim msiFiles = New IO.DirectoryInfo(folderPath).GetFiles("*.msi", IO.SearchOption.AllDirectories)
                 If msiFiles.Length = 0 Then
+                    LogManager.Info("No .msi files found in: " & folderPath & " (including subdirectories)")
                     Return Nothing
                 End If
 
@@ -240,6 +248,7 @@ Namespace Managers
                     End If
                 Next
 
+                LogManager.Info("FindLatestMsi found " & msiFiles.Length.ToString() & " .msi file(s). Selected: " & latest.FullName)
                 Return latest.FullName
             Catch ex As Exception
                 LogManager.Warn("Error searching for .msi files: " & ex.Message)
@@ -248,39 +257,80 @@ Namespace Managers
         End Function
 
         Private Shared Function FindUninstallGuid(productName As String) As String
-            Dim registryPaths As String() = {
-                "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
-                "SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"
+            Dim registryViews As Microsoft.Win32.RegistryView() = {
+                Microsoft.Win32.RegistryView.Registry64,
+                Microsoft.Win32.RegistryView.Registry32
             }
+            Dim uninstallPath As String = "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
 
-            For Each regPath As String In registryPaths
+            Dim exactMatch As String = Nothing
+            Dim substringMatch As String = Nothing
+
+            For Each view As Microsoft.Win32.RegistryView In registryViews
                 Try
-                    Using baseKey As Microsoft.Win32.RegistryKey = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(regPath)
-                        If baseKey Is Nothing Then Continue For
+                    Using hklm As Microsoft.Win32.RegistryKey = Microsoft.Win32.RegistryKey.OpenBaseKey(Microsoft.Win32.RegistryHive.LocalMachine, view)
+                        Using baseKey As Microsoft.Win32.RegistryKey = hklm.OpenSubKey(uninstallPath)
+                            If baseKey Is Nothing Then Continue For
 
-                        For Each subKeyName As String In baseKey.GetSubKeyNames()
-                            Try
-                                Using subKey As Microsoft.Win32.RegistryKey = baseKey.OpenSubKey(subKeyName)
-                                    If subKey Is Nothing Then Continue For
+                            For Each subKeyName As String In baseKey.GetSubKeyNames()
+                                Try
+                                    Using subKey As Microsoft.Win32.RegistryKey = baseKey.OpenSubKey(subKeyName)
+                                        If subKey Is Nothing Then Continue For
 
-                                    Dim displayName As Object = subKey.GetValue("DisplayName")
-                                    If displayName IsNot Nothing Then
-                                        Dim name As String = displayName.ToString()
-                                        If name.IndexOf(productName, StringComparison.OrdinalIgnoreCase) >= 0 Then
-                                            LogManager.Info("Registry match: " & name & " → " & subKeyName & " (in " & regPath & ")")
-                                            Return subKeyName
+                                        Dim displayName As Object = subKey.GetValue("DisplayName")
+                                        If displayName IsNot Nothing Then
+                                            Dim name As String = displayName.ToString()
+
+                                            If name.Equals(productName, StringComparison.OrdinalIgnoreCase) Then
+                                                exactMatch = ResolveUninstallId(subKey, subKeyName, name, view.ToString())
+                                                If Not String.IsNullOrEmpty(exactMatch) Then Return exactMatch
+                                            ElseIf substringMatch Is Nothing AndAlso name.IndexOf(productName, StringComparison.OrdinalIgnoreCase) >= 0 Then
+                                                substringMatch = ResolveUninstallId(subKey, subKeyName, name, view.ToString())
+                                            End If
                                         End If
-                                    End If
-                                End Using
-                            Catch
-                            End Try
-                        Next
+                                    End Using
+                                Catch
+                                End Try
+                            Next
+                        End Using
                     End Using
                 Catch ex As Exception
-                    LogManager.Warn("Error reading registry path: " & regPath & " - " & ex.Message)
+                    LogManager.Warn("Error reading registry (" & view.ToString() & "): " & ex.Message)
                 End Try
             Next
 
+            If Not String.IsNullOrEmpty(substringMatch) Then Return substringMatch
+
+            Return Nothing
+        End Function
+
+        Private Shared Function ResolveUninstallId(subKey As Microsoft.Win32.RegistryKey, subKeyName As String, displayName As String, viewName As String) As String
+            If subKeyName.StartsWith("{") AndAlso subKeyName.EndsWith("}") Then
+                LogManager.Info("Registry match (GUID): " & displayName & " -> " & subKeyName & " (" & viewName & ")")
+                Return subKeyName
+            End If
+
+            Dim quietUninstall As Object = subKey.GetValue("QuietUninstallString")
+            If quietUninstall IsNot Nothing AndAlso Not String.IsNullOrEmpty(quietUninstall.ToString()) Then
+                LogManager.Info("Registry match (QuietUninstallString): " & displayName & " -> " & quietUninstall.ToString() & " (" & viewName & ")")
+                Return "CMD:" & quietUninstall.ToString()
+            End If
+
+            Dim uninstallStr As Object = subKey.GetValue("UninstallString")
+            If uninstallStr IsNot Nothing AndAlso Not String.IsNullOrEmpty(uninstallStr.ToString()) Then
+                Dim uStr As String = uninstallStr.ToString()
+                Dim guidStart As Integer = uStr.IndexOf("{")
+                Dim guidEnd As Integer = uStr.IndexOf("}")
+                If guidStart >= 0 AndAlso guidEnd > guidStart Then
+                    Dim extractedGuid As String = uStr.Substring(guidStart, guidEnd - guidStart + 1)
+                    LogManager.Info("Registry match (extracted GUID from UninstallString): " & displayName & " -> " & extractedGuid & " (" & viewName & ")")
+                    Return extractedGuid
+                End If
+                LogManager.Info("Registry match (UninstallString): " & displayName & " -> " & uStr & " (" & viewName & ")")
+                Return "CMD:" & uStr
+            End If
+
+            LogManager.Warn("Registry match but no valid GUID or UninstallString: " & displayName & " (subkey=" & subKeyName & ", " & viewName & ")")
             Return Nothing
         End Function
 
