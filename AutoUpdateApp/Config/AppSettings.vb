@@ -12,6 +12,8 @@ Namespace Config
         Private Shared _configLoadedPath As String = ""
         Private Shared _configLoadStatus As String = ""
         Private Shared _isLocalError As Boolean = False
+        <ThreadStatic>
+        Private Shared _isLoading As Boolean
 
         Private Sub New()
         End Sub
@@ -54,9 +56,13 @@ Namespace Config
 
         Private Shared Sub EnsureLoaded()
             If _settings IsNot Nothing Then Return
+            If _isLoading Then Return
 
             SyncLock _lock
                 If _settings IsNot Nothing Then Return
+
+                _isLoading = True
+                Try
 
                 Dim tempSettings As New Dictionary(Of String, String)(StringComparer.OrdinalIgnoreCase)
                 _configLoadedPath = ""
@@ -166,6 +172,9 @@ Namespace Config
                 Next
 
                 _configLoadStatus = "Server config unreachable: " & lastError
+            Finally
+                _isLoading = False
+            End Try
             End SyncLock
         End Sub
 
