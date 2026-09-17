@@ -43,7 +43,17 @@ Namespace Managers
             Dim configLocalPath As String = Config.AppSettings.LocalInstallerPath
             Dim localFolder As String
             If Not String.IsNullOrEmpty(configLocalPath) Then
-                localFolder = configLocalPath
+                localFolder = configLocalPath.TrimEnd("\"c, "/"c)
+                Try
+                    Dim fullPath As String = Path.GetFullPath(localFolder)
+                    If Path.GetPathRoot(fullPath).TrimEnd("\"c).Equals(fullPath.TrimEnd("\"c), StringComparison.OrdinalIgnoreCase) Then
+                        localFolder = Path.Combine(fullPath, "AutoUpdateApp_Installer")
+                        LogManager.Warn("LocalInstallerPath is a drive root (" & configLocalPath & "). Using subfolder: " & localFolder)
+                    End If
+                Catch ex As Exception
+                    LogManager.Warn("Invalid LocalInstallerPath: " & configLocalPath & " - " & ex.Message & ". Using temp path.")
+                    localFolder = Path.Combine(Path.GetTempPath(), "AutoUpdateApp_LocalInstaller")
+                End Try
             Else
                 localFolder = Path.Combine(Path.GetTempPath(), "AutoUpdateApp_LocalInstaller")
             End If
@@ -178,7 +188,12 @@ Namespace Managers
             Finally
                 Try
                     If Directory.Exists(localFolder) Then
-                        Directory.Delete(localFolder, True)
+                        Dim rootCheck As String = Path.GetPathRoot(Path.GetFullPath(localFolder)).TrimEnd("\"c)
+                        If rootCheck.Equals(Path.GetFullPath(localFolder).TrimEnd("\"c), StringComparison.OrdinalIgnoreCase) Then
+                            LogManager.[Error]("SAFETY: Refusing to delete drive root: " & localFolder)
+                        Else
+                            Directory.Delete(localFolder, True)
+                        End If
                     End If
                 Catch cleanupEx As Exception
                     LogManager.Warn("Could not clean up temp installer folder: " & cleanupEx.Message)

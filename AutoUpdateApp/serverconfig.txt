@@ -9,5 +9,5 @@
 ;                       Auto-generates: P:\rx50\config\config.txt
 ; ═══════════════════════════════════════════════════════════════
 
-ConfigPath = "C:\RSX-5000\config.txt"
+ConfigPath = "C:\config22222.txt"
 ; AltDrive = P
