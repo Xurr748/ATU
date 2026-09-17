@@ -541,7 +541,7 @@ Namespace Forms
 
             Dim currentLang As String = Config.LanguageManager.CurrentLanguage
             If _btnLang IsNot Nothing Then
-                _btnLang.Text = "🌐 " & currentLang.ToUpper()
+                _btnLang.Text = currentLang.ToUpper()
             End If
         End Sub
 
@@ -557,7 +557,8 @@ Namespace Forms
 
         Protected Overrides Sub OnLoad(ByVal e As EventArgs)
             MyBase.OnLoad(e)
-
+            _btnGear.Visible = True
+            _cboInstallerType.Visible = False
             Me.DoubleBuffered = True
             Me.SetStyle(ControlStyles.OptimizedDoubleBuffer Or ControlStyles.AllPaintingInWmPaint Or ControlStyles.UserPaint, True)
             Me.UpdateStyles()
@@ -996,7 +997,7 @@ Namespace Forms
                 Dim parent As New ToolStripMenuItem(groupName & "  (" & pdfFiles.Length & " files)")
                 For Each f As IO.FileInfo In pdfFiles
                     Dim filePath As String = f.FullName
-                    Dim label As String = f.Name & "  [" & f.LastWriteTime.ToString("dd/MM/yy HH:mm") & "]"
+                    Dim label As String = f.Name
                     Dim child As New ToolStripMenuItem(label)
                     AddHandler child.Click, Sub(s, ev)
                                                 OpenSinglePdf(filePath)

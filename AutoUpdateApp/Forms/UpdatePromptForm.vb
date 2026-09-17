@@ -1,4 +1,4 @@
-﻿Option Strict On
+Option Strict On
 Option Explicit On
 
 Imports System.Windows.Forms
@@ -12,15 +12,8 @@ Namespace Forms
     End Enum
 
     Public Class UpdatePromptForm
-        Inherits Form
 
         Private _userChoice As UpdatePromptResult = UpdatePromptResult.RemindLater
-
-        Private lblMessage As Label
-        Private lblVersionInfo As Label
-        Private btnUpdateNow As Button
-        Private btnAfterRestart As Button
-        Private btnRemindLater As Button
 
         Public ReadOnly Property UserChoice As UpdatePromptResult
             Get
@@ -30,78 +23,24 @@ Namespace Forms
 
         Public Sub New(currentVersion As String, latestVersion As String)
             InitializeComponent()
-            Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
-            lblVersionInfo.Text = L("PromptCurrent") & ": " & currentVersion & "  →  " & L("PromptLatest") & ": " & latestVersion
+            ApplyLanguage(currentVersion, latestVersion)
+            WireEvents()
         End Sub
 
-        Private Sub InitializeComponent()
-            Me.SuspendLayout()
+        Private Sub ApplyLanguage(currentVersion As String, latestVersion As String)
+            Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
+            Me.Text = L("PromptTitle")
+            lblMessage.Text = L("PromptNewVersion")
+            lblVersionInfo.Text = L("PromptCurrent") & ": " & currentVersion & "  →  " & L("PromptLatest") & ": " & latestVersion
+            btnUpdateNow.Text = L("PromptUpdateNow")
+            btnAfterRestart.Text = L("PromptAfterRestart")
+            btnRemindLater.Text = L("PromptRemindLater")
+        End Sub
 
-            lblMessage = New Label()
-            lblMessage.Text = Config.LanguageManager.GetText("PromptNewVersion")
-            lblMessage.Font = New Drawing.Font("Segoe UI", 10.0F, Drawing.FontStyle.Bold)
-            lblMessage.Location = New Drawing.Point(20, 20)
-            lblMessage.Size = New Drawing.Size(340, 25)
-            lblMessage.AutoSize = False
-
-            lblVersionInfo = New Label()
-            lblVersionInfo.Text = ""
-            lblVersionInfo.Font = New Drawing.Font("Segoe UI", 9.0F)
-            lblVersionInfo.Location = New Drawing.Point(20, 50)
-            lblVersionInfo.Size = New Drawing.Size(340, 20)
-            lblVersionInfo.AutoSize = False
-
-            btnUpdateNow = New Button()
-            btnUpdateNow.Text = Config.LanguageManager.GetText("PromptUpdateNow")
-            btnUpdateNow.Location = New Drawing.Point(20, 90)
-            btnUpdateNow.Size = New Drawing.Size(105, 35)
-            btnUpdateNow.Font = New Drawing.Font("Segoe UI", 9.0F, Drawing.FontStyle.Bold)
-            btnUpdateNow.FlatStyle = FlatStyle.Flat
-            btnUpdateNow.FlatAppearance.BorderColor = Drawing.Color.FromArgb(70, 130, 180)
-            btnUpdateNow.BackColor = Drawing.Color.FromArgb(70, 130, 180)
-            btnUpdateNow.ForeColor = Drawing.Color.White
-            btnUpdateNow.Cursor = Cursors.Hand
+        Private Sub WireEvents()
             AddHandler btnUpdateNow.Click, AddressOf BtnUpdateNow_Click
-            btnUpdateNow.Visible = False
-
-            btnAfterRestart = New Button()
-            btnAfterRestart.Text = Config.LanguageManager.GetText("PromptAfterRestart")
-            btnAfterRestart.Location = New Drawing.Point(135, 90)
-            btnAfterRestart.Size = New Drawing.Size(110, 35)
-            btnAfterRestart.FlatStyle = FlatStyle.Flat
-            btnAfterRestart.FlatAppearance.BorderColor = Drawing.Color.FromArgb(200, 200, 200)
-            btnAfterRestart.BackColor = Drawing.Color.White
-            btnAfterRestart.Cursor = Cursors.Hand
             AddHandler btnAfterRestart.Click, AddressOf BtnAfterRestart_Click
-
-            btnRemindLater = New Button()
-            btnRemindLater.Text = Config.LanguageManager.GetText("PromptRemindLater")
-            btnRemindLater.Location = New Drawing.Point(255, 90)
-            btnRemindLater.Size = New Drawing.Size(105, 35)
-            btnRemindLater.FlatStyle = FlatStyle.Flat
-            btnRemindLater.FlatAppearance.BorderColor = Drawing.Color.FromArgb(200, 200, 200)
-            btnRemindLater.BackColor = Drawing.Color.White
-            btnRemindLater.Cursor = Cursors.Hand
             AddHandler btnRemindLater.Click, AddressOf BtnRemindLater_Click
-
-            Me.Text = Config.LanguageManager.GetText("PromptTitle")
-            Me.ClientSize = New Drawing.Size(380, 145)
-            Me.FormBorderStyle = FormBorderStyle.FixedDialog
-            Me.StartPosition = FormStartPosition.CenterScreen
-            Me.MaximizeBox = False
-            Me.MinimizeBox = False
-            Me.ShowInTaskbar = True
-            Me.TopMost = True
-            Me.Font = New Drawing.Font("Segoe UI", 9.0F)
-            Me.BackColor = Drawing.Color.FromArgb(245, 245, 250)
-
-            Me.Controls.Add(lblMessage)
-            Me.Controls.Add(lblVersionInfo)
-            Me.Controls.Add(btnUpdateNow)
-            Me.Controls.Add(btnAfterRestart)
-            Me.Controls.Add(btnRemindLater)
-
-            Me.ResumeLayout(False)
         End Sub
 
         Private Sub BtnUpdateNow_Click(sender As Object, e As EventArgs)
@@ -132,6 +71,9 @@ Namespace Forms
 
         Protected Overrides Sub Dispose(disposing As Boolean)
             If disposing Then
+                If components IsNot Nothing Then
+                    components.Dispose()
+                End If
                 If btnUpdateNow IsNot Nothing Then
                     RemoveHandler btnUpdateNow.Click, AddressOf BtnUpdateNow_Click
                 End If

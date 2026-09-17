@@ -1,4 +1,4 @@
-﻿Option Strict On
+Option Strict On
 Option Explicit On
 
 Imports System.Drawing
@@ -7,25 +7,20 @@ Imports System.Windows.Forms
 Namespace Forms
 
     Public Class RestartCountdownForm
-        Inherits Form
 
-        Private _lblHeader As Label
-        Private _lblCountdown As Label
-        Private _btnCancel As Button
-        Private WithEvents _countdownTimer As Timer
         Private _secondsLeft As Integer = 60
         Private _isRestarting As Boolean = False
         Private _parentForm As Form
 
         Public Sub New(parentForm As Form)
             _parentForm = parentForm
-            InitUI()
+            InitializeComponent()
+            AdjustSize()
+            UpdateLanguage()
+            WireEvents()
         End Sub
 
-        Private Sub InitUI()
-            Me.SuspendLayout()
-            Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
-
+        Private Sub AdjustSize()
             Dim screen As Rectangle = System.Windows.Forms.Screen.PrimaryScreen.WorkingArea
             Dim formW As Integer = CInt(screen.Width * 0.4)
             Dim formH As Integer = CInt(screen.Height * 0.4)
@@ -35,63 +30,22 @@ Namespace Forms
             If formW > 600 Then formW = 600
             If formH > 450 Then formH = 450
 
-            Me.Text = L("RestartNoticeTitle")
             Me.Size = New Size(formW, formH)
-            Me.StartPosition = FormStartPosition.CenterScreen
-            Me.FormBorderStyle = FormBorderStyle.FixedSingle
-            Me.MaximizeBox = False
-            Me.MinimizeBox = False
-            Me.ControlBox = False
-            Me.TopMost = True
-            Me.ShowInTaskbar = True
-            Me.BackColor = Color.FromArgb(20, 20, 25)
-            Me.Font = New Font("Segoe UI", 10.0F)
 
             Dim centerY As Integer = CInt(formH * 0.08)
-
-            _lblHeader = New Label()
-            _lblHeader.Text = L("RestartNoticeCountdown").Replace("{0}", "")
-            _lblHeader.Font = New Font("Segoe UI", 14.0F, FontStyle.Bold)
-            _lblHeader.ForeColor = Color.White
-            _lblHeader.TextAlign = ContentAlignment.MiddleCenter
-            _lblHeader.AutoSize = False
             _lblHeader.Size = New Size(formW - 40, 40)
             _lblHeader.Location = New Point(20, centerY)
-
-            _lblCountdown = New Label()
-            _lblCountdown.Text = _secondsLeft.ToString()
-            _lblCountdown.Font = New Font("Segoe UI", 72.0F, FontStyle.Bold)
-            _lblCountdown.ForeColor = Color.FromArgb(255, 70, 70)
-            _lblCountdown.TextAlign = ContentAlignment.MiddleCenter
-            _lblCountdown.AutoSize = False
             _lblCountdown.Size = New Size(formW - 40, 120)
             _lblCountdown.Location = New Point(20, centerY + 45)
-
-            _btnCancel = New Button()
-            _btnCancel.Text = L("RestartNoticeBtnCancel")
-            _btnCancel.Font = New Font("Segoe UI", 12.0F)
-            _btnCancel.ForeColor = Color.White
-            _btnCancel.BackColor = Color.FromArgb(80, 80, 95)
-            _btnCancel.FlatStyle = FlatStyle.Flat
-            _btnCancel.FlatAppearance.BorderSize = 1
-            _btnCancel.FlatAppearance.BorderColor = Color.FromArgb(120, 120, 140)
-            _btnCancel.Size = New Size(220, 45)
             _btnCancel.Location = New Point(CInt((formW - 220) / 2), centerY + 185)
-            _btnCancel.Cursor = Cursors.Hand
+        End Sub
+
+        Private Sub WireEvents()
             AddHandler _btnCancel.Click, AddressOf BtnCancel_Click
             AddHandler _btnCancel.MouseEnter, Sub(s, ev) _btnCancel.BackColor = Color.FromArgb(100, 100, 115)
             AddHandler _btnCancel.MouseLeave, Sub(s, ev) _btnCancel.BackColor = Color.FromArgb(80, 80, 95)
-
-            Me.Controls.Add(_lblHeader)
-            Me.Controls.Add(_lblCountdown)
-            Me.Controls.Add(_btnCancel)
-
-            _countdownTimer = New Timer()
-            _countdownTimer.Interval = 1000
             AddHandler _countdownTimer.Tick, AddressOf CountdownTimer_Tick
             _countdownTimer.Start()
-
-            Me.ResumeLayout(False)
         End Sub
 
         Public Sub UpdateLanguage()
@@ -145,6 +99,9 @@ Namespace Forms
 
         Protected Overrides Sub Dispose(disposing As Boolean)
             If disposing Then
+                If components IsNot Nothing Then
+                    components.Dispose()
+                End If
                 If _countdownTimer IsNot Nothing Then
                     _countdownTimer.Stop()
                     RemoveHandler _countdownTimer.Tick, AddressOf CountdownTimer_Tick

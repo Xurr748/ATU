@@ -89,6 +89,9 @@
     <Compile Include="Forms\UpdatePromptForm.vb">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="Forms\UpdatePromptForm.Designer.vb">
+      <DependentUpon>UpdatePromptForm.vb</DependentUpon>
+    </Compile>
     <Compile Include="Forms\MainForm.vb">
       <SubType>Form</SubType>
     </Compile>
@@ -101,8 +104,14 @@
     <Compile Include="Forms\RestartNoticeForm.vb">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="Forms\RestartNoticeForm.Designer.vb">
+      <DependentUpon>RestartNoticeForm.vb</DependentUpon>
+    </Compile>
     <Compile Include="Forms\RestartCountdownForm.vb">
       <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\RestartCountdownForm.Designer.vb">
+      <DependentUpon>RestartCountdownForm.vb</DependentUpon>
     </Compile>
   </ItemGroup>
   <ItemGroup>

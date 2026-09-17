@@ -1,4 +1,4 @@
-﻿Option Strict On
+Option Strict On
 Option Explicit On
 
 Imports System.Drawing
@@ -7,25 +7,18 @@ Imports System.Windows.Forms
 Namespace Forms
 
     Public Class RestartNoticeForm
-        Inherits Form
 
-        Private _picIcon As PictureBox
-        Private _lblHeader As Label
-        Private _lblBody As Label
-        Private _lblWarn As Label
-        Private _btnRestart As Button
-        Private WithEvents _popupTimer As Timer
         Private _isRestarting As Boolean = False
 
         Public Sub New()
-            InitUI()
+            InitializeComponent()
+            _picIcon.Image = New Bitmap(SystemIcons.Warning.ToBitmap(), New Size(64, 64))
+            AdjustSize()
+            UpdateLanguage()
+            WireEvents()
         End Sub
 
-        Private Sub InitUI()
-            Me.SuspendLayout()
-
-            Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
-
+        Private Sub AdjustSize()
             Dim screen As Rectangle = System.Windows.Forms.Screen.PrimaryScreen.WorkingArea
             Dim formW As Integer = CInt(screen.Width * 0.5)
             Dim formH As Integer = CInt(screen.Height * 0.5)
@@ -34,80 +27,23 @@ Namespace Forms
             If formH < 380 Then formH = 380
             If formW > 800 Then formW = 800
             If formH > 600 Then formH = 600
-
-            Me.Text = L("RestartNoticeTitle")
+            
             Me.Size = New Size(formW, formH)
-            Me.StartPosition = FormStartPosition.CenterScreen
-            Me.FormBorderStyle = FormBorderStyle.FixedSingle
-            Me.MaximizeBox = False
-            Me.MinimizeBox = True
-            Me.TopMost = True
-            Me.ShowInTaskbar = True
-            Me.BackColor = Color.FromArgb(25, 25, 35)
-            Me.Font = New Font("Segoe UI", 10.0F)
-
-            Dim topY As Integer = 20
-
-            _picIcon = New PictureBox()
-            _picIcon.Image = New Bitmap(SystemIcons.Warning.ToBitmap(), New Size(64, 64))
-            _picIcon.SizeMode = PictureBoxSizeMode.CenterImage
+            
+            ' Center controls
             _picIcon.Size = New Size(formW - 40, 80)
-            _picIcon.Location = New Point(20, topY)
-            _picIcon.BackColor = Color.Transparent
-
-            _lblHeader = New Label()
-            _lblHeader.Text = L("RestartNoticeHeader")
-            _lblHeader.Font = New Font("Segoe UI", 24.0F, FontStyle.Bold)
-            _lblHeader.ForeColor = Color.White
-            _lblHeader.TextAlign = ContentAlignment.MiddleCenter
-            _lblHeader.AutoSize = False
             _lblHeader.Size = New Size(formW - 40, 60)
-            _lblHeader.Location = New Point(20, topY + 85)
-
-            _lblBody = New Label()
-            _lblBody.Text = L("RestartNoticeBody")
-            _lblBody.Font = New Font("Segoe UI", 11.0F)
-            _lblBody.ForeColor = Color.FromArgb(200, 200, 210)
-            _lblBody.TextAlign = ContentAlignment.MiddleCenter
-            _lblBody.AutoSize = False
             _lblBody.Size = New Size(formW - 60, 100)
-            _lblBody.Location = New Point(30, topY + 155)
+            _btnRestart.Location = New Point(CInt((formW - _btnRestart.Width) / 2), _btnRestart.Location.Y)
+            _lblWarn.Size = New Size(formW - 40, 25)
+        End Sub
 
-            _btnRestart = New Button()
-            _btnRestart.Text = L("RestartNoticeBtn")
-            _btnRestart.Font = New Font("Segoe UI", 14.0F, FontStyle.Bold)
-            _btnRestart.ForeColor = Color.White
-            _btnRestart.BackColor = Color.FromArgb(220, 53, 69)
-            _btnRestart.FlatStyle = FlatStyle.Flat
-            _btnRestart.FlatAppearance.BorderSize = 0
-            _btnRestart.Size = New Size(260, 50)
-            _btnRestart.Location = New Point(CInt((formW - 260) / 2), topY + 270)
-            _btnRestart.Cursor = Cursors.Hand
+        Private Sub WireEvents()
             AddHandler _btnRestart.Click, AddressOf BtnRestart_Click
             AddHandler _btnRestart.MouseEnter, Sub(s, ev) _btnRestart.BackColor = Color.FromArgb(200, 35, 51)
             AddHandler _btnRestart.MouseLeave, Sub(s, ev) _btnRestart.BackColor = Color.FromArgb(220, 53, 69)
-
-            _lblWarn = New Label()
-            _lblWarn.Text = L("RestartNoticeMinimizeWarn")
-            _lblWarn.Font = New Font("Segoe UI", 9.0F, FontStyle.Italic)
-            _lblWarn.ForeColor = Color.FromArgb(150, 150, 160)
-            _lblWarn.TextAlign = ContentAlignment.MiddleCenter
-            _lblWarn.AutoSize = False
-            _lblWarn.Size = New Size(formW - 40, 25)
-            _lblWarn.Location = New Point(20, topY + 330)
-
-            Me.Controls.Add(_picIcon)
-            Me.Controls.Add(_lblHeader)
-            Me.Controls.Add(_lblBody)
-            Me.Controls.Add(_btnRestart)
-            Me.Controls.Add(_lblWarn)
-
-            _popupTimer = New Timer()
-            _popupTimer.Interval = 20000
             AddHandler _popupTimer.Tick, AddressOf PopupTimer_Tick
             _popupTimer.Start()
-
-            Me.ResumeLayout(False)
         End Sub
 
         Public Sub UpdateLanguage()
@@ -150,6 +86,9 @@ Namespace Forms
 
         Protected Overrides Sub Dispose(disposing As Boolean)
             If disposing Then
+                If components IsNot Nothing Then
+                    components.Dispose()
+                End If
                 If _popupTimer IsNot Nothing Then
                     _popupTimer.Stop()
                     RemoveHandler _popupTimer.Tick, AddressOf PopupTimer_Tick
