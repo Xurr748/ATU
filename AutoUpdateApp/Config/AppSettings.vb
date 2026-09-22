@@ -554,6 +554,27 @@ Namespace Config
             End Get
         End Property
 
+        Public Shared ReadOnly Property AutoWatchFilePath As String
+            Get
+                Return GetSetting("AutoWatchFilePath", "")
+            End Get
+        End Property
+
+        Public Shared ReadOnly Property AutoStopLogPath As String
+            Get
+                Return GetSetting("AutoStopLogPath", "")
+            End Get
+        End Property
+
+        Public Shared ReadOnly Property AutoWaitMinutes As Integer
+            Get
+                Dim val As String = GetSetting("AutoWaitMinutes", "30")
+                Dim result As Integer
+                If Integer.TryParse(val, result) AndAlso result > 0 Then Return result
+                Return 30
+            End Get
+        End Property
+
     End Class
 
 End Namespace

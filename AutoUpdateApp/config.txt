@@ -39,3 +39,7 @@ Language = en
 TargetAppExePath = 
 BatFilePath = 
 KillProcessList = RSX5000
+
+AutoWatchFilePath = 
+AutoStopLogPath = 
+AutoWaitMinutes = 30

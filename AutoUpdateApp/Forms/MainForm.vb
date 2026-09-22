@@ -692,6 +692,8 @@ Namespace Forms
                         MessageBox.Show(L("PromptSuccessCompleted"), L("TitleCheckResult"), MessageBoxButtons.OK, MessageBoxIcon.Information)
                     Case Strategies.UpdateResult.UpdateScheduledForRestart
                         ShowRestartNoticeForm()
+                    Case Strategies.UpdateResult.RestartRequired
+                        ShowRestartNoticeForm()
                     Case Strategies.UpdateResult.[Error]
                         Dim translatedMsg As String = TranslateMessage(e.Message)
                         MessageBox.Show(L("TitleError") & ": " & translatedMsg, L("TitleCheckResult"), MessageBoxButtons.OK, MessageBoxIcon.Error)

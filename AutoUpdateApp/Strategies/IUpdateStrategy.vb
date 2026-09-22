@@ -1,4 +1,4 @@
-﻿Option Strict On
+Option Strict On
 Option Explicit On
 
 Namespace Strategies
@@ -9,6 +9,7 @@ Namespace Strategies
         UpdateDeferred = 2
         UpdateScheduledForRestart = 3
         [Error] = 4
+        RestartRequired = 5
     End Enum
 
     Public Interface IUpdateStrategy
