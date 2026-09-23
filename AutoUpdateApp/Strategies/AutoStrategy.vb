@@ -17,21 +17,23 @@ Namespace Strategies
                 Return UpdateResult.[Error]
             End If
 
-            Dim watchPath As String = Config.AppSettings.AutoWatchFilePath
-            Dim stopLogPath As String = Config.AppSettings.AutoStopLogPath
+            Dim watchFolder As String = Config.AppSettings.AutoWatchFolderPath
+            Dim stopLogFolder As String = Config.AppSettings.AutoStopLogFolderPath
 
-            If String.IsNullOrEmpty(watchPath) OrElse String.IsNullOrEmpty(stopLogPath) Then
-                Managers.LogManager.Info("Auto mode: AutoWatchFilePath or AutoStopLogPath not configured. Falling back to flag mode.")
+            If String.IsNullOrEmpty(watchFolder) OrElse String.IsNullOrEmpty(stopLogFolder) Then
+                Managers.LogManager.Info("Auto mode: AutoWatchFolderPath or AutoStopLogFolderPath not configured. Falling back to flag mode.")
                 Return ExecuteFlagMode(context)
             End If
 
-            If Not File.Exists(watchPath) Then
-                Managers.LogManager.Warn("Auto mode: Watch file not found: " & watchPath)
+            Dim watchPath As String = FindLatestFile(watchFolder)
+            If String.IsNullOrEmpty(watchPath) Then
+                Managers.LogManager.Warn("Auto mode: No files found in watch folder: " & watchFolder)
                 Return UpdateResult.NoAction
             End If
 
-            If Not File.Exists(stopLogPath) Then
-                Managers.LogManager.Warn("Auto mode: Stop log file not found: " & stopLogPath)
+            Dim stopLogPath As String = FindLatestFile(stopLogFolder)
+            If String.IsNullOrEmpty(stopLogPath) Then
+                Managers.LogManager.Warn("Auto mode: No files found in stop log folder: " & stopLogFolder)
                 Return UpdateResult.NoAction
             End If
 
@@ -41,19 +43,19 @@ Namespace Strategies
             Managers.LogManager.Info("Auto mode: WatchFile lastEdit=" & lastEditTime.ToString("yyyy-MM-dd HH:mm:ss") & _
                                     ", StopLog stopTime=" & stopTime.ToString("yyyy-MM-dd HH:mm:ss"))
 
-            If lastEditTime <= stopTime Then
-                Managers.LogManager.Info("Auto mode: lastEdit <= stopTime. Machine is stopped. No action.")
+            If lastEditTime >= stopTime Then
+                Managers.LogManager.Info("Auto mode: lastEdit >= stopTime. Machine still active. No action.")
                 Return UpdateResult.NoAction
             End If
 
-            Managers.LogManager.Info("Auto mode: lastEdit > stopTime. Machine may be active. Starting " & _
-                                    Config.AppSettings.AutoWaitMinutes.ToString() & "-minute monitoring...")
+            Managers.LogManager.Info("Auto mode: lastEdit < stopTime. Machine stopped. Starting " & _
+                                    Config.AppSettings.AutoWaitMinutes.ToString() & "-minute wait before restart...")
 
-            If WaitAndMonitor(watchPath, stopLogPath, Config.AppSettings.AutoWaitMinutes) Then
-                Managers.LogManager.Info("Auto mode: Monitoring period elapsed. lastEdit still > stopTime. Requesting restart.")
+            If WaitAndMonitor(watchFolder, stopLogFolder, Config.AppSettings.AutoWaitMinutes) Then
+                Managers.LogManager.Info("Auto mode: Wait complete. Machine still stopped. Requesting restart.")
                 Return UpdateResult.RestartRequired
             Else
-                Managers.LogManager.Info("Auto mode: During monitoring, stopTime became >= lastEdit. Cancelled.")
+                Managers.LogManager.Info("Auto mode: Machine became active during wait. Cancelled.")
                 Return UpdateResult.NoAction
             End If
         End Function
@@ -70,6 +72,37 @@ Namespace Strategies
             Catch ex As Exception
                 Managers.LogManager.[Error]("Failed to set update flag in Auto mode for " & computerName, ex)
                 Return UpdateResult.[Error]
+            End Try
+        End Function
+
+        Private Shared Function FindLatestFile(folderOrFilePath As String) As String
+            Try
+                If File.Exists(folderOrFilePath) Then
+                    Return folderOrFilePath
+                End If
+
+                If Not Directory.Exists(folderOrFilePath) Then
+                    Return Nothing
+                End If
+
+                Dim latestFile As String = Nothing
+                Dim latestTime As DateTime = DateTime.MinValue
+
+                For Each f As String In Directory.GetFiles(folderOrFilePath)
+                    Try
+                        Dim writeTime As DateTime = File.GetLastWriteTime(f)
+                        If writeTime > latestTime Then
+                            latestTime = writeTime
+                            latestFile = f
+                        End If
+                    Catch
+                    End Try
+                Next
+
+                Return latestFile
+            Catch ex As Exception
+                Managers.LogManager.Warn("Auto mode: Error finding latest file in " & folderOrFilePath & ": " & ex.Message)
+                Return Nothing
             End Try
         End Function
 
@@ -97,12 +130,10 @@ Namespace Strategies
                     Dim line As String = lines(i)
                     Dim parsedTime As DateTime = DateTime.MinValue
                     If TryParseStopTimeFromLine(line, fileDate, parsedTime) Then
-                        Managers.LogManager.Info("Auto mode: Latest stop time parsed: " & parsedTime.ToString("yyyy-MM-dd HH:mm:ss") & " from line: " & line.Trim())
                         Return parsedTime
                     End If
                 Next
 
-                Managers.LogManager.Warn("Auto mode: No valid 'stop' line with timestamp found in " & filePath)
                 Return DateTime.MinValue
             Catch ex As Exception
                 Managers.LogManager.Warn("Auto mode: Error reading stop log " & filePath & ": " & ex.Message)
@@ -222,29 +253,31 @@ Namespace Strategies
             End Try
         End Function
 
-        Private Shared Function WaitAndMonitor(watchPath As String, stopLogPath As String, waitMinutes As Integer) As Boolean
+        Private Shared Function WaitAndMonitor(watchFolder As String, stopLogFolder As String, waitMinutes As Integer) As Boolean
             Dim deadline As DateTime = DateTime.Now.AddMinutes(waitMinutes)
 
             Do While DateTime.Now < deadline
                 System.Threading.Thread.Sleep(CheckIntervalMs)
 
-                Dim currentLastEdit As DateTime = ReadLastEditTime(watchPath)
-                Dim currentStopTime As DateTime = ReadLatestStopTime(stopLogPath)
+                Dim wp As String = FindLatestFile(watchFolder)
+                Dim sp As String = FindLatestFile(stopLogFolder)
+                If String.IsNullOrEmpty(wp) OrElse String.IsNullOrEmpty(sp) Then Continue Do
 
-                If currentLastEdit <= currentStopTime Then
-                    Managers.LogManager.Info("Auto mode: Monitor check -- stopTime caught up. lastEdit=" & _
-                                            currentLastEdit.ToString("HH:mm:ss") & " <= stopTime=" & _
+                Dim currentLastEdit As DateTime = ReadLastEditTime(wp)
+                Dim currentStopTime As DateTime = ReadLatestStopTime(sp)
+
+                If currentLastEdit >= currentStopTime Then
+                    Managers.LogManager.Info("Auto mode: Monitor -- machine became active. lastEdit=" & _
+                                            currentLastEdit.ToString("HH:mm:ss") & " >= stopTime=" & _
                                             currentStopTime.ToString("HH:mm:ss"))
                     Return False
                 End If
-
-                Dim remaining As Integer = Math.Max(0, CInt((deadline - DateTime.Now).TotalMinutes))
-                Managers.LogManager.Info("Auto mode: Monitor check -- still active. " & remaining.ToString() & " min remaining.")
             Loop
 
-            Dim finalLastEdit As DateTime = ReadLastEditTime(watchPath)
-            Dim finalStopTime As DateTime = ReadLatestStopTime(stopLogPath)
-            Return (finalLastEdit > finalStopTime)
+            Dim fwp As String = FindLatestFile(watchFolder)
+            Dim fsp As String = FindLatestFile(stopLogFolder)
+            If String.IsNullOrEmpty(fwp) OrElse String.IsNullOrEmpty(fsp) Then Return False
+            Return (ReadLastEditTime(fwp) < ReadLatestStopTime(fsp))
         End Function
 
     End Class

@@ -486,7 +486,6 @@ Namespace Forms
                     End If
                     If Not String.IsNullOrEmpty(shortcutName) Then
                         Managers.InstallerManager.RemoveStartupShortcut(shortcutName)
-                        Managers.LogManager.Info("Version mismatch: removed " & shortcutName & " from startup.")
                     End If
                 End If
 

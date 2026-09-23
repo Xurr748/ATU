@@ -40,6 +40,6 @@ TargetAppExePath =
 BatFilePath = 
 KillProcessList = RSX5000
 
-AutoWatchFilePath = 
-AutoStopLogPath = 
+AutoWatchFolderPath = 
+AutoStopLogFolderPath = 
 AutoWaitMinutes = 30

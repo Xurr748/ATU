@@ -136,9 +136,12 @@ Namespace Config
                     Try
                         tempSettings.Clear()
                         LoadSettingsFromFile(configPath, tempSettings)
+                        Dim prevPath As String = _configLoadedPath
                         _configLoadedPath = configPath
                         _configLoadStatus = "Loaded " & tempSettings.Count & " settings from: " & configPath
-                        Managers.LogManager.Info("CONFIG_LOADED: " & tempSettings.Count.ToString() & " settings from " & configPath)
+                        If Not String.Equals(prevPath, configPath, StringComparison.OrdinalIgnoreCase) Then
+                            Managers.LogManager.Info("CONFIG_LOADED: " & tempSettings.Count.ToString() & " settings from " & configPath)
+                        End If
 
                         ' 4. Read Language override from serverconfig.txt (local)
                         Try
@@ -463,7 +466,6 @@ Namespace Config
         Public Shared Sub Reload()
             SyncLock _lock
                 _settings = Nothing
-                _configLoadedPath = ""
                 _configLoadStatus = ""
                 _isLocalError = False
             End SyncLock
@@ -554,15 +556,15 @@ Namespace Config
             End Get
         End Property
 
-        Public Shared ReadOnly Property AutoWatchFilePath As String
+        Public Shared ReadOnly Property AutoWatchFolderPath As String
             Get
-                Return GetSetting("AutoWatchFilePath", "")
+                Return GetSetting("AutoWatchFolderPath", "")
             End Get
         End Property
 
-        Public Shared ReadOnly Property AutoStopLogPath As String
+        Public Shared ReadOnly Property AutoStopLogFolderPath As String
             Get
-                Return GetSetting("AutoStopLogPath", "")
+                Return GetSetting("AutoStopLogFolderPath", "")
             End Get
         End Property
 
