@@ -635,15 +635,22 @@ Namespace Forms
                 Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
                 Dim tester As Models.TesterInfo = Managers.ConfigManager.GetTesterByName(computerName)
                 If tester IsNot Nothing Then
-                    Dim now As DateTime = DateTime.Now
-                    Dim scheduled As TimeSpan = tester.ScheduledTime
+                    Dim isAuto As Boolean = String.Equals(tester.Mode, "AUTO", StringComparison.OrdinalIgnoreCase)
 
-                    If now.Hour = scheduled.Hours AndAlso now.Minute >= scheduled.Minutes Then
-                        If _lastScheduledRunDate.Date <> now.Date Then
-                            If _updateWorker IsNot Nothing AndAlso Not _updateWorker.IsBusy Then
-                                _lastScheduledRunDate = now
-                                Managers.LogManager.Info("Scheduler triggered update at: " & now.ToString("HH:mm:ss"))
-                                _updateWorker.RunAsync()
+                    If isAuto Then
+                        If _updateWorker IsNot Nothing AndAlso Not _updateWorker.IsBusy Then
+                            _updateWorker.RunAsync()
+                        End If
+                    Else
+                        Dim now As DateTime = DateTime.Now
+                        Dim scheduled As TimeSpan = tester.ScheduledTime
+                        If now.Hour = scheduled.Hours AndAlso now.Minute >= scheduled.Minutes Then
+                            If _lastScheduledRunDate.Date <> now.Date Then
+                                If _updateWorker IsNot Nothing AndAlso Not _updateWorker.IsBusy Then
+                                    _lastScheduledRunDate = now
+                                    Managers.LogManager.Info("Scheduler triggered update at: " & now.ToString("HH:mm:ss"))
+                                    _updateWorker.RunAsync()
+                                End If
                             End If
                         End If
                     End If

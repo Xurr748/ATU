@@ -83,7 +83,9 @@ Namespace Workers
                 Managers.LogManager.Info("Type: " & tester.TesterType & ", Mode: " & tester.Mode & _
                                         ", ScheduledTime: " & tester.ScheduledTime.ToString())
 
-                If Not _isManual Then
+                Dim isAuto As Boolean = String.Equals(tester.Mode, "AUTO", StringComparison.OrdinalIgnoreCase)
+
+                If Not _isManual AndAlso Not isAuto Then
                     If _lastRunDate.Date = DateTime.Now.Date Then
                         Managers.LogManager.Info("Already checked today. Skipping.")
                         e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.NoAction, "Already checked today")
