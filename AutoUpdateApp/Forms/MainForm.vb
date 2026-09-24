@@ -682,17 +682,16 @@ Namespace Forms
                 _btnCheckNow.Enabled = True
                 _btnCheckNow.Text = L("BtnCheck")
             End If
-            If Me.Visible AndAlso Me.WindowState <> FormWindowState.Minimized Then
+            If e.Result = Strategies.UpdateResult.RestartRequired OrElse _
+               e.Result = Strategies.UpdateResult.UpdateScheduledForRestart Then
+                ShowRestartNoticeForm()
+            ElseIf Me.Visible AndAlso Me.WindowState <> FormWindowState.Minimized Then
                 Select Case e.Result
                     Case Strategies.UpdateResult.NoAction
                         Dim translatedMsg As String = TranslateMessage(e.Message)
                         MessageBox.Show(L("PromptCheckDone") & ": " & translatedMsg, L("TitleCheckResult"), MessageBoxButtons.OK, MessageBoxIcon.Information)
                     Case Strategies.UpdateResult.UpdateCompleted
                         MessageBox.Show(L("PromptSuccessCompleted"), L("TitleCheckResult"), MessageBoxButtons.OK, MessageBoxIcon.Information)
-                    Case Strategies.UpdateResult.UpdateScheduledForRestart
-                        ShowRestartNoticeForm()
-                    Case Strategies.UpdateResult.RestartRequired
-                        ShowRestartNoticeForm()
                     Case Strategies.UpdateResult.[Error]
                         Dim translatedMsg As String = TranslateMessage(e.Message)
                         MessageBox.Show(L("TitleError") & ": " & translatedMsg, L("TitleCheckResult"), MessageBoxButtons.OK, MessageBoxIcon.Error)

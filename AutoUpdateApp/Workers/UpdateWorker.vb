@@ -83,15 +83,7 @@ Namespace Workers
                 Managers.LogManager.Info("Type: " & tester.TesterType & ", Mode: " & tester.Mode & _
                                         ", ScheduledTime: " & tester.ScheduledTime.ToString())
 
-                Dim now As DateTime = DateTime.Now
                 If Not _isManual Then
-                    Dim scheduled As TimeSpan = tester.ScheduledTime
-                    If now.Hour <> scheduled.Hours OrElse now.Minute < scheduled.Minutes Then
-                        Managers.LogManager.Info(String.Format("Scheduled hour not matching current hour. Current hour: {0}, Scheduled: {1}. Skipping.", now.Hour, scheduled.Hours))
-                        e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.NoAction, "Hour not matching")
-                        Return
-                    End If
-
                     If _lastRunDate.Date = DateTime.Now.Date Then
                         Managers.LogManager.Info("Already checked today. Skipping.")
                         e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.NoAction, "Already checked today")
