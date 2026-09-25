@@ -13,6 +13,7 @@ Namespace Forms
 
         Public Property TesterType As String
         Public Property UpdateSuccess As Boolean = False
+        Public Property LaunchAppAfterUpdate As Boolean = True
 
         Public Sub New()
             InitializeComponent()
@@ -79,7 +80,7 @@ Namespace Forms
             Managers.InstallerManager.KillTargetProcess()
             e.Result = Managers.InstallerManager.RunInstaller(tType, Sub(percent, msg)
                 _worker.ReportProgress(percent, msg)
-            End Sub)
+            End Sub, LaunchAppAfterUpdate)
         End Sub
 
         Private Sub Worker_ProgressChanged(sender As Object, e As ProgressChangedEventArgs)

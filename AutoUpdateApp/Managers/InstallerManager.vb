@@ -24,7 +24,7 @@ Namespace Managers
             End Select
         End Function
 
-        Public Shared Function RunInstaller(testerType As String, Optional progressCallback As Action(Of Integer, String) = Nothing) As Boolean
+        Public Shared Function RunInstaller(testerType As String, Optional progressCallback As Action(Of Integer, String) = Nothing, Optional launchApp As Boolean = True) As Boolean
             LogManager.Info("═══ Start install ═══ Type: " & testerType & " ═══")
             Dim installerFolder As String = GetInstallerPath(testerType)
 
@@ -202,7 +202,9 @@ Namespace Managers
 
             If result Then
                 CopyConfigFiles()
-                LaunchTargetAppWithAutoConfirm()
+                If launchApp Then
+                    LaunchTargetAppWithAutoConfirm()
+                End If
             End If
 
             Return result

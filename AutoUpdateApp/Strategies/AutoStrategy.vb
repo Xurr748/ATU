@@ -10,6 +10,11 @@ Namespace Strategies
         Implements IUpdateStrategy
 
         Private Const CheckIntervalMs As Integer = 30000
+        Private ReadOnly _invokeControl As System.Windows.Forms.Control
+
+        Public Sub New(invokeControl As System.Windows.Forms.Control)
+            _invokeControl = invokeControl
+        End Sub
 
         Public Function Execute(context As Models.UpdateContext) As UpdateResult Implements IUpdateStrategy.Execute
             If context Is Nothing OrElse context.Tester Is Nothing Then
@@ -60,13 +65,38 @@ Namespace Strategies
                                     Config.AppSettings.AutoWaitMinutes.ToString() & "-minute wait...")
 
             If WaitAndMonitor(watchFolder, stopLogFolder, Config.AppSettings.AutoWaitMinutes) Then
-                Managers.LogManager.Info("Auto mode: Wait complete. Machine still stopped. Setting flag and requesting restart.")
-                Try
-                    Managers.UpdateFlagManager.SetFlag(context.Tester.ComputerName, True)
-                Catch ex As Exception
-                    Managers.LogManager.Warn("Auto mode: Failed to set update flag: " & ex.Message)
-                End Try
-                Return UpdateResult.RestartRequired
+                Managers.LogManager.Info("Auto mode: Wait complete. Machine still stopped. Running installer now.")
+                
+                Dim updateSuccess As Boolean = False
+                
+                If _invokeControl IsNot Nothing AndAlso _invokeControl.IsHandleCreated Then
+                    Try
+                        _invokeControl.Invoke(New System.Windows.Forms.MethodInvoker(Sub()
+                            Using updateForm As New Forms.UpdatingForm()
+                                updateForm.TesterType = context.Tester.TesterType
+                                updateForm.LaunchAppAfterUpdate = False
+                                updateForm.ShowDialog()
+                                updateSuccess = updateForm.UpdateSuccess
+                            End Using
+                        End Sub))
+                    Catch ex As Exception
+                        Managers.LogManager.[Error]("Auto mode: Failed to show UpdatingForm on UI thread.", ex)
+                    End Try
+                Else
+                    Managers.LogManager.[Error]("Auto mode: InvokeControl is not ready to show UpdatingForm.")
+                End If
+
+                If updateSuccess Then
+                    Try
+                        Managers.UpdateFlagManager.SetFlag(context.Tester.ComputerName, False)
+                    Catch ex As Exception
+                    End Try
+                    Managers.LogManager.Info("Auto mode: Update installed successfully. Requesting restart.")
+                    Return UpdateResult.RestartRequired
+                Else
+                    Managers.LogManager.[Error]("Auto mode: Update installation failed.")
+                    Return UpdateResult.[Error]
+                End If
             Else
                 Managers.LogManager.Info("Auto mode: Machine became active during wait. Cancelled.")
                 Return UpdateResult.NoAction
