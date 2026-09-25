@@ -1,4 +1,4 @@
-﻿Option Strict On
+Option Strict On
 Option Explicit On
 
 Namespace Models
@@ -15,8 +15,11 @@ Namespace Models
 
         Public ReadOnly Property NeedsUpdate As Boolean
             Get
-                If String.IsNullOrEmpty(CurrentVersion) OrElse String.IsNullOrEmpty(LatestVersion) Then
-                    Return False
+                If String.IsNullOrEmpty(LatestVersion) Then
+                    Return False ' Cannot update if no latest version is available
+                End If
+                If String.IsNullOrEmpty(CurrentVersion) Then
+                    Return True ' Needs update if currently not installed
                 End If
                 Return Not String.Equals(CurrentVersion, LatestVersion, StringComparison.OrdinalIgnoreCase)
             End Get

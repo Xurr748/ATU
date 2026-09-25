@@ -263,12 +263,12 @@ Module Program
             Dim currentVersion As String = Managers.VersionManager.ReadRegistryVersion()
             Dim latestVersion As String = Managers.VersionManager.ReadLatestVersion()
 
-            If String.IsNullOrEmpty(currentVersion) OrElse String.IsNullOrEmpty(latestVersion) Then
-                Managers.LogManager.Warn("Cannot verify versions. Skipping restart update.")
+            If String.IsNullOrEmpty(latestVersion) Then
+                Managers.LogManager.Warn("Cannot verify latest version. Skipping restart update.")
                 Return
             End If
 
-            If String.Equals(currentVersion, latestVersion, StringComparison.OrdinalIgnoreCase) Then
+            If Not String.IsNullOrEmpty(currentVersion) AndAlso String.Equals(currentVersion, latestVersion, StringComparison.OrdinalIgnoreCase) Then
                 Managers.LogManager.Info("Versions match. Clearing stale restart flag.")
                 Managers.UpdateFlagManager.SetFlag(computerName, False)
                 Return
