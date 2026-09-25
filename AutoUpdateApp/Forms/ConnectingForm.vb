@@ -12,8 +12,8 @@ Namespace Forms
 
         Private _lblStatus As Label
         Private _lblCountdown As Label
-        Private _countdownTimer As System.Windows.Forms.Timer
-        Private _worker As BackgroundWorker
+        Private WithEvents _countdownTimer As System.Windows.Forms.Timer
+        Private WithEvents _worker As BackgroundWorker
         Private _secondsElapsed As Integer = 0
         Private _isConnecting As Boolean = False
         Private _closing As Boolean = False

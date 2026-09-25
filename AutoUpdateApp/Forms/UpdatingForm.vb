@@ -8,7 +8,7 @@ Namespace Forms
 
         Private _lblStatus As Label
         Private _progressBar As ProgressBar
-        Private _worker As BackgroundWorker
+        Private WithEvents _worker As BackgroundWorker
         Private _isUpdating As Boolean = False
 
         Public Property TesterType As String
