@@ -78,7 +78,7 @@ Namespace Strategies
             Managers.LogManager.Info("Auto mode (flag): Setting update flag for " & computerName)
             Try
                 Managers.UpdateFlagManager.SetFlag(computerName, True)
-                Return UpdateResult.UpdateScheduledForRestart
+                Return UpdateResult.RestartRequired
             Catch ex As Exception
                 Managers.LogManager.[Error]("Failed to set update flag for " & computerName, ex)
                 Return UpdateResult.[Error]
