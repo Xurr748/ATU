@@ -689,8 +689,9 @@ Namespace Forms
                 _btnCheckNow.Enabled = True
                 _btnCheckNow.Text = L("BtnCheck")
             End If
-            If e.Result = Strategies.UpdateResult.RestartRequired OrElse _
-               e.Result = Strategies.UpdateResult.UpdateScheduledForRestart Then
+            If e.Result = Strategies.UpdateResult.RestartRequired Then
+                ShowRestartCountdownForm()
+            ElseIf e.Result = Strategies.UpdateResult.UpdateScheduledForRestart Then
                 ShowRestartNoticeForm()
             ElseIf Me.Visible AndAlso Me.WindowState <> FormWindowState.Minimized Then
                 Select Case e.Result
@@ -747,6 +748,16 @@ Namespace Forms
                 Managers.LogManager.Info("RestartNoticeForm displayed (new instance).")
             Catch ex As Exception
                 Managers.LogManager.[Error]("Failed to show RestartNoticeForm: " & ex.Message)
+            End Try
+        End Sub
+
+        Private Sub ShowRestartCountdownForm()
+            Try
+                Managers.LogManager.Info("Auto mode: Showing RestartCountdownForm directly.")
+                Dim countdownForm As New RestartCountdownForm(Me)
+                countdownForm.Show()
+            Catch ex As Exception
+                Managers.LogManager.[Error]("Failed to show RestartCountdownForm: " & ex.Message)
             End Try
         End Sub
 
