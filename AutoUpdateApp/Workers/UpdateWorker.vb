@@ -61,14 +61,10 @@ Namespace Workers
 
         Private Sub DoWork(sender As Object, e As DoWorkEventArgs)
             Try
-                Managers.LogManager.Info("═══ Update check started ═══")
-
                 If _worker.CancellationPending Then
                     e.Cancel = True
                     Return
                 End If
-
-                Managers.LogManager.LogIPAddress()
 
                 Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
                 Dim tester As Models.TesterInfo = Managers.ConfigManager.GetTesterByName(computerName)
@@ -101,7 +97,6 @@ Namespace Workers
                 context.HasPendingRestartFlag = (flag.HasValue AndAlso flag.Value)
 
                 If context.HasPendingRestartFlag AndAlso context.NeedsUpdate Then
-                    Managers.LogManager.Info("Pending restart update flag is already set. Waiting for restart.")
                     _lastRunDate = DateTime.Now
                     e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.UpdateScheduledForRestart, _
                                                             "Pending restart update flag is already set. Waiting for restart.")
@@ -110,11 +105,9 @@ Namespace Workers
 
                 If Not context.NeedsUpdate Then
                     If context.HasPendingRestartFlag Then
-                        Managers.LogManager.Info("App is up to date but restart flag is True. Clearing flag.")
                         Managers.UpdateFlagManager.SetFlag(computerName, False)
                     End If
 
-                    Managers.LogManager.Info("Application is up to date.")
                     _lastRunDate = DateTime.Now
                     e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.NoAction, "Already up to date")
                     Return
@@ -122,7 +115,6 @@ Namespace Workers
 
                 Dim installerFolder As String = Managers.InstallerManager.GetInstallerPath(tester.TesterType)
                 If String.IsNullOrEmpty(installerFolder) OrElse Not IO.Directory.Exists(installerFolder) Then
-                    Managers.LogManager.Warn("Installer folder not found on server: " & installerFolder)
                     e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.Error, "Installer files not found on server")
                     Return
                 End If
@@ -138,23 +130,21 @@ Namespace Workers
                 e.Result = New UpdateCompletedEventArgs(result, "Strategy executed: " & tester.Mode)
 
             Catch ex As Exception
-                Managers.LogManager.[Error]("Update check failed.", ex)
+                Managers.LogManager.Error("Update check failed.", ex)
                 e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.[Error], ex.Message)
             End Try
         End Sub
 
         Private Sub WorkCompleted(sender As Object, e As RunWorkerCompletedEventArgs)
             If e.Error IsNot Nothing Then
-                Managers.LogManager.[Error]("Update worker error.", e.Error)
+                Managers.LogManager.Error("Update worker error.", e.Error)
                 RaiseEvent UpdateCompleted(Me, _
                     New UpdateCompletedEventArgs(Strategies.UpdateResult.[Error], e.Error.Message))
             ElseIf e.Cancelled Then
-                Managers.LogManager.Info("Update check was cancelled.")
                 RaiseEvent UpdateCompleted(Me, _
                     New UpdateCompletedEventArgs(Strategies.UpdateResult.NoAction, "Cancelled"))
             ElseIf TypeOf e.Result Is UpdateCompletedEventArgs Then
                 Dim args As UpdateCompletedEventArgs = DirectCast(e.Result, UpdateCompletedEventArgs)
-                Managers.LogManager.Info("═══ Update check completed: " & args.Message & " ═══")
                 RaiseEvent UpdateCompleted(Me, args)
             End If
         End Sub

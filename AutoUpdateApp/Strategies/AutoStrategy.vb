@@ -49,16 +49,14 @@ Namespace Strategies
                 _isMonitoring = True
             End SyncLock
 
-            Managers.LogManager.Info("Auto mode: start " & Config.AppSettings.AutoWaitMinutes.ToString() & "min wait")
-
             System.Threading.ThreadPool.QueueUserWorkItem(Sub()
                 Try
                     If WaitAndMonitor(watchFolder, stopLogFolder, Config.AppSettings.AutoWaitMinutes) Then
-                        Managers.LogManager.Info("Auto mode: wait end. restart")
+                        Managers.LogManager.Info("wait end. restart")
                         Try
                             Managers.UpdateFlagManager.SetFlag(context.Tester.ComputerName, True)
                         Catch ex As Exception
-                            Managers.LogManager.Warn("Auto mode: Failed to set update flag: " & ex.Message)
+                            Managers.LogManager.Error("Auto mode: flag set error", ex)
                         End Try
 
                         If _invokeControl IsNot Nothing AndAlso _invokeControl.IsHandleCreated Then
@@ -70,12 +68,12 @@ Namespace Strategies
                                     End If
                                 End Sub))
                             Catch ex As Exception
-                                Managers.LogManager.Warn("Auto mode: Failed to invoke MainForm: " & ex.Message)
+                                Managers.LogManager.Error("Auto mode: invoke ui error", ex)
                             End Try
                         End If
-                    Else
-                        Managers.LogManager.Info("Auto mode: Machine became active during wait. Cancelled.")
                     End If
+                Catch exOuter As Exception
+                    Managers.LogManager.Error("Auto mode: monitor error", exOuter)
                 Finally
                     SyncLock _monitorLock
                         _isMonitoring = False
@@ -90,10 +88,10 @@ Namespace Strategies
             Dim computerName As String = context.Tester.ComputerName
             Try
                 Managers.UpdateFlagManager.SetFlag(computerName, True)
-                Managers.LogManager.Info("Auto mode: flag set. restart")
+                Managers.LogManager.Info("flag set. restart")
                 Return UpdateResult.RestartRequired
             Catch ex As Exception
-                Managers.LogManager.[Error]("Failed to set update flag for " & computerName, ex)
+                Managers.LogManager.Error("Auto mode: flag set error", ex)
                 Return UpdateResult.[Error]
             End Try
         End Function
@@ -231,7 +229,7 @@ Namespace Strategies
 
                 Dim elapsedMin As Integer = CInt(Math.Floor((DateTime.Now - startTime).TotalMinutes))
                 If elapsedMin > 0 AndAlso elapsedMin Mod 10 = 0 AndAlso elapsedMin <> lastLogMin Then
-                    Managers.LogManager.Info("Auto mode: " & elapsedMin.ToString() & "min")
+                    Managers.LogManager.Info(elapsedMin.ToString() & "min")
                     lastLogMin = elapsedMin
                 End If
 
@@ -247,7 +245,6 @@ Namespace Strategies
                 End If
 
                 If currentEndOfTest >= currentStopTime Then
-                    Managers.LogManager.Info("Auto mode: Monitor -- machine became active. Cancelled.")
                     Return False
                 End If
             Loop
