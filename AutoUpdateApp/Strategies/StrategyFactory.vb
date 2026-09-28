@@ -22,7 +22,7 @@ Namespace Strategies
                 Case "NORMAL"
                     Return New NormalStrategy(invokeControl)
                 Case "AUTO"
-                    Return New AutoStrategy()
+                    Return New AutoStrategy(invokeControl)
                 Case Else
                     Managers.LogManager.Warn("Unknown mode: " & mode & ". Defaulting to EVA (standby).")
                     Return New EvaStrategy()

@@ -751,7 +751,7 @@ Namespace Forms
             End Try
         End Sub
 
-        Private Sub ShowRestartCountdownForm()
+        Public Sub ShowRestartCountdownForm()
             Try
                 Managers.LogManager.Info("Auto mode: Showing RestartCountdownForm directly.")
                 Dim countdownForm As New RestartCountdownForm(Me)

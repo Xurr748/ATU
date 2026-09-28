@@ -9,7 +9,14 @@ Namespace Strategies
     Public Class AutoStrategy
         Implements IUpdateStrategy
 
-        Private Const CheckIntervalMs As Integer = 60000
+        Private Const CheckIntervalMs As Integer = 2000
+        Private _invokeControl As System.Windows.Forms.Control
+        Private Shared _isMonitoring As Boolean = False
+        Private Shared ReadOnly _monitorLock As New Object()
+
+        Public Sub New(Optional invokeControl As System.Windows.Forms.Control = Nothing)
+            _invokeControl = invokeControl
+        End Sub
 
         Public Function Execute(context As Models.UpdateContext) As UpdateResult Implements IUpdateStrategy.Execute
             If context Is Nothing OrElse context.Tester Is Nothing Then
@@ -37,20 +44,46 @@ Namespace Strategies
 
             If endOfTestTime >= stopTime Then Return UpdateResult.NoAction
 
+            SyncLock _monitorLock
+                If _isMonitoring Then Return UpdateResult.NoAction
+                _isMonitoring = True
+            End SyncLock
+
             Managers.LogManager.Info("Auto mode: start " & Config.AppSettings.AutoWaitMinutes.ToString() & "min wait")
 
-            If WaitAndMonitor(watchFolder, stopLogFolder, Config.AppSettings.AutoWaitMinutes) Then
-                Managers.LogManager.Info("Auto mode: wait end. restart")
+            System.Threading.ThreadPool.QueueUserWorkItem(Sub()
                 Try
-                    Managers.UpdateFlagManager.SetFlag(context.Tester.ComputerName, True)
-                Catch ex As Exception
-                    Managers.LogManager.Warn("Auto mode: Failed to set update flag: " & ex.Message)
+                    If WaitAndMonitor(watchFolder, stopLogFolder, Config.AppSettings.AutoWaitMinutes) Then
+                        Managers.LogManager.Info("Auto mode: wait end. restart")
+                        Try
+                            Managers.UpdateFlagManager.SetFlag(context.Tester.ComputerName, True)
+                        Catch ex As Exception
+                            Managers.LogManager.Warn("Auto mode: Failed to set update flag: " & ex.Message)
+                        End Try
+
+                        If _invokeControl IsNot Nothing AndAlso _invokeControl.IsHandleCreated Then
+                            Try
+                                _invokeControl.Invoke(New System.Windows.Forms.MethodInvoker(Sub()
+                                    Dim mainForm As Forms.MainForm = TryCast(_invokeControl, Forms.MainForm)
+                                    If mainForm IsNot Nothing Then
+                                        mainForm.ShowRestartCountdownForm()
+                                    End If
+                                End Sub))
+                            Catch ex As Exception
+                                Managers.LogManager.Warn("Auto mode: Failed to invoke MainForm: " & ex.Message)
+                            End Try
+                        End If
+                    Else
+                        Managers.LogManager.Info("Auto mode: Machine became active during wait. Cancelled.")
+                    End If
+                Finally
+                    SyncLock _monitorLock
+                        _isMonitoring = False
+                    End SyncLock
                 End Try
-                Return UpdateResult.RestartRequired
-            Else
-                Managers.LogManager.Info("Auto mode: Machine became active during wait. Cancelled.")
-                Return UpdateResult.NoAction
-            End If
+            End Sub)
+
+            Return UpdateResult.NoAction
         End Function
 
         Private Function ExecuteFlagMode(context As Models.UpdateContext) As UpdateResult
