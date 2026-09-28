@@ -244,6 +244,41 @@ Namespace Managers
             End Try
         End Sub
 
+        Public Shared Sub LaunchTargetAppIfNotRunning()
+            Try
+                Dim appPath As String = Config.AppSettings.TargetAppExePath
+                If String.IsNullOrEmpty(appPath) Then
+                    appPath = Utilities.RegistryHelper.ReadValue(Config.AppSettings.RegistryKeyPath, Config.AppSettings.RegistryPathValueName)
+                End If
+
+                If String.IsNullOrEmpty(appPath) Then Return
+
+                If IO.Directory.Exists(appPath) Then
+                    Dim exeFiles = IO.Directory.GetFiles(appPath, "*.exe")
+                    If exeFiles.Length > 0 Then
+                        appPath = exeFiles(0)
+                    Else
+                        Return
+                    End If
+                End If
+
+                If Not IO.File.Exists(appPath) Then Return
+
+                Dim exeName As String = IO.Path.GetFileNameWithoutExtension(appPath)
+                Dim runningProcesses() As Process = Process.GetProcessesByName(exeName)
+                
+                If runningProcesses.Length > 0 Then
+                    LogManager.Info("Target app (" & exeName & ") is already running. Skipping launch.")
+                    Return
+                End If
+
+                LogManager.Info("Target app not running. Launching: " & appPath)
+                Process.Start(appPath)
+            Catch ex As Exception
+                LogManager.Warn("Failed to check or launch target app: " & ex.Message)
+            End Try
+        End Sub
+
         Private Shared Function FindLatestMsi(folderPath As String) As String
             Try
                 If String.IsNullOrEmpty(folderPath) OrElse Not Directory.Exists(folderPath) Then

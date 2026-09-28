@@ -9,7 +9,7 @@ Namespace Strategies
     Public Class AutoStrategy
         Implements IUpdateStrategy
 
-        Private Const CheckIntervalMs As Integer = 30000
+        Private Const CheckIntervalMs As Integer = 60000
 
         Public Function Execute(context As Models.UpdateContext) As UpdateResult Implements IUpdateStrategy.Execute
             If context Is Nothing OrElse context.Tester Is Nothing Then
@@ -17,50 +17,30 @@ Namespace Strategies
                 Return UpdateResult.[Error]
             End If
 
-            If Not context.NeedsUpdate Then
-                Managers.LogManager.Info("Auto mode: No version mismatch. No action.")
-                Return UpdateResult.NoAction
-            End If
-
-            Managers.LogManager.Info("Auto mode: Version mismatch detected. Current=" & _
-                                    If(context.CurrentVersion, "N/A") & " Latest=" & If(context.LatestVersion, "N/A"))
+            If Not context.NeedsUpdate Then Return UpdateResult.NoAction
 
             Dim watchFolder As String = Config.AppSettings.AutoWatchFolderPath
             Dim stopLogFolder As String = Config.AppSettings.AutoStopLogFolderPath
 
             If String.IsNullOrEmpty(watchFolder) OrElse String.IsNullOrEmpty(stopLogFolder) Then
-                Managers.LogManager.Info("Auto mode: Folders not configured. Falling back to flag mode.")
                 Return ExecuteFlagMode(context)
             End If
 
             Dim watchPath As String = FindLatestFile(watchFolder)
-            If String.IsNullOrEmpty(watchPath) Then
-                Managers.LogManager.Warn("Auto mode: No files in watch folder: " & watchFolder)
-                Return UpdateResult.NoAction
-            End If
+            If String.IsNullOrEmpty(watchPath) Then Return UpdateResult.NoAction
 
             Dim stopLogPath As String = FindLatestFile(stopLogFolder)
-            If String.IsNullOrEmpty(stopLogPath) Then
-                Managers.LogManager.Warn("Auto mode: No files in stop log folder: " & stopLogFolder)
-                Return UpdateResult.NoAction
-            End If
+            If String.IsNullOrEmpty(stopLogPath) Then Return UpdateResult.NoAction
 
             Dim endOfTestTime As DateTime = ReadEndOfTestTime(watchPath)
             Dim stopTime As DateTime = ReadLatestStopTime(stopLogPath)
 
-            Managers.LogManager.Info("Auto mode: ENDOFTEST=" & endOfTestTime.ToString("yyyy-MM-dd HH:mm:ss") & _
-                                    ", STOP=" & stopTime.ToString("yyyy-MM-dd HH:mm:ss"))
+            If endOfTestTime >= stopTime Then Return UpdateResult.NoAction
 
-            If endOfTestTime >= stopTime Then
-                Managers.LogManager.Info("Auto mode: ENDOFTEST >= STOP. Machine still active. No action.")
-                Return UpdateResult.NoAction
-            End If
-
-            Managers.LogManager.Info("Auto mode: ENDOFTEST < STOP. Machine stopped. Starting " & _
-                                    Config.AppSettings.AutoWaitMinutes.ToString() & "-minute wait...")
+            Managers.LogManager.Info("Auto mode: start " & Config.AppSettings.AutoWaitMinutes.ToString() & "min wait")
 
             If WaitAndMonitor(watchFolder, stopLogFolder, Config.AppSettings.AutoWaitMinutes) Then
-                Managers.LogManager.Info("Auto mode: Wait complete. Machine still stopped. Setting flag and requesting restart.")
+                Managers.LogManager.Info("Auto mode: wait end. restart")
                 Try
                     Managers.UpdateFlagManager.SetFlag(context.Tester.ComputerName, True)
                 Catch ex As Exception
@@ -75,9 +55,9 @@ Namespace Strategies
 
         Private Function ExecuteFlagMode(context As Models.UpdateContext) As UpdateResult
             Dim computerName As String = context.Tester.ComputerName
-            Managers.LogManager.Info("Auto mode (flag): Setting update flag for " & computerName)
             Try
                 Managers.UpdateFlagManager.SetFlag(computerName, True)
+                Managers.LogManager.Info("Auto mode: flag set. restart")
                 Return UpdateResult.RestartRequired
             Catch ex As Exception
                 Managers.LogManager.[Error]("Failed to set update flag for " & computerName, ex)
@@ -209,10 +189,18 @@ Namespace Strategies
         End Function
 
         Private Shared Function WaitAndMonitor(watchFolder As String, stopLogFolder As String, waitMinutes As Integer) As Boolean
-            Dim deadline As DateTime = DateTime.Now.AddMinutes(waitMinutes)
+            Dim startTime As DateTime = DateTime.Now
+            Dim deadline As DateTime = startTime.AddMinutes(waitMinutes)
+            Dim lastLogMin As Integer = 0
 
             Do While DateTime.Now < deadline
                 System.Threading.Thread.Sleep(CheckIntervalMs)
+
+                Dim elapsedMin As Integer = CInt(Math.Floor((DateTime.Now - startTime).TotalMinutes))
+                If elapsedMin > 0 AndAlso elapsedMin Mod 10 = 0 AndAlso elapsedMin <> lastLogMin Then
+                    Managers.LogManager.Info("Auto mode: " & elapsedMin.ToString() & "min")
+                    lastLogMin = elapsedMin
+                End If
 
                 Dim wp As String = FindLatestFile(watchFolder)
                 Dim sp As String = FindLatestFile(stopLogFolder)
@@ -220,11 +208,13 @@ Namespace Strategies
 
                 Dim currentEndOfTest As DateTime = ReadEndOfTestTime(wp)
                 Dim currentStopTime As DateTime = ReadLatestStopTime(sp)
+                
+                If currentEndOfTest = DateTime.MinValue OrElse currentStopTime = DateTime.MinValue Then
+                    Continue Do
+                End If
 
                 If currentEndOfTest >= currentStopTime Then
-                    Managers.LogManager.Info("Auto mode: Monitor -- machine became active. ENDOFTEST=" & _
-                                            currentEndOfTest.ToString("HH:mm:ss") & " >= STOP=" & _
-                                            currentStopTime.ToString("HH:mm:ss"))
+                    Managers.LogManager.Info("Auto mode: Monitor -- machine became active. Cancelled.")
                     Return False
                 End If
             Loop
@@ -232,7 +222,10 @@ Namespace Strategies
             Dim fwp As String = FindLatestFile(watchFolder)
             Dim fsp As String = FindLatestFile(stopLogFolder)
             If String.IsNullOrEmpty(fwp) OrElse String.IsNullOrEmpty(fsp) Then Return False
-            Return (ReadEndOfTestTime(fwp) < ReadLatestStopTime(fsp))
+            Dim finalEndOfTest As DateTime = ReadEndOfTestTime(fwp)
+            Dim finalStopTime As DateTime = ReadLatestStopTime(fsp)
+            If finalEndOfTest = DateTime.MinValue OrElse finalStopTime = DateTime.MinValue Then Return False
+            Return (finalEndOfTest < finalStopTime)
         End Function
 
     End Class

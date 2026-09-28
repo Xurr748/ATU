@@ -474,7 +474,7 @@ Namespace Forms
                     _lblStatusValue.Text = L("StatusUpToDate")
                     _lblStatusValue.ForeColor = Color.FromArgb(46, 204, 113)
                     If _btnUpdateNow IsNot Nothing Then _btnUpdateNow.Enabled = False
-                    Managers.InstallerManager.CopyShortcutToStartup()
+                    Managers.InstallerManager.LaunchTargetAppIfNotRunning()
                 Else
                     _lblStatusValue.Text = L("StatusUpdateAvailable") & " (" & serverVer & ")"
                     _lblStatusValue.ForeColor = Color.FromArgb(41, 128, 185)

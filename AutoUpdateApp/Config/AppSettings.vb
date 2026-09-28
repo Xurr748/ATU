@@ -139,9 +139,6 @@ Namespace Config
                         Dim prevPath As String = _configLoadedPath
                         _configLoadedPath = configPath
                         _configLoadStatus = "Loaded " & tempSettings.Count & " settings from: " & configPath
-                        If Not String.Equals(prevPath, configPath, StringComparison.OrdinalIgnoreCase) Then
-                            Managers.LogManager.Info("CONFIG_LOADED: " & tempSettings.Count.ToString() & " settings from " & configPath)
-                        End If
 
                         ' 4. Read Language override from serverconfig.txt (local)
                         Try

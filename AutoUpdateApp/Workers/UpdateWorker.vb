@@ -71,31 +71,26 @@ Namespace Workers
                 Managers.LogManager.LogIPAddress()
 
                 Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
-                Managers.LogManager.Info("Computer: " & computerName)
-
                 Dim tester As Models.TesterInfo = Managers.ConfigManager.GetTesterByName(computerName)
                 If tester Is Nothing Then
-                    Managers.LogManager.Warn("Computer '" & computerName & "' not found in tester config. Skipping.")
                     e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.NoAction, "Not in config")
                     Return
                 End If
 
-                Managers.LogManager.Info("Type: " & tester.TesterType & ", Mode: " & tester.Mode & _
-                                        ", ScheduledTime: " & tester.ScheduledTime.ToString())
+                Dim currentVersion As String = Managers.VersionManager.ReadRegistryVersion()
+                Dim latestVersion As String = Managers.VersionManager.ReadLatestVersion()
+
+                Managers.LogManager.Info("Start | Name: " & computerName & " | Type: " & tester.TesterType & 
+                                         " | Mode: " & tester.Mode & " | Ver: " & currentVersion & "->" & latestVersion)
 
                 Dim isAuto As Boolean = String.Equals(tester.Mode, "AUTO", StringComparison.OrdinalIgnoreCase)
 
                 If Not _isManual AndAlso Not isAuto Then
                     If _lastRunDate.Date = DateTime.Now.Date Then
-                        Managers.LogManager.Info("Already checked today. Skipping.")
                         e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.NoAction, "Already checked today")
                         Return
                     End If
                 End If
-
-                Dim currentVersion As String = Managers.VersionManager.ReadRegistryVersion()
-                Dim latestVersion As String = Managers.VersionManager.ReadLatestVersion()
-                Managers.LogManager.Info("Versions — Current: " & currentVersion & ", Latest: " & latestVersion)
 
                 Dim context As New Models.UpdateContext()
                 context.Tester = tester
