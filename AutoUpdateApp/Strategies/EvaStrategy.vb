@@ -1,4 +1,4 @@
-﻿Option Strict On
+Option Strict On
 Option Explicit On
 
 Namespace Strategies
@@ -7,10 +7,7 @@ Namespace Strategies
         Implements IUpdateStrategy
 
         Public Function Execute(context As Models.UpdateContext) As UpdateResult Implements IUpdateStrategy.Execute
-            Managers.LogManager.Info( _
-                "EVA mode (standby) — No automatic action for " & context.Tester.ComputerName & _
-                ". Current: " & context.CurrentVersion & _
-                ", Latest: " & context.LatestVersion)
+            Managers.LogManager.Info("EVA mode: Standby")
             Return UpdateResult.NoAction
         End Function
 

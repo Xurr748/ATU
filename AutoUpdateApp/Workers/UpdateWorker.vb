@@ -69,15 +69,16 @@ Namespace Workers
                 Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
                 Dim tester As Models.TesterInfo = Managers.ConfigManager.GetTesterByName(computerName)
                 If tester Is Nothing Then
+                    Managers.LogManager.Info("Start")
+                    Managers.LogManager.Info("Comname " & computerName & " Type Unknown Mode Unknown Schedule None")
+                    Managers.LogManager.Warn("Tester not found in config: " & computerName)
+                    Managers.LogManager.Info("End")
                     e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.NoAction, "Not in config")
                     Return
                 End If
 
                 Dim currentVersion As String = Managers.VersionManager.ReadRegistryVersion()
                 Dim latestVersion As String = Managers.VersionManager.ReadLatestVersion()
-
-                Managers.LogManager.Info("Start | Name: " & computerName & " | Type: " & tester.TesterType & 
-                                         " | Mode: " & tester.Mode & " | Ver: " & currentVersion & "->" & latestVersion)
 
                 Dim isAuto As Boolean = String.Equals(tester.Mode, "AUTO", StringComparison.OrdinalIgnoreCase)
 
@@ -87,6 +88,13 @@ Namespace Workers
                         Return
                     End If
                 End If
+
+                Managers.LogManager.Info("Start")
+                Managers.LogManager.Info(String.Format("Comname {0} Type {1} Mode {2} Schedule {3}", _
+                    computerName, tester.TesterType, tester.Mode, tester.ScheduledTime.ToString()))
+                Managers.LogManager.Info(String.Format("Current Version {0} Server Version {1}", _
+                    If(String.IsNullOrEmpty(currentVersion), "N/A", currentVersion), _
+                    If(String.IsNullOrEmpty(latestVersion), "N/A", latestVersion)))
 
                 Dim context As New Models.UpdateContext()
                 context.Tester = tester
@@ -100,16 +108,37 @@ Namespace Workers
                     ' In Auto mode, version checking is done here and logged.
                     ' The 30-minute condition monitor runs independently in MainForm via AutoModeTimer.
                     ' If versions are up to date and flag is true, clear the flag.
-                    If Not context.NeedsUpdate AndAlso context.HasPendingRestartFlag Then
-                        Managers.UpdateFlagManager.SetFlag(computerName, False)
+                    If Not context.NeedsUpdate Then
+                        If context.HasPendingRestartFlag Then
+                            Managers.UpdateFlagManager.SetFlag(computerName, False)
+                        End If
+                        _lastRunDate = DateTime.Now
+                        Managers.LogManager.Info("Already up to date")
+                        Managers.LogManager.Info("End")
+                        e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.NoAction, "Already up to date")
+                        Return
                     End If
+
+                    If context.HasPendingRestartFlag Then
+                        _lastRunDate = DateTime.Now
+                        Managers.LogManager.Info("Pending restart update flag is already set. Waiting for restart.")
+                        Managers.LogManager.Info("End")
+                        e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.UpdateScheduledForRestart, _
+                                                                "Pending restart update flag is already set. Waiting for restart.")
+                        Return
+                    End If
+
                     _lastRunDate = DateTime.Now
+                    Managers.LogManager.Info("Auto mode: Monitoring condition")
+                    Managers.LogManager.Info("End")
                     e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.NoAction, "Auto mode monitoring active")
                     Return
                 End If
 
                 If context.HasPendingRestartFlag AndAlso context.NeedsUpdate Then
                     _lastRunDate = DateTime.Now
+                    Managers.LogManager.Info("Pending restart update flag is already set. Waiting for restart.")
+                    Managers.LogManager.Info("End")
                     e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.UpdateScheduledForRestart, _
                                                             "Pending restart update flag is already set. Waiting for restart.")
                     Return
@@ -121,12 +150,16 @@ Namespace Workers
                     End If
 
                     _lastRunDate = DateTime.Now
+                    Managers.LogManager.Info("Already up to date")
+                    Managers.LogManager.Info("End")
                     e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.NoAction, "Already up to date")
                     Return
                 End If
 
                 Dim installerFolder As String = Managers.InstallerManager.GetInstallerPath(tester.TesterType)
                 If String.IsNullOrEmpty(installerFolder) OrElse Not IO.Directory.Exists(installerFolder) Then
+                    Managers.LogManager.[Error]("Installer files not found on server: " & installerFolder)
+                    Managers.LogManager.Info("End")
                     e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.Error, "Installer files not found on server")
                     Return
                 End If
@@ -139,10 +172,12 @@ Namespace Workers
                     _lastRunDate = DateTime.Now
                 End If
 
+                Managers.LogManager.Info("End")
                 e.Result = New UpdateCompletedEventArgs(result, "Strategy executed: " & tester.Mode)
 
             Catch ex As Exception
                 Managers.LogManager.Error("Update check failed.", ex)
+                Managers.LogManager.Info("End")
                 e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.[Error], ex.Message)
             End Try
         End Sub

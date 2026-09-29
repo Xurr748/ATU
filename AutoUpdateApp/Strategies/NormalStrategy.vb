@@ -1,4 +1,4 @@
-﻿Option Strict On
+Option Strict On
 Option Explicit On
 
 Imports System.Windows.Forms
@@ -16,6 +16,8 @@ Namespace Strategies
 
         Public Function Execute(context As Models.UpdateContext) As UpdateResult Implements IUpdateStrategy.Execute
             Dim choice As Forms.UpdatePromptResult = Forms.UpdatePromptResult.RemindLater
+
+            Managers.LogManager.Info("Update available. Prompting user.")
 
             Try
                 If _invokeControl IsNot Nothing AndAlso _invokeControl.IsHandleCreated AndAlso _invokeControl.InvokeRequired Then

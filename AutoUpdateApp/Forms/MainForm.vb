@@ -647,8 +647,6 @@ Namespace Forms
 
             Dim initTester As Models.TesterInfo = Managers.ConfigManager.GetTesterByName(Utilities.EnvironmentHelper.ComputerName)
             _lastKnownMode = If(initTester IsNot Nothing, initTester.Mode, "").ToUpperInvariant()
-
-            Managers.LogManager.Info("MainForm loaded. Scheduler started. Language=" & Config.LanguageManager.CurrentLanguage)
         End Sub
 
         Private _lastScheduledRunDate As DateTime = DateTime.MinValue
@@ -671,7 +669,6 @@ Namespace Forms
                             If _lastScheduledRunDate.Date <> now.Date Then
                                 If _updateWorker IsNot Nothing AndAlso Not _updateWorker.IsBusy Then
                                     _lastScheduledRunDate = now
-                                    Managers.LogManager.Info("Scheduler triggered update at: " & now.ToString("HH:mm:ss"))
                                     _updateWorker.RunAsync()
                                 End If
                             End If
@@ -778,13 +775,11 @@ Namespace Forms
                     _restartNoticeForm.TopMost = True
                     _restartNoticeForm.BringToFront()
                     _restartNoticeForm.Activate()
-                    Managers.LogManager.Info("RestartNoticeForm re-shown (existing instance).")
                     Return
                 End If
 
                 _restartNoticeForm = New RestartNoticeForm()
                 _restartNoticeForm.Show()
-                Managers.LogManager.Info("RestartNoticeForm displayed (new instance).")
             Catch ex As Exception
                 Managers.LogManager.[Error]("Failed to show RestartNoticeForm: " & ex.Message)
             End Try
@@ -797,7 +792,6 @@ Namespace Forms
                     Return
                 End If
 
-                Managers.LogManager.Info("Auto mode: Showing RestartCountdownForm directly.")
                 _restartCountdownForm = New RestartCountdownForm(Me)
                 _restartCountdownForm.Show()
             Catch ex As Exception
@@ -809,6 +803,8 @@ Namespace Forms
             Try
                 Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
                 Managers.UpdateFlagManager.SetFlag(computerName, False)
+                Managers.LogManager.Info("Auto count cancel by user")
+                Managers.LogManager.Info(String.Format("Reset count to {0} min", _autoWaitMinutes))
                 _autoConditionStartTime = Nothing
                 _autoLastLogMinute = 0
                 _restartCountdownForm = Nothing
@@ -826,7 +822,6 @@ Namespace Forms
                     _falseCount = 0
                     If _flagSetTime = DateTime.MinValue Then
                         _flagSetTime = DateTime.Now
-                        Managers.LogManager.Info("Update flag detected. Tracking start: " & _flagSetTime.ToString("HH:mm:ss"))
 
                         Dim shortcutName As String = Config.AppSettings.StartupShortcutName
                         If String.IsNullOrEmpty(shortcutName) Then
@@ -835,7 +830,6 @@ Namespace Forms
                         If Not String.IsNullOrEmpty(shortcutName) Then
                             Managers.InstallerManager.RemoveStartupShortcut(shortcutName)
                         End If
-                        Managers.LogManager.Info("Removed target app from Startup (flag is true)")
                     End If
                 Else
                     _falseCount += 1
@@ -864,7 +858,6 @@ Namespace Forms
                     Dim elapsed As TimeSpan = DateTime.Now - _flagSetTime
                     If elapsed.TotalMinutes >= 60 Then
                         _restartPromptShown = True
-                        Managers.LogManager.Info("Update flag has been set for " & elapsed.TotalMinutes.ToString("F0") & " minutes. Showing RestartNoticeForm.")
 
                         If Me.InvokeRequired Then
                             Me.BeginInvoke(New Action(AddressOf ShowRestartNoticeForm))
@@ -987,20 +980,20 @@ Namespace Forms
                         Dim elapsedMin As Integer = CInt(Math.Floor((DateTime.Now - _autoConditionStartTime.Value).TotalMinutes))
 
                         If elapsedMin >= 10 AndAlso _autoLastLogMinute < 10 Then
-                            Managers.LogManager.Info("10min")
+                            Managers.LogManager.Info("Auto Count 10 min")
                             _autoLastLogMinute = 10
                         End If
                         If elapsedMin >= 20 AndAlso _autoLastLogMinute < 20 Then
-                            Managers.LogManager.Info("20min")
+                            Managers.LogManager.Info("Auto Count 20 min")
                             _autoLastLogMinute = 20
                         End If
                         If elapsedMin >= 30 AndAlso _autoLastLogMinute < 30 Then
-                            Managers.LogManager.Info("30min")
+                            Managers.LogManager.Info("Auto Count 30 min")
                             _autoLastLogMinute = 30
                         End If
 
                         If elapsedMin >= _autoWaitMinutes Then
-                            Managers.LogManager.Info("wait end. restart")
+                            Managers.LogManager.Info("Auto Count complete. Proceeding to restart")
                             _autoConditionStartTime = Nothing
                             _autoLastLogMinute = 0
 
@@ -1011,6 +1004,8 @@ Namespace Forms
                     End If
                 Else
                     If _autoConditionStartTime.HasValue Then
+                        Managers.LogManager.Info("Auto count cancel required not met")
+                        Managers.LogManager.Info(String.Format("Reset count to {0} min", _autoWaitMinutes))
                         _autoConditionStartTime = Nothing
                         _autoLastLogMinute = 0
                     End If
@@ -1113,7 +1108,6 @@ Namespace Forms
 
         Private Sub MnuCheckNow_Click(ByVal sender As Object, ByVal e As EventArgs) Handles _mnuCheckNow.Click
             If _updateWorker IsNot Nothing AndAlso Not _updateWorker.IsBusy Then
-                Managers.LogManager.Info("Manual check triggered by user.")
                 _updateWorker.RunAsync(True)
             End If
         End Sub
@@ -1125,7 +1119,6 @@ Namespace Forms
         Private Sub BtnCheckNow_Click(ByVal sender As Object, ByVal e As EventArgs)
             Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
             If _updateWorker IsNot Nothing AndAlso Not _updateWorker.IsBusy Then
-                Managers.LogManager.Info("Manual check triggered by user (button).")
                 _btnCheckNow.Enabled = False
                 _btnCheckNow.Text = L("PromptChecking")
                 ShowProgress(True, L("PromptCheckingUpdate"))
@@ -1484,7 +1477,6 @@ Namespace Forms
                 _autoModeTimer = Nothing
             End If
 
-            Managers.LogManager.Info("Application exiting.")
             Application.Exit()
         End Sub
 

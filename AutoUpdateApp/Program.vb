@@ -27,10 +27,6 @@ Module Program
                 Application.EnableVisualStyles()
                 Application.SetCompatibleTextRenderingDefault(False)
 
-                Managers.LogManager.Info("===================================")
-                Managers.LogManager.Info("Application starting. (restart #" & restartCount.ToString() & ")")
-                Managers.LogManager.Info("Exe directory: " & AppDomain.CurrentDomain.BaseDirectory)
-
                 If Not WaitForConfig(ConnectionTimeoutSeconds) Then
                     If Config.AppSettings.IsLocalConfigError Then
                         Dim msg As String = "Config error: " & Config.AppSettings.LoadStatus & Environment.NewLine & _
@@ -48,19 +44,10 @@ Module Program
                         Return
                     End If
 
-                    Managers.LogManager.Info("Config not loaded after " & ConnectionTimeoutSeconds.ToString() & "s. Scheduling restart #" & (restartCount + 1).ToString())
                     Try : mutex.ReleaseMutex() : Catch : End Try
                     RestartSelf(restartCount + 1)
                     Return
                 End If
-
-                Managers.LogManager.Info("Config loaded successfully.")
-
-                For Each issue As String In Config.AppSettings.ValidateConfig()
-                    Managers.LogManager.Info(issue)
-                Next
-
-                Managers.LogManager.Info("===================================")
 
                 Managers.InstallerManager.AddSelfToStartup()
 
@@ -74,7 +61,6 @@ Module Program
 
                 Application.Run(New Forms.MainForm())
 
-                Managers.LogManager.Info("Application shut down normally.")
                 mutex.ReleaseMutex()
             End Using
 
@@ -244,38 +230,22 @@ Module Program
     Private Sub CheckPendingRestartUpdate()
         Try
             Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
-            Managers.LogManager.Info("Startup restart check for: " & computerName)
 
             Dim tester As Models.TesterInfo = Managers.ConfigManager.GetTesterByName(computerName)
-            If tester Is Nothing Then
-                Managers.LogManager.Info("Computer not in tester config. Skipping restart check.")
-                Return
-            End If
+            If tester Is Nothing Then Return
 
             Dim flag As Boolean? = Managers.UpdateFlagManager.GetFlag(computerName)
-            If Not flag.HasValue OrElse Not flag.Value Then
-                Managers.LogManager.Info("No pending restart update.")
-                Return
-            End If
-
-            Managers.LogManager.Info("Pending restart flag detected. Starting update sequence.")
+            If Not flag.HasValue OrElse Not flag.Value Then Return
 
             Dim currentVersion As String = Managers.VersionManager.ReadRegistryVersion()
             Dim latestVersion As String = Managers.VersionManager.ReadLatestVersion()
 
-            If String.IsNullOrEmpty(latestVersion) Then
-                Managers.LogManager.Warn("Cannot verify latest version. Skipping restart update.")
-                Return
-            End If
+            If String.IsNullOrEmpty(latestVersion) Then Return
 
             If Not String.IsNullOrEmpty(currentVersion) AndAlso String.Equals(currentVersion, latestVersion, StringComparison.OrdinalIgnoreCase) Then
-                Managers.LogManager.Info("Versions match. Clearing stale restart flag.")
                 Managers.UpdateFlagManager.SetFlag(computerName, False)
                 Return
             End If
-
-            Managers.LogManager.Info("Running pending restart update. " & _
-                                     currentVersion & " -> " & latestVersion)
 
             Managers.InstallerManager.CloseProgramOfRegistryPath()
 
@@ -290,7 +260,6 @@ Module Program
                         Managers.InstallerManager.StartProgramOfRegistryPath()
                         Managers.InstallerManager.CopyShortcutToStartup()
                         Managers.UpdateFlagManager.SetFlag(computerName, False)
-                        Managers.LogManager.Info("Restart update completed and verified successfully.")
                     Else
                         Managers.LogManager.Warn("Install script ran but version not yet updated. Flag remains for retry.")
                     End If
@@ -312,24 +281,17 @@ Module Program
             Dim allUsersStartup As String = Environment.GetFolderPath(Environment.SpecialFolder.CommonStartup)
             If String.IsNullOrEmpty(allUsersStartup) OrElse Not IO.Directory.Exists(allUsersStartup) Then Return
 
-            Dim removed As Boolean = False
             For Each filePath As String In IO.Directory.GetFiles(allUsersStartup)
                 Dim fileName As String = IO.Path.GetFileNameWithoutExtension(filePath).ToUpperInvariant()
                 Dim ext As String = IO.Path.GetExtension(filePath).ToUpperInvariant()
                 If (ext = ".LNK" OrElse ext = ".EXE") AndAlso fileName.Contains(productName.ToUpperInvariant()) Then
                     Try
                         IO.File.Delete(filePath)
-                        Managers.LogManager.Info("Removed from All Users startup: " & filePath)
-                        removed = True
                     Catch exDel As Exception
                         Managers.LogManager.Warn("Failed to remove from startup: " & filePath & " - " & exDel.Message)
                     End Try
                 End If
             Next
-
-            If Not removed Then
-                Managers.LogManager.Info("No " & productName & " entries found in All Users startup.")
-            End If
         Catch ex As Exception
             Managers.LogManager.Warn("Error cleaning All Users startup: " & ex.Message)
         End Try
@@ -348,7 +310,6 @@ Module Program
                         For Each target As String In processNames
                             If name.Contains(target) Then
                                 found = True
-                                Managers.LogManager.Info("Target app already running: " & proc.ProcessName)
                                 Exit For
                             End If
                         Next
@@ -365,7 +326,6 @@ Module Program
             If Not found Then
                 Dim targetExe As String = "C:\RSX-5000\bin\RSX 5000 IC Syste Management.exe"
                 If IO.File.Exists(targetExe) Then
-                    Managers.LogManager.Info("Target app not running. Launching: " & targetExe)
                     Dim psi As New ProcessStartInfo(targetExe)
                     psi.WorkingDirectory = IO.Path.GetDirectoryName(targetExe)
                     psi.UseShellExecute = True

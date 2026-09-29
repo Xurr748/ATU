@@ -1,4 +1,4 @@
-﻿Option Strict On
+Option Strict On
 Option Explicit On
 
 Imports System.Windows.Forms
@@ -28,9 +28,6 @@ Namespace Managers
             _timer.Interval = intervalMs
             AddHandler _timer.Tick, AddressOf OnTimerTick
             _timer.Start()
-
-            LogManager.Info("Scheduler started. Interval: " & Config.AppSettings.PollingIntervalMinutes.ToString() & " minutes.")
-
             OnTimerTick(Me, EventArgs.Empty)
         End Sub
 
@@ -40,7 +37,6 @@ Namespace Managers
                 RemoveHandler _timer.Tick, AddressOf OnTimerTick
                 _timer.Dispose()
                 _timer = Nothing
-                LogManager.Info("Scheduler stopped.")
             End If
         End Sub
 

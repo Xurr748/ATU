@@ -83,7 +83,6 @@ Namespace Managers
                             writer.Flush()
                         End Using
 
-                        LogManager.Info("Update flag set: " & computerName & " = " & value.ToString())
                         Return
                     Catch ex As IOException
                         If attempt < maxRetries Then

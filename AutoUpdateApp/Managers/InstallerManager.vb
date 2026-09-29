@@ -679,7 +679,6 @@ Namespace Managers
         Public Shared Sub CopyShortcutToStartup()
             Try
                 If Not Config.AppSettings.EnableTargetStartup Then
-                    LogManager.Info("Target startup shortcut is disabled in config.")
                     Return
                 End If
 
@@ -724,9 +723,7 @@ Namespace Managers
                 End If
                 Dim shortcutPath As String = Path.Combine(startupFolder, shortcutBaseName & ".lnk")
 
-                LogManager.Info("Creating startup shortcut at: " & shortcutPath)
                 CreateShortcut(shortcutPath, targetPath)
-                LogManager.Info("Startup shortcut created successfully.")
             Catch ex As Exception
                 LogManager.Error("Error creating startup shortcut.", ex)
             End Try
@@ -735,7 +732,6 @@ Namespace Managers
         Public Shared Sub AddSelfToStartup()
             Try
                 If Not Config.AppSettings.EnableSelfStartup Then
-                    LogManager.Info("Self startup is disabled in config.")
                     Return
                 End If
 
@@ -756,7 +752,6 @@ Namespace Managers
                     Try
                         If Not Directory.Exists(destFolderPath) Then
                             Directory.CreateDirectory(destFolderPath)
-                            LogManager.Info("Created destination folder: " & destFolderPath)
                         End If
 
                         Dim destExePath As String = Path.Combine(destFolderPath, Path.GetFileName(selfExePath))
@@ -783,7 +778,6 @@ Namespace Managers
                                     End Try
                                 End If
                                 File.Copy(selfExePath, destExePath, True)
-                                LogManager.Info("Copied exe to: " & destExePath)
                             Catch exCopy As Exception
                                 LogManager.Warn("Could not copy exe (file may be in use): " & exCopy.Message)
                             End Try
@@ -803,7 +797,6 @@ Namespace Managers
                                         End Try
                                     End If
                                     File.Copy(srcServerConfig, destServerConfig, True)
-                                    LogManager.Info("Copied serverconfig.txt to: " & destServerConfig)
                                 Catch exCopy As Exception
                                     LogManager.Warn("Could not copy serverconfig.txt (file may be in use): " & exCopy.Message)
                                 End Try
@@ -823,8 +816,6 @@ Namespace Managers
 
                 ' Create Scheduled Task via XML for full control
                 Dim taskName As String = "AutoUpdateApp_Startup"
-                
-                LogManager.Info("Task Scheduler exe path: " & scheduledExePath)
 
                 Dim taskXml As String = _
                     "<?xml version=""1.0"" encoding=""UTF-16""?>" & vbCrLf & _
@@ -873,7 +864,6 @@ Namespace Managers
                     File.WriteAllText(xmlPath, taskXml, System.Text.Encoding.Unicode)
                     
                     Dim args As String = String.Format("/create /tn ""{0}"" /xml ""{1}"" /f", taskName, xmlPath)
-                    LogManager.Info("Creating task via XML: " & args)
 
                     Dim psi As New ProcessStartInfo("schtasks.exe", args)
                     psi.WindowStyle = ProcessWindowStyle.Hidden
@@ -885,9 +875,7 @@ Namespace Managers
                         If Not p.HasExited Then
                             LogManager.Warn("schtasks.exe timed out after 15 seconds. Killing process.")
                             Try : p.Kill() : Catch : End Try
-                        ElseIf p.ExitCode = 0 Then
-                            LogManager.Info("Self startup task created successfully (35s delay, restart on failure: 1min x3).")
-                        Else
+                        ElseIf p.ExitCode <> 0 Then
                             LogManager.Warn("Failed to create self startup task. Exit code: " & p.ExitCode)
                         End If
                     End Using
@@ -916,7 +904,6 @@ Namespace Managers
                                         End Try
                                     End If
                                     File.Copy(batSourcePath, batDestPath, True)
-                                    LogManager.Info("Copied bat to: " & batDestPath)
                                 Catch exBat As Exception
                                     LogManager.Warn("Could not copy bat (file may be in use): " & exBat.Message)
                                 End Try
@@ -975,7 +962,6 @@ Namespace Managers
                             File.WriteAllText(batXmlPath, batXml, System.Text.Encoding.Unicode)
 
                             Dim batArgs As String = String.Format("/create /tn ""{0}"" /xml ""{1}"" /f", batTaskName, batXmlPath)
-                            LogManager.Info("Creating bat task via XML: " & batArgs)
 
                             Dim batPsi As New ProcessStartInfo("schtasks.exe", batArgs)
                             batPsi.WindowStyle = ProcessWindowStyle.Hidden
@@ -987,9 +973,7 @@ Namespace Managers
                                 If Not bp.HasExited Then
                                     LogManager.Warn("schtasks.exe (bat) timed out. Killing.")
                                     Try : bp.Kill() : Catch : End Try
-                                ElseIf bp.ExitCode = 0 Then
-                                    LogManager.Info("Bat startup task created: " & batExePath & " (dir: " & batDir & ")")
-                                Else
+                                ElseIf bp.ExitCode <> 0 Then
                                     LogManager.Warn("Failed to create bat task. Exit code: " & bp.ExitCode)
                                 End If
                             End Using

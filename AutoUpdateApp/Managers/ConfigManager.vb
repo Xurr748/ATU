@@ -1,4 +1,4 @@
-﻿Option Strict On
+Option Strict On
 Option Explicit On
 
 Namespace Managers
@@ -43,7 +43,6 @@ Namespace Managers
 
                 _testers = result
                 _lastModified = currentModified
-                LogManager.Info("Loaded " & result.Count.ToString() & " tester entries from config.")
                 Return result
             End SyncLock
         End Function

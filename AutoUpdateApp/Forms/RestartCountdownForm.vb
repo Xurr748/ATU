@@ -10,6 +10,7 @@ Namespace Forms
 
         Private _secondsLeft As Integer = 60
         Private _isRestarting As Boolean = False
+        Private _isCancelled As Boolean = False
         Private _parentForm As Form
 
         Public Sub New(parentForm As Form)
@@ -67,7 +68,7 @@ Namespace Forms
 
         Private Sub BtnCancel_Click(sender As Object, e As EventArgs)
             _countdownTimer.Stop()
-            Managers.LogManager.Info("User cancelled restart countdown from CountdownForm.")
+            _isCancelled = True
 
             Dim mainForm As MainForm = TryCast(_parentForm, MainForm)
             If mainForm IsNot Nothing Then
@@ -84,7 +85,7 @@ Namespace Forms
 
         Protected Overrides Sub OnFormClosing(e As FormClosingEventArgs)
             MyBase.OnFormClosing(e)
-            If Not _isRestarting Then
+            If Not _isRestarting AndAlso Not _isCancelled Then
                 Dim mainForm As MainForm = TryCast(_parentForm, MainForm)
                 If mainForm IsNot Nothing Then
                     mainForm.OnAutoRestartCancelled()
@@ -95,11 +96,12 @@ Namespace Forms
         Private Sub DoRestart()
             _isRestarting = True
             Try
-                Managers.LogManager.Info("Initiating restart (countdown expired in CountdownForm).")
+                Managers.LogManager.Info("Auto restart executing...")
+                Managers.LogManager.Info("End")
                 Diagnostics.Process.Start("shutdown", "/r /f /t 0")
             Catch ex As Exception
                 Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
-                Managers.LogManager.[Error]("Failed to initiate restart: " & ex.Message)
+                Managers.LogManager.[Error]("Failed to initiate restart: " & ex.Message, ex)
                 MessageBox.Show(L("CantRestart") & ex.Message, L("TitleError"), MessageBoxButtons.OK, MessageBoxIcon.[Error])
                 _isRestarting = False
 
