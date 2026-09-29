@@ -96,6 +96,18 @@ Namespace Workers
                 Dim flag As Boolean? = Managers.UpdateFlagManager.GetFlag(computerName)
                 context.HasPendingRestartFlag = (flag.HasValue AndAlso flag.Value)
 
+                If isAuto Then
+                    ' In Auto mode, version checking is done here and logged.
+                    ' The 30-minute condition monitor runs independently in MainForm via AutoModeTimer.
+                    ' If versions are up to date and flag is true, clear the flag.
+                    If Not context.NeedsUpdate AndAlso context.HasPendingRestartFlag Then
+                        Managers.UpdateFlagManager.SetFlag(computerName, False)
+                    End If
+                    _lastRunDate = DateTime.Now
+                    e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.NoAction, "Auto mode monitoring active")
+                    Return
+                End If
+
                 If context.HasPendingRestartFlag AndAlso context.NeedsUpdate Then
                     _lastRunDate = DateTime.Now
                     e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.UpdateScheduledForRestart, _

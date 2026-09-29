@@ -574,6 +574,18 @@ Namespace Config
             End Get
         End Property
 
+        Public Shared ReadOnly Property AutoCheckIntervalSeconds As Integer
+            Get
+                Dim val As String = GetSetting("AutoCheckIntervalSeconds", "")
+                If String.IsNullOrEmpty(val) Then
+                    val = GetSetting("CheckIntervalSeconds", "2")
+                End If
+                Dim result As Integer
+                If Integer.TryParse(val, result) AndAlso result > 0 Then Return result
+                Return 2
+            End Get
+        End Property
+
     End Class
 
 End Namespace

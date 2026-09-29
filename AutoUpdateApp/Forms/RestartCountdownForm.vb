@@ -69,7 +69,10 @@ Namespace Forms
             _countdownTimer.Stop()
             Managers.LogManager.Info("User cancelled restart countdown from CountdownForm.")
 
-            If _parentForm IsNot Nothing Then
+            Dim mainForm As MainForm = TryCast(_parentForm, MainForm)
+            If mainForm IsNot Nothing Then
+                mainForm.OnAutoRestartCancelled()
+            ElseIf _parentForm IsNot Nothing Then
                 _parentForm.Show()
                 _parentForm.Hide()
                 If TypeOf _parentForm Is RestartNoticeForm Then
@@ -77,6 +80,16 @@ Namespace Forms
                 End If
             End If
             Me.Close()
+        End Sub
+
+        Protected Overrides Sub OnFormClosing(e As FormClosingEventArgs)
+            MyBase.OnFormClosing(e)
+            If Not _isRestarting Then
+                Dim mainForm As MainForm = TryCast(_parentForm, MainForm)
+                If mainForm IsNot Nothing Then
+                    mainForm.OnAutoRestartCancelled()
+                End If
+            End If
         End Sub
 
         Private Sub DoRestart()

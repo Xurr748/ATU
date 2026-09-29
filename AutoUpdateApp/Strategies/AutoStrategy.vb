@@ -9,94 +9,73 @@ Namespace Strategies
     Public Class AutoStrategy
         Implements IUpdateStrategy
 
-        Private Const CheckIntervalMs As Integer = 2000
+        Public Const CheckIntervalSeconds As Integer = 2
+
         Private _invokeControl As System.Windows.Forms.Control
-        Private Shared _isMonitoring As Boolean = False
-        Private Shared ReadOnly _monitorLock As New Object()
 
         Public Sub New(Optional invokeControl As System.Windows.Forms.Control = Nothing)
             _invokeControl = invokeControl
         End Sub
 
         Public Function Execute(context As Models.UpdateContext) As UpdateResult Implements IUpdateStrategy.Execute
-            If context Is Nothing OrElse context.Tester Is Nothing Then
-                Managers.LogManager.[Error]("AutoStrategy: Invalid or null UpdateContext/Tester.")
-                Return UpdateResult.[Error]
-            End If
-
-            If Not context.NeedsUpdate Then Return UpdateResult.NoAction
-
-            Dim watchFolder As String = Config.AppSettings.AutoWatchFolderPath
-            Dim stopLogFolder As String = Config.AppSettings.AutoStopLogFolderPath
-
-            If String.IsNullOrEmpty(watchFolder) OrElse String.IsNullOrEmpty(stopLogFolder) Then
-                Return ExecuteFlagMode(context)
-            End If
-
-            Dim watchPath As String = FindLatestFile(watchFolder)
-            If String.IsNullOrEmpty(watchPath) Then Return UpdateResult.NoAction
-
-            Dim stopLogPath As String = FindLatestFile(stopLogFolder)
-            If String.IsNullOrEmpty(stopLogPath) Then Return UpdateResult.NoAction
-
-            Dim endOfTestTime As DateTime = ReadEndOfTestTime(watchPath)
-            Dim stopTime As DateTime = ReadLatestStopTime(stopLogPath)
-
-            If endOfTestTime >= stopTime Then Return UpdateResult.NoAction
-
-            SyncLock _monitorLock
-                If _isMonitoring Then Return UpdateResult.NoAction
-                _isMonitoring = True
-            End SyncLock
-
-            System.Threading.ThreadPool.QueueUserWorkItem(Sub()
-                Try
-                    If WaitAndMonitor(watchFolder, stopLogFolder, Config.AppSettings.AutoWaitMinutes) Then
-                        Managers.LogManager.Info("wait end. restart")
-                        Try
-                            Managers.UpdateFlagManager.SetFlag(context.Tester.ComputerName, True)
-                        Catch ex As Exception
-                            Managers.LogManager.Error("Auto mode: flag set error", ex)
-                        End Try
-
-                        If _invokeControl IsNot Nothing AndAlso _invokeControl.IsHandleCreated Then
-                            Try
-                                _invokeControl.Invoke(New System.Windows.Forms.MethodInvoker(Sub()
-                                    Dim mainForm As Forms.MainForm = TryCast(_invokeControl, Forms.MainForm)
-                                    If mainForm IsNot Nothing Then
-                                        mainForm.ShowRestartCountdownForm()
-                                    End If
-                                End Sub))
-                            Catch ex As Exception
-                                Managers.LogManager.Error("Auto mode: invoke ui error", ex)
-                            End Try
-                        End If
-                    End If
-                Catch exOuter As Exception
-                    Managers.LogManager.Error("Auto mode: monitor error", exOuter)
-                Finally
-                    SyncLock _monitorLock
-                        _isMonitoring = False
-                    End SyncLock
-                End Try
-            End Sub)
-
+            ' In AUTO mode, periodic checking of the 30-minute stop condition is handled
+            ' independently by MainForm via AutoModeTimer every CheckIntervalSeconds.
             Return UpdateResult.NoAction
         End Function
 
-        Private Function ExecuteFlagMode(context As Models.UpdateContext) As UpdateResult
-            Dim computerName As String = context.Tester.ComputerName
+        Public Shared Function CheckAutoCondition(computerName As String) As Boolean
             Try
-                Managers.UpdateFlagManager.SetFlag(computerName, True)
-                Managers.LogManager.Info("flag set. restart")
-                Return UpdateResult.RestartRequired
+                Dim tester As Models.TesterInfo = Managers.ConfigManager.GetTesterByName(computerName)
+                If tester Is Nothing OrElse Not String.Equals(tester.Mode, "AUTO", StringComparison.OrdinalIgnoreCase) Then
+                    Return False
+                End If
+
+                Dim currentVer As String = Managers.VersionManager.ReadRegistryVersion()
+                Dim serverVer As String = Managers.VersionManager.ReadLatestVersion()
+
+                If String.IsNullOrEmpty(serverVer) Then Return False
+
+                Dim needsUpdate As Boolean = False
+                If String.IsNullOrEmpty(currentVer) Then
+                    needsUpdate = True
+                ElseIf Not String.Equals(currentVer, serverVer, StringComparison.OrdinalIgnoreCase) Then
+                    needsUpdate = True
+                End If
+
+                If Not needsUpdate Then Return False
+
+                Dim watchFolder As String = Config.AppSettings.AutoWatchFolderPath
+                Dim stopLogFolder As String = Config.AppSettings.AutoStopLogFolderPath
+
+                If String.IsNullOrEmpty(watchFolder) OrElse String.IsNullOrEmpty(stopLogFolder) Then
+                    Return False
+                End If
+
+                If Not File.Exists(watchFolder) AndAlso Not Directory.Exists(watchFolder) Then Return False
+                If Not File.Exists(stopLogFolder) AndAlso Not Directory.Exists(stopLogFolder) Then Return False
+
+                Dim watchPath As String = FindLatestFile(watchFolder)
+                Dim stopLogPath As String = FindLatestFile(stopLogFolder)
+
+                If String.IsNullOrEmpty(watchPath) OrElse String.IsNullOrEmpty(stopLogPath) Then
+                    Return False
+                End If
+
+                Dim endOfTestTime As DateTime = ReadEndOfTestTime(watchPath)
+                Dim stopTime As DateTime = ReadLatestStopTime(stopLogPath)
+
+                If endOfTestTime = DateTime.MinValue OrElse stopTime = DateTime.MinValue Then
+                    Return False
+                End If
+
+                Return (endOfTestTime < stopTime)
             Catch ex As Exception
-                Managers.LogManager.Error("Auto mode: flag set error", ex)
-                Return UpdateResult.[Error]
+                Managers.LogManager.Error("Auto mode: CheckAutoCondition error: " & ex.Message, ex)
+                Return False
             End Try
         End Function
 
-        Private Shared Function FindLatestFile(folderOrFilePath As String) As String
+        Public Shared Function FindLatestFile(folderOrFilePath As String) As String
             Try
                 If File.Exists(folderOrFilePath) Then
                     Return folderOrFilePath
@@ -127,7 +106,7 @@ Namespace Strategies
             End Try
         End Function
 
-        Private Shared Function ReadEndOfTestTime(filePath As String) As DateTime
+        Public Shared Function ReadEndOfTestTime(filePath As String) As DateTime
             Try
                 Dim lines() As String = SafeReadAllLines(filePath)
 
@@ -156,7 +135,7 @@ Namespace Strategies
             End Try
         End Function
 
-        Private Shared Function ReadLatestStopTime(filePath As String) As DateTime
+        Public Shared Function ReadLatestStopTime(filePath As String) As DateTime
             Try
                 Dim lines() As String = SafeReadAllLines(filePath)
 
@@ -217,45 +196,6 @@ Namespace Strategies
             Catch ex As Exception
                 Return New String() {}
             End Try
-        End Function
-
-        Private Shared Function WaitAndMonitor(watchFolder As String, stopLogFolder As String, waitMinutes As Integer) As Boolean
-            Dim startTime As DateTime = DateTime.Now
-            Dim deadline As DateTime = startTime.AddMinutes(waitMinutes)
-            Dim lastLogMin As Integer = 0
-
-            Do While DateTime.Now < deadline
-                System.Threading.Thread.Sleep(CheckIntervalMs)
-
-                Dim elapsedMin As Integer = CInt(Math.Floor((DateTime.Now - startTime).TotalMinutes))
-                If elapsedMin > 0 AndAlso elapsedMin Mod 10 = 0 AndAlso elapsedMin <> lastLogMin Then
-                    Managers.LogManager.Info(elapsedMin.ToString() & "min")
-                    lastLogMin = elapsedMin
-                End If
-
-                Dim wp As String = FindLatestFile(watchFolder)
-                Dim sp As String = FindLatestFile(stopLogFolder)
-                If String.IsNullOrEmpty(wp) OrElse String.IsNullOrEmpty(sp) Then Continue Do
-
-                Dim currentEndOfTest As DateTime = ReadEndOfTestTime(wp)
-                Dim currentStopTime As DateTime = ReadLatestStopTime(sp)
-                
-                If currentEndOfTest = DateTime.MinValue OrElse currentStopTime = DateTime.MinValue Then
-                    Continue Do
-                End If
-
-                If currentEndOfTest >= currentStopTime Then
-                    Return False
-                End If
-            Loop
-
-            Dim fwp As String = FindLatestFile(watchFolder)
-            Dim fsp As String = FindLatestFile(stopLogFolder)
-            If String.IsNullOrEmpty(fwp) OrElse String.IsNullOrEmpty(fsp) Then Return False
-            Dim finalEndOfTest As DateTime = ReadEndOfTestTime(fwp)
-            Dim finalStopTime As DateTime = ReadLatestStopTime(fsp)
-            If finalEndOfTest = DateTime.MinValue OrElse finalStopTime = DateTime.MinValue Then Return False
-            Return (finalEndOfTest < finalStopTime)
         End Function
 
     End Class

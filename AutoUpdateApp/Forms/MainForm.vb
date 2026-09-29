@@ -68,6 +68,15 @@ Namespace Forms
         Private WithEvents _restartCheckTimer As Timer
         Private WithEvents _refreshTimer As Timer
 
+        ' Auto Mode Countdown & Monitoring
+        Private _autoWaitMinutes As Integer = 30
+        Private _autoConditionStartTime As DateTime? = Nothing
+        Private _autoLastLogMinute As Integer = 0
+        Private WithEvents _autoModeTimer As Timer
+        Private _isAutoChecking As Boolean = False
+        Private _lastKnownMode As String = ""
+        Private _restartCountdownForm As RestartCountdownForm = Nothing
+
         Private _tempComName As String = ""
         Private _tempType As String = ""
         Private _tempMode As String = ""
@@ -618,12 +627,26 @@ Namespace Forms
             AddHandler _refreshTimer.Tick, AddressOf RefreshTimer_Tick
             _refreshTimer.Start()
 
+            _autoWaitMinutes = Config.AppSettings.AutoWaitMinutes
+            If _autoWaitMinutes <= 0 Then _autoWaitMinutes = 30
+
+            Dim autoIntervalSec As Integer = Config.AppSettings.AutoCheckIntervalSeconds
+            If autoIntervalSec <= 0 Then autoIntervalSec = 2
+
+            _autoModeTimer = New System.Windows.Forms.Timer()
+            _autoModeTimer.Interval = autoIntervalSec * 1000
+            AddHandler _autoModeTimer.Tick, AddressOf AutoModeTimer_Tick
+            _autoModeTimer.Start()
+
             CheckAndTrackUpdateFlag()
 
             Config.LanguageManager.CurrentLanguage = Config.AppSettings.Language
 
             ApplyLanguage()
             LoadInfo()
+
+            Dim initTester As Models.TesterInfo = Managers.ConfigManager.GetTesterByName(Utilities.EnvironmentHelper.ComputerName)
+            _lastKnownMode = If(initTester IsNot Nothing, initTester.Mode, "").ToUpperInvariant()
 
             Managers.LogManager.Info("MainForm loaded. Scheduler started. Language=" & Config.LanguageManager.CurrentLanguage)
         End Sub
@@ -689,10 +712,19 @@ Namespace Forms
                 _btnCheckNow.Enabled = True
                 _btnCheckNow.Text = L("BtnCheck")
             End If
+
+            Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
+            Dim tester As Models.TesterInfo = Managers.ConfigManager.GetTesterByName(computerName)
+            Dim isAuto As Boolean = (tester IsNot Nothing AndAlso String.Equals(tester.Mode, "AUTO", StringComparison.OrdinalIgnoreCase))
+
             If e.Result = Strategies.UpdateResult.RestartRequired Then
-                ShowRestartCountdownForm()
+                If Not isAuto Then
+                    ShowRestartCountdownForm()
+                End If
             ElseIf e.Result = Strategies.UpdateResult.UpdateScheduledForRestart Then
-                ShowRestartNoticeForm()
+                If Not isAuto Then
+                    ShowRestartNoticeForm()
+                End If
             ElseIf Me.Visible AndAlso Me.WindowState <> FormWindowState.Minimized Then
                 Select Case e.Result
                     Case Strategies.UpdateResult.NoAction
@@ -733,6 +765,13 @@ Namespace Forms
 
         Private Sub ShowRestartNoticeForm()
             Try
+                ' In AUTO mode, NEVER show RestartNoticeForm! (Requirement 2)
+                Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
+                Dim tester As Models.TesterInfo = Managers.ConfigManager.GetTesterByName(computerName)
+                If tester IsNot Nothing AndAlso String.Equals(tester.Mode, "AUTO", StringComparison.OrdinalIgnoreCase) Then
+                    Return
+                End If
+
                 If _restartNoticeForm IsNot Nothing AndAlso Not _restartNoticeForm.IsDisposed Then
                     _restartNoticeForm.Show()
                     _restartNoticeForm.WindowState = FormWindowState.Normal
@@ -753,11 +792,28 @@ Namespace Forms
 
         Public Sub ShowRestartCountdownForm()
             Try
+                If _restartCountdownForm IsNot Nothing AndAlso Not _restartCountdownForm.IsDisposed Then
+                    _restartCountdownForm.BringToFront()
+                    Return
+                End If
+
                 Managers.LogManager.Info("Auto mode: Showing RestartCountdownForm directly.")
-                Dim countdownForm As New RestartCountdownForm(Me)
-                countdownForm.Show()
+                _restartCountdownForm = New RestartCountdownForm(Me)
+                _restartCountdownForm.Show()
             Catch ex As Exception
                 Managers.LogManager.[Error]("Failed to show RestartCountdownForm: " & ex.Message)
+            End Try
+        End Sub
+
+        Public Sub OnAutoRestartCancelled()
+            Try
+                Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
+                Managers.UpdateFlagManager.SetFlag(computerName, False)
+                _autoConditionStartTime = Nothing
+                _autoLastLogMinute = 0
+                _restartCountdownForm = Nothing
+            Catch ex As Exception
+                Managers.LogManager.Error("Error in OnAutoRestartCancelled", ex)
             End Try
         End Sub
 
@@ -796,6 +852,12 @@ Namespace Forms
 
         Private Sub RestartCheckTimer_Tick(ByVal sender As Object, ByVal e As EventArgs)
             Try
+                Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
+                Dim tester As Models.TesterInfo = Managers.ConfigManager.GetTesterByName(computerName)
+                If tester IsNot Nothing AndAlso String.Equals(tester.Mode, "AUTO", StringComparison.OrdinalIgnoreCase) Then
+                    Return
+                End If
+
                 CheckAndTrackUpdateFlag()
 
                 If _flagSetTime <> DateTime.MinValue AndAlso Not _restartPromptShown Then
@@ -820,8 +882,141 @@ Namespace Forms
             Try
                 Config.AppSettings.Reload()
                 LoadInfo()
+                CheckModeChange()
             Catch ex As Exception
                 Managers.LogManager.Warn("RefreshTimer error: " & ex.Message)
+            End Try
+        End Sub
+
+        Private Sub CheckModeChange()
+            Try
+                Dim configWaitMin As Integer = Config.AppSettings.AutoWaitMinutes
+                If configWaitMin > 0 Then
+                    _autoWaitMinutes = configWaitMin
+                End If
+
+                Dim intervalSec As Integer = Config.AppSettings.AutoCheckIntervalSeconds
+                If intervalSec > 0 AndAlso _autoModeTimer IsNot Nothing Then
+                    Dim targetMs As Integer = intervalSec * 1000
+                    If _autoModeTimer.Interval <> targetMs Then
+                        _autoModeTimer.Interval = targetMs
+                    End If
+                End If
+
+                Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
+                Dim tester As Models.TesterInfo = Managers.ConfigManager.GetTesterByName(computerName)
+                Dim currentMode As String = If(tester IsNot Nothing, tester.Mode, "").ToUpperInvariant()
+
+                If Not String.Equals(_lastKnownMode, currentMode, StringComparison.OrdinalIgnoreCase) Then
+                    If currentMode = "AUTO" Then
+                        _autoConditionStartTime = Nothing
+                        _autoLastLogMinute = 0
+                        _autoWaitMinutes = Config.AppSettings.AutoWaitMinutes
+                        If _autoWaitMinutes <= 0 Then _autoWaitMinutes = 30
+                        If _restartNoticeForm IsNot Nothing AndAlso Not _restartNoticeForm.IsDisposed Then
+                            _restartNoticeForm.Close()
+                            _restartNoticeForm = Nothing
+                        End If
+                    Else
+                        _autoConditionStartTime = Nothing
+                        _autoLastLogMinute = 0
+                    End If
+                    _lastKnownMode = currentMode
+                End If
+            Catch ex As Exception
+            End Try
+        End Sub
+
+        Private Sub AutoModeTimer_Tick(ByVal sender As Object, ByVal e As EventArgs)
+            Try
+                If _isAutoChecking Then Return
+
+                Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
+                Dim tester As Models.TesterInfo = Managers.ConfigManager.GetTesterByName(computerName)
+                If tester Is Nothing OrElse Not String.Equals(tester.Mode, "AUTO", StringComparison.OrdinalIgnoreCase) Then
+                    If _autoConditionStartTime.HasValue Then
+                        _autoConditionStartTime = Nothing
+                        _autoLastLogMinute = 0
+                    End If
+                    Return
+                End If
+
+                If _restartCountdownForm IsNot Nothing AndAlso Not _restartCountdownForm.IsDisposed Then
+                    Return
+                End If
+
+                _isAutoChecking = True
+
+                System.Threading.ThreadPool.QueueUserWorkItem(Sub()
+                    Try
+                        Dim isConditionTrue As Boolean = Strategies.AutoStrategy.CheckAutoCondition(computerName)
+
+                        If Not Me.IsDisposed AndAlso Me.IsHandleCreated Then
+                            Me.BeginInvoke(New Action(Sub()
+                                Try
+                                    HandleAutoConditionResult(isConditionTrue)
+                                Finally
+                                    _isAutoChecking = False
+                                End Try
+                            End Sub))
+                        Else
+                            _isAutoChecking = False
+                        End If
+                    Catch ex As Exception
+                        Managers.LogManager.Error("AutoModeTimer check error", ex)
+                        _isAutoChecking = False
+                    End Try
+                End Sub)
+
+            Catch ex As Exception
+                _isAutoChecking = False
+            End Try
+        End Sub
+
+        Private Sub HandleAutoConditionResult(isConditionTrue As Boolean)
+            Try
+                If _restartCountdownForm IsNot Nothing AndAlso Not _restartCountdownForm.IsDisposed Then
+                    Return
+                End If
+
+                If isConditionTrue Then
+                    If Not _autoConditionStartTime.HasValue Then
+                        _autoConditionStartTime = DateTime.Now
+                        _autoLastLogMinute = 0
+                    Else
+                        Dim elapsedMin As Integer = CInt(Math.Floor((DateTime.Now - _autoConditionStartTime.Value).TotalMinutes))
+
+                        If elapsedMin >= 10 AndAlso _autoLastLogMinute < 10 Then
+                            Managers.LogManager.Info("10min")
+                            _autoLastLogMinute = 10
+                        End If
+                        If elapsedMin >= 20 AndAlso _autoLastLogMinute < 20 Then
+                            Managers.LogManager.Info("20min")
+                            _autoLastLogMinute = 20
+                        End If
+                        If elapsedMin >= 30 AndAlso _autoLastLogMinute < 30 Then
+                            Managers.LogManager.Info("30min")
+                            _autoLastLogMinute = 30
+                        End If
+
+                        If elapsedMin >= _autoWaitMinutes Then
+                            Managers.LogManager.Info("wait end. restart")
+                            _autoConditionStartTime = Nothing
+                            _autoLastLogMinute = 0
+
+                            Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
+                            Managers.UpdateFlagManager.SetFlag(computerName, True)
+                            ShowRestartCountdownForm()
+                        End If
+                    End If
+                Else
+                    If _autoConditionStartTime.HasValue Then
+                        _autoConditionStartTime = Nothing
+                        _autoLastLogMinute = 0
+                    End If
+                End If
+            Catch ex As Exception
+                Managers.LogManager.Error("HandleAutoConditionResult error", ex)
             End Try
         End Sub
 
@@ -1283,6 +1478,12 @@ Namespace Forms
                 _notifyIcon = Nothing
             End If
 
+            If _autoModeTimer IsNot Nothing Then
+                _autoModeTimer.Stop()
+                _autoModeTimer.Dispose()
+                _autoModeTimer = Nothing
+            End If
+
             Managers.LogManager.Info("Application exiting.")
             Application.Exit()
         End Sub
@@ -1331,6 +1532,11 @@ Namespace Forms
                     RemoveHandler _refreshTimer.Tick, AddressOf RefreshTimer_Tick
                     _refreshTimer.Dispose()
                     _refreshTimer = Nothing
+                End If
+                If _autoModeTimer IsNot Nothing Then
+                    RemoveHandler _autoModeTimer.Tick, AddressOf AutoModeTimer_Tick
+                    _autoModeTimer.Dispose()
+                    _autoModeTimer = Nothing
                 End If
                 If _contextMenu IsNot Nothing Then _contextMenu.Dispose()
                 If _notifyIcon IsNot Nothing Then
