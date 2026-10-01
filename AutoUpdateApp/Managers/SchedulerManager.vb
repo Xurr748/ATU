@@ -28,7 +28,9 @@ Namespace Managers
             _timer.Interval = intervalMs
             AddHandler _timer.Tick, AddressOf OnTimerTick
             _timer.Start()
-            OnTimerTick(Me, EventArgs.Empty)
+            ' NOTE: No immediate first-tick here — UpdateWorker runs after the
+            ' configured PollingIntervalMinutes elapses. Use the Check button for
+            ' on-demand runs, or the AutoModeTimer for AUTO mode polling.
         End Sub
 
         Public Sub [Stop]()

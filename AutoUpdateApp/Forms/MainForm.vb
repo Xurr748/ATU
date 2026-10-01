@@ -77,6 +77,12 @@ Namespace Forms
         Private _lastKnownMode As String = ""
         Private _restartCountdownForm As RestartCountdownForm = Nothing
 
+        ' Target app launch — fire once when versions match, reset when mismatch occurs
+        Private _targetAppLaunchAttempted As Boolean = False
+
+        ' Auto mode timer display label (shown on main form)
+        Private _lblAutoTimer As Label
+
         Private _tempComName As String = ""
         Private _tempType As String = ""
         Private _tempMode As String = ""
@@ -301,7 +307,7 @@ Namespace Forms
             Me._btnCheckNow.FlatStyle = System.Windows.Forms.FlatStyle.Flat
             Me._btnCheckNow.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
             Me._btnCheckNow.ForeColor = System.Drawing.Color.FromArgb(CType(CType(9, Byte), Integer), CType(CType(132, Byte), Integer), CType(CType(227, Byte), Integer))
-            Me._btnCheckNow.Location = New System.Drawing.Point(14, 310)
+            Me._btnCheckNow.Location = New System.Drawing.Point(14, 342)
             Me._btnCheckNow.Name = "_btnCheckNow"
             Me._btnCheckNow.Size = New System.Drawing.Size(93, 32)
             Me._btnCheckNow.TabIndex = 4
@@ -313,7 +319,7 @@ Namespace Forms
             Me._btnRefreshInfo.FlatStyle = System.Windows.Forms.FlatStyle.Flat
             Me._btnRefreshInfo.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
             Me._btnRefreshInfo.ForeColor = System.Drawing.Color.FromArgb(CType(CType(108, Byte), Integer), CType(CType(92, Byte), Integer), CType(CType(231, Byte), Integer))
-            Me._btnRefreshInfo.Location = New System.Drawing.Point(111, 310)
+            Me._btnRefreshInfo.Location = New System.Drawing.Point(111, 342)
             Me._btnRefreshInfo.Name = "_btnRefreshInfo"
             Me._btnRefreshInfo.Size = New System.Drawing.Size(93, 32)
             Me._btnRefreshInfo.TabIndex = 5
@@ -325,7 +331,7 @@ Namespace Forms
             Me._btnUpdateNow.FlatStyle = System.Windows.Forms.FlatStyle.Flat
             Me._btnUpdateNow.Font = New System.Drawing.Font("Segoe UI", 9.5!, System.Drawing.FontStyle.Bold)
             Me._btnUpdateNow.ForeColor = System.Drawing.Color.White
-            Me._btnUpdateNow.Location = New System.Drawing.Point(14, 268)
+            Me._btnUpdateNow.Location = New System.Drawing.Point(14, 300)
             Me._btnUpdateNow.Name = "_btnUpdateNow"
             Me._btnUpdateNow.Size = New System.Drawing.Size(370, 34)
             Me._btnUpdateNow.TabIndex = 3
@@ -338,7 +344,7 @@ Namespace Forms
             Me._btnDetails.FlatStyle = System.Windows.Forms.FlatStyle.Flat
             Me._btnDetails.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
             Me._btnDetails.ForeColor = System.Drawing.Color.FromArgb(CType(CType(46, Byte), Integer), CType(CType(204, Byte), Integer), CType(CType(113, Byte), Integer))
-            Me._btnDetails.Location = New System.Drawing.Point(208, 310)
+            Me._btnDetails.Location = New System.Drawing.Point(208, 342)
             Me._btnDetails.Name = "_btnDetails"
             Me._btnDetails.Size = New System.Drawing.Size(93, 32)
             Me._btnDetails.TabIndex = 7
@@ -350,7 +356,7 @@ Namespace Forms
             Me._btnConfigDebug.FlatStyle = System.Windows.Forms.FlatStyle.Flat
             Me._btnConfigDebug.Font = New System.Drawing.Font("Segoe UI", 8.0!, System.Drawing.FontStyle.Bold)
             Me._btnConfigDebug.ForeColor = System.Drawing.Color.Black
-            Me._btnConfigDebug.Location = New System.Drawing.Point(14, 350)
+            Me._btnConfigDebug.Location = New System.Drawing.Point(14, 382)
             Me._btnConfigDebug.Name = "_btnConfigDebug"
             Me._btnConfigDebug.Size = New System.Drawing.Size(370, 28)
             Me._btnConfigDebug.TabIndex = 8
@@ -363,7 +369,7 @@ Namespace Forms
             Me._btnLang.FlatStyle = System.Windows.Forms.FlatStyle.Flat
             Me._btnLang.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Bold)
             Me._btnLang.ForeColor = System.Drawing.Color.White
-            Me._btnLang.Location = New System.Drawing.Point(305, 310)
+            Me._btnLang.Location = New System.Drawing.Point(305, 342)
             Me._btnLang.Name = "_btnLang"
             Me._btnLang.Size = New System.Drawing.Size(79, 32)
             Me._btnLang.TabIndex = 6
@@ -371,7 +377,7 @@ Namespace Forms
             Me._btnLang.UseVisualStyleBackColor = False
             Me._detailsMenu.Name = "_detailsMenu"
             Me._detailsMenu.Size = New System.Drawing.Size(61, 4)
-            Me._progressBar.Location = New System.Drawing.Point(14, 350)
+            Me._progressBar.Location = New System.Drawing.Point(14, 382)
             Me._progressBar.MarqueeAnimationSpeed = 30
             Me._progressBar.Name = "_progressBar"
             Me._progressBar.Size = New System.Drawing.Size(370, 18)
@@ -380,12 +386,26 @@ Namespace Forms
             Me._progressBar.Visible = False
             Me._lblProgress.Font = New System.Drawing.Font("Segoe UI", 8.0!, System.Drawing.FontStyle.Italic)
             Me._lblProgress.ForeColor = System.Drawing.Color.FromArgb(CType(CType(100, Byte), Integer), CType(CType(100, Byte), Integer), CType(CType(100, Byte), Integer))
-            Me._lblProgress.Location = New System.Drawing.Point(14, 370)
+            Me._lblProgress.Location = New System.Drawing.Point(14, 402)
             Me._lblProgress.Name = "_lblProgress"
             Me._lblProgress.Size = New System.Drawing.Size(370, 18)
             Me._lblProgress.TabIndex = 2
             Me._lblProgress.TextAlign = System.Drawing.ContentAlignment.MiddleCenter
             Me._lblProgress.Visible = False
+            ' ── Auto Mode Timer label ──────────────────────────────────────────
+            Me._lblAutoTimer = New System.Windows.Forms.Label()
+            Me._lblAutoTimer.AutoSize = False
+            Me._lblAutoTimer.BackColor = System.Drawing.Color.FromArgb(235, 245, 255)
+            Me._lblAutoTimer.Font = New System.Drawing.Font("Segoe UI", 8.5!, System.Drawing.FontStyle.Bold)
+            Me._lblAutoTimer.ForeColor = System.Drawing.Color.FromArgb(41, 128, 185)
+            Me._lblAutoTimer.Location = New System.Drawing.Point(14, 262)
+            Me._lblAutoTimer.Name = "_lblAutoTimer"
+            Me._lblAutoTimer.Size = New System.Drawing.Size(370, 26)
+            Me._lblAutoTimer.TabIndex = 11
+            Me._lblAutoTimer.Text = ""
+            Me._lblAutoTimer.TextAlign = System.Drawing.ContentAlignment.MiddleCenter
+            Me._lblAutoTimer.Visible = True
+            ' ──────────────────────────────────────────────────────────────────
             Me._fadeTimer.Interval = 30
             Me._gearMenu.Font = New System.Drawing.Font("Segoe UI", 9.5!)
             Me._gearMenu.Name = "_gearMenu"
@@ -403,11 +423,12 @@ Namespace Forms
             Me._btnGear.Text = "⚙"
             Me._btnGear.UseVisualStyleBackColor = False
             Me.BackColor = System.Drawing.Color.FromArgb(CType(CType(245, Byte), Integer), CType(CType(245, Byte), Integer), CType(CType(250, Byte), Integer))
-            Me.ClientSize = New System.Drawing.Size(400, 398)
+            Me.ClientSize = New System.Drawing.Size(400, 430)
             Me.Controls.Add(Me._btnGear)
             Me.Controls.Add(Me._btnConfigDebug)
             Me.Controls.Add(Me._progressBar)
             Me.Controls.Add(Me._lblProgress)
+            Me.Controls.Add(Me._lblAutoTimer)
             Me.Controls.Add(Me._btnUpdateNow)
             Me.Controls.Add(Me._btnDetails)
             Me.Controls.Add(Me._grpInfo)
@@ -461,8 +482,18 @@ Namespace Forms
 
                 Dim currentVer As String = Managers.VersionManager.ReadRegistryVersion()
                 Dim serverVer As String = Managers.VersionManager.ReadLatestVersion()
+                Dim subVer As String = Managers.VersionManager.ReadRegistrySubVersion()
 
-                _lblCurrentValue.Text = If(String.IsNullOrEmpty(currentVer), L("VersionNotFound"), currentVer)
+                Dim displayCurrent As String
+                If String.IsNullOrEmpty(currentVer) Then
+                    displayCurrent = L("VersionNotFound")
+                ElseIf Not String.IsNullOrEmpty(subVer) Then
+                    displayCurrent = currentVer & " + Sub " & subVer
+                Else
+                    displayCurrent = currentVer
+                End If
+
+                _lblCurrentValue.Text = displayCurrent
                 _lblServerValue.Text = If(String.IsNullOrEmpty(serverVer), L("VersionReadError"), serverVer)
 
                 Dim hasPendingUpdate As Boolean = Managers.UpdateFlagManager.GetFlag(computerName).GetValueOrDefault(False)
@@ -483,12 +514,18 @@ Namespace Forms
                     _lblStatusValue.Text = L("StatusUpToDate")
                     _lblStatusValue.ForeColor = Color.FromArgb(46, 204, 113)
                     If _btnUpdateNow IsNot Nothing Then _btnUpdateNow.Enabled = False
-                    Managers.InstallerManager.LaunchTargetAppIfNotRunning()
+                    ' Launch target app only once when version first matches (not as a watchdog every 5s)
+                    If Not _targetAppLaunchAttempted Then
+                        _targetAppLaunchAttempted = True
+                        Managers.InstallerManager.LaunchTargetAppIfNotRunning()
+                    End If
                 Else
                     _lblStatusValue.Text = L("StatusUpdateAvailable") & " (" & serverVer & ")"
                     _lblStatusValue.ForeColor = Color.FromArgb(41, 128, 185)
                     If _btnUpdateNow IsNot Nothing Then _btnUpdateNow.Enabled = True
-                    ' Version mismatch: remove RSX5000 from Startup All Users immediately
+                    ' Version mismatch: remove target app from Startup All Users immediately
+                    ' and reset launch flag so we re-launch once after a successful update
+                    _targetAppLaunchAttempted = False
                     Dim shortcutName As String = Config.AppSettings.StartupShortcutName
                     If String.IsNullOrEmpty(shortcutName) Then
                         shortcutName = Config.AppSettings.UninstallProductName
@@ -503,6 +540,8 @@ Namespace Forms
                 _lblStatusValue.Text = "Error: " & ex.Message
                 _lblStatusValue.ForeColor = Color.Red
             End Try
+
+            UpdateAutoTimerLabel()
         End Sub
 
         Private Sub UpdateStatusBar()
@@ -638,7 +677,11 @@ Namespace Forms
             AddHandler _autoModeTimer.Tick, AddressOf AutoModeTimer_Tick
             _autoModeTimer.Start()
 
-            CheckAndTrackUpdateFlag()
+            Dim startupTester As Models.TesterInfo = Managers.ConfigManager.GetTesterByName(Utilities.EnvironmentHelper.ComputerName)
+            Dim startupIsAuto As Boolean = (startupTester IsNot Nothing AndAlso String.Equals(startupTester.Mode, "AUTO", StringComparison.OrdinalIgnoreCase))
+            If Not startupIsAuto Then
+                CheckAndTrackUpdateFlag()
+            End If
 
             Config.LanguageManager.CurrentLanguage = Config.AppSettings.Language
 
@@ -647,6 +690,9 @@ Namespace Forms
 
             Dim initTester As Models.TesterInfo = Managers.ConfigManager.GetTesterByName(Utilities.EnvironmentHelper.ComputerName)
             _lastKnownMode = If(initTester IsNot Nothing, initTester.Mode, "").ToUpperInvariant()
+
+            ' Log current IP on startup (creates/updates the _IP.txt file)
+            Managers.LogManager.LogIPAddress()
         End Sub
 
         Private _lastScheduledRunDate As DateTime = DateTime.MinValue
@@ -658,14 +704,12 @@ Namespace Forms
                 If tester IsNot Nothing Then
                     Dim isAuto As Boolean = String.Equals(tester.Mode, "AUTO", StringComparison.OrdinalIgnoreCase)
 
-                    If isAuto Then
-                        If _updateWorker IsNot Nothing AndAlso Not _updateWorker.IsBusy Then
-                            _updateWorker.RunAsync()
-                        End If
-                    Else
+                    ' AUTO mode: condition polling is handled independently by _autoModeTimer every 2s.
+                    ' UpdateWorker is NOT triggered by the scheduler in AUTO mode.
+                    If Not isAuto Then
                         Dim now As DateTime = DateTime.Now
                         Dim scheduled As TimeSpan = tester.ScheduledTime
-                        If now.Hour = scheduled.Hours AndAlso now.Minute >= scheduled.Minutes Then
+                        If now.Hour = scheduled.Hours AndAlso now.Minute = scheduled.Minutes Then
                             If _lastScheduledRunDate.Date <> now.Date Then
                                 If _updateWorker IsNot Nothing AndAlso Not _updateWorker.IsBusy Then
                                     _lastScheduledRunDate = now
@@ -807,7 +851,10 @@ Namespace Forms
                 Managers.LogManager.Info(String.Format("Reset count to {0} min", _autoWaitMinutes))
                 _autoConditionStartTime = Nothing
                 _autoLastLogMinute = 0
+                ' Clear reference immediately so AutoModeTimer does not see a half-closed form
+                ' and accidentally skip the guard check (prevents instant re-trigger).
                 _restartCountdownForm = Nothing
+                UpdateAutoTimerLabel()
             Catch ex As Exception
                 Managers.LogManager.Error("Error in OnAutoRestartCancelled", ex)
             End Try
@@ -876,6 +923,7 @@ Namespace Forms
                 Config.AppSettings.Reload()
                 LoadInfo()
                 CheckModeChange()
+                Managers.LogManager.LogIPAddress()  ' Track IP changes (only writes when IP actually changes)
             Catch ex As Exception
                 Managers.LogManager.Warn("RefreshTimer error: " & ex.Message)
             End Try
@@ -972,6 +1020,9 @@ Namespace Forms
                     Return
                 End If
 
+                ' Safety guard — ensure wait time is always positive
+                If _autoWaitMinutes <= 0 Then _autoWaitMinutes = 30
+
                 If isConditionTrue Then
                     If Not _autoConditionStartTime.HasValue Then
                         _autoConditionStartTime = DateTime.Now
@@ -979,18 +1030,13 @@ Namespace Forms
                     Else
                         Dim elapsedMin As Integer = CInt(Math.Floor((DateTime.Now - _autoConditionStartTime.Value).TotalMinutes))
 
-                        If elapsedMin >= 10 AndAlso _autoLastLogMinute < 10 Then
-                            Managers.LogManager.Info("Auto Count 10 min")
-                            _autoLastLogMinute = 10
-                        End If
-                        If elapsedMin >= 20 AndAlso _autoLastLogMinute < 20 Then
-                            Managers.LogManager.Info("Auto Count 20 min")
-                            _autoLastLogMinute = 20
-                        End If
-                        If elapsedMin >= 30 AndAlso _autoLastLogMinute < 30 Then
-                            Managers.LogManager.Info("Auto Count 30 min")
-                            _autoLastLogMinute = 30
-                        End If
+                        ' Log every 10 minutes dynamically up to _autoWaitMinutes
+                        Dim nextLogStep As Integer = (_autoLastLogMinute \ 10 + 1) * 10
+                        While nextLogStep <= elapsedMin AndAlso nextLogStep <= _autoWaitMinutes
+                            Managers.LogManager.Info(String.Format("Auto Count {0} min", nextLogStep))
+                            _autoLastLogMinute = nextLogStep
+                            nextLogStep += 10
+                        End While
 
                         If elapsedMin >= _autoWaitMinutes Then
                             Managers.LogManager.Info("Auto Count complete. Proceeding to restart")
@@ -999,7 +1045,10 @@ Namespace Forms
 
                             Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
                             Managers.UpdateFlagManager.SetFlag(computerName, True)
+                            UpdateAutoTimerLabel()
                             ShowRestartCountdownForm()
+                        Else
+                            UpdateAutoTimerLabel()
                         End If
                     End If
                 Else
@@ -1009,10 +1058,53 @@ Namespace Forms
                         _autoConditionStartTime = Nothing
                         _autoLastLogMinute = 0
                     End If
+                    UpdateAutoTimerLabel()
                 End If
             Catch ex As Exception
                 Managers.LogManager.Error("HandleAutoConditionResult error", ex)
             End Try
+        End Sub
+
+        ''' <summary>Updates the auto-mode timer bar on the main form. Must be called on the UI thread.</summary>
+        Private Sub UpdateAutoTimerLabel()
+            If _lblAutoTimer Is Nothing OrElse _lblAutoTimer.IsDisposed Then Return
+
+            Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
+            Dim tester As Models.TesterInfo = Managers.ConfigManager.GetTesterByName(computerName)
+            Dim isAuto As Boolean = (tester IsNot Nothing AndAlso String.Equals(tester.Mode, "AUTO", StringComparison.OrdinalIgnoreCase))
+
+            If Not isAuto Then
+                _lblAutoTimer.Visible = False
+                Return
+            End If
+
+            _lblAutoTimer.Visible = True
+
+            ' RestartCountdownForm is visible — show "Restarting..."
+            If _restartCountdownForm IsNot Nothing AndAlso Not _restartCountdownForm.IsDisposed Then
+                _lblAutoTimer.Text = "⏱  Auto: Restarting..."
+                _lblAutoTimer.ForeColor = Color.FromArgb(192, 57, 43)
+                _lblAutoTimer.BackColor = Color.FromArgb(255, 235, 235)
+                Return
+            End If
+
+            ' Counting — show elapsed / total
+            If _autoConditionStartTime.HasValue Then
+                Dim elapsed As TimeSpan = DateTime.Now - _autoConditionStartTime.Value
+                Dim total As TimeSpan = TimeSpan.FromMinutes(_autoWaitMinutes)
+                Dim elapsedStr As String = String.Format("{0:mm\:ss}", elapsed)
+                Dim totalStr As String = String.Format("{0:mm\:ss}", total)
+                Dim pct As Integer = Math.Min(100, CInt((elapsed.TotalSeconds / total.TotalSeconds) * 100))
+                _lblAutoTimer.Text = String.Format("⏱  Auto Count: {0} / {1}  ({2}%)", elapsedStr, totalStr, pct)
+                _lblAutoTimer.ForeColor = Color.FromArgb(41, 128, 185)
+                _lblAutoTimer.BackColor = Color.FromArgb(235, 245, 255)
+                Return
+            End If
+
+            ' Idle — waiting for condition
+            _lblAutoTimer.Text = "⏱  Auto: Waiting for condition..."
+            _lblAutoTimer.ForeColor = Color.FromArgb(100, 100, 110)
+            _lblAutoTimer.BackColor = Color.FromArgb(245, 245, 250)
         End Sub
 
         Private Sub NotifyIcon_DoubleClick(ByVal sender As Object, ByVal e As EventArgs) Handles _notifyIcon.DoubleClick
@@ -1477,6 +1569,18 @@ Namespace Forms
                 _autoModeTimer = Nothing
             End If
 
+            If _refreshTimer IsNot Nothing Then
+                _refreshTimer.Stop()
+                _refreshTimer.Dispose()
+                _refreshTimer = Nothing
+            End If
+
+            If _restartCheckTimer IsNot Nothing Then
+                _restartCheckTimer.Stop()
+                _restartCheckTimer.Dispose()
+                _restartCheckTimer = Nothing
+            End If
+
             Application.Exit()
         End Sub
 
@@ -1529,6 +1633,12 @@ Namespace Forms
                     RemoveHandler _autoModeTimer.Tick, AddressOf AutoModeTimer_Tick
                     _autoModeTimer.Dispose()
                     _autoModeTimer = Nothing
+                End If
+                If _restartCheckTimer IsNot Nothing Then
+                    RemoveHandler _restartCheckTimer.Tick, AddressOf RestartCheckTimer_Tick
+                    _restartCheckTimer.Stop()
+                    _restartCheckTimer.Dispose()
+                    _restartCheckTimer = Nothing
                 End If
                 If _contextMenu IsNot Nothing Then _contextMenu.Dispose()
                 If _notifyIcon IsNot Nothing Then

@@ -348,6 +348,18 @@ Namespace Config
             End Get
         End Property
 
+        Public Shared ReadOnly Property InstallerPathRohmHE As String
+            Get
+                Return GetSetting("InstallerPathRohmHE", "")
+            End Get
+        End Property
+
+        Public Shared ReadOnly Property InstallerPathRohmLLE As String
+            Get
+                Return GetSetting("InstallerPathRohmLLE", "")
+            End Get
+        End Property
+
         Public Shared ReadOnly Property InstallerArgs As String
             Get
                 Return GetSetting("InstallerArgs", "/quiet /norestart")
@@ -382,6 +394,13 @@ Namespace Config
         Public Shared ReadOnly Property RegistryPathValueName As String
             Get
                 Return GetSetting("RegistryPathValueName", "Path")
+            End Get
+        End Property
+
+        ''' <summary>Registry value name for sub-version (e.g. "SubVersion" or "BuildNumber"). Leave empty to hide sub-version.</summary>
+        Public Shared ReadOnly Property SubVersionRegistryValueName As String
+            Get
+                Return GetSetting("SubVersionRegistryValueName", "")
             End Get
         End Property
 

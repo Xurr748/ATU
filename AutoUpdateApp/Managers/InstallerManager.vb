@@ -18,6 +18,10 @@ Namespace Managers
                     Return Config.AppSettings.InstallerPathHE
                 Case "LLE"
                     Return Config.AppSettings.InstallerPathLLE
+                Case "ROHMHE"
+                    Return Config.AppSettings.InstallerPathRohmHE
+                Case "ROHMLLE"
+                    Return Config.AppSettings.InstallerPathRohmLLE
                 Case Else
                     LogManager.Warn("Unknown tester type: " & testerType)
                     Return String.Empty
@@ -25,7 +29,7 @@ Namespace Managers
         End Function
 
         Public Shared Function RunInstaller(testerType As String, Optional progressCallback As Action(Of Integer, String) = Nothing) As Boolean
-            LogManager.Info("═══ Start install ═══ Type: " & testerType & " ═══")
+            LogManager.Info("Start install | Type: " & testerType)
             Dim installerFolder As String = GetInstallerPath(testerType)
 
             If String.IsNullOrEmpty(installerFolder) Then
@@ -61,7 +65,7 @@ Namespace Managers
             Dim result As Boolean = False
 
             Try
-                LogManager.Info(String.Format("Downloading installer folder: {0} -> {1}", installerFolder, localFolder))
+                LogManager.Info("Copying installer: " & IO.Path.GetFileName(installerFolder))
 
                 If progressCallback IsNot Nothing Then
                     progressCallback(0, L("ProgressDownloading"))
@@ -102,9 +106,9 @@ Namespace Managers
                         Dim guid As String = FindUninstallGuid(productName)
 
                         If String.IsNullOrEmpty(guid) Then
-                            LogManager.Warn("Product name '" & productName & "' not found in Registry (for Uninstall)")
+                            LogManager.Warn("Product '" & productName & "' not found in Registry (skipping uninstall)")
                         Else
-                            LogManager.Info("Found uninstall info: " & guid & " for '" & productName & "'")
+                            LogManager.Info("Uninstalling: " & productName)
                             If progressCallback IsNot Nothing Then
                                 progressCallback(90, String.Format(L("ProgressUninstallingProduct"), productName))
                             End If
@@ -121,10 +125,9 @@ Namespace Managers
                                                        uninstallCmd & Environment.NewLine &
                                                        "exit /b %ERRORLEVEL%"
                             IO.File.WriteAllText(smartBatPath, batContent)
-                            LogManager.Info("Created uninstall.bat: " & uninstallCmd)
 
                             If Not RunBatchFile(smartBatPath, "uninstall") Then
-                                LogManager.[Error]("Uninstall process failed for: " & guid)
+                                LogManager.[Error]("Uninstall failed for: " & productName)
                                 uninstallSuccess = False
                             End If
                         End If
@@ -137,7 +140,7 @@ Namespace Managers
                             uninstallSuccess = False
                         End If
                     Else
-                        LogManager.Warn("Uninstall script not found and UninstallProductName not set. (Skipping uninstall step)")
+                        LogManager.Warn("No uninstall info found. Skipping uninstall step.")
                     End If
 
                     If uninstallSuccess Then
@@ -145,7 +148,7 @@ Namespace Managers
                         Dim installerArgs As String = Config.AppSettings.InstallerArgs
 
                         If Not String.IsNullOrEmpty(msiFile) Then
-                            LogManager.Info("Found MSI: " & msiFile)
+                            LogManager.Info("Installing MSI: " & IO.Path.GetFileName(msiFile))
                             If progressCallback IsNot Nothing Then
                                 progressCallback(95, String.Format(L("ProgressInstallingProduct"), IO.Path.GetFileName(msiFile)))
                             End If
@@ -155,7 +158,6 @@ Namespace Managers
                                                        "msiexec.exe /i """ & msiFile & """ " & installerArgs & Environment.NewLine &
                                                        "exit /b %ERRORLEVEL%"
                             IO.File.WriteAllText(smartInstallPath, batContent)
-                            LogManager.Info("Created install.bat: msiexec /i """ & msiFile & """ " & installerArgs)
 
                             If Not RunBatchFile(smartInstallPath, "install") Then
                                 LogManager.[Error]("Install process failed.")
@@ -178,7 +180,7 @@ Namespace Managers
                                 result = True
                             End If
                         Else
-                            LogManager.[Error]("No .msi file found in " & installerFolder & " or install.bat")
+                            LogManager.[Error]("No .msi or install.bat found in: " & installerFolder)
                         End If
                     End If
                 End If
@@ -199,6 +201,8 @@ Namespace Managers
                     LogManager.Warn("Could not clean up temp installer folder: " & cleanupEx.Message)
                 End Try
             End Try
+
+            LogManager.Info(If(result, "Install complete: " & testerType, "Install failed: " & testerType))
 
             If result Then
                 CopyConfigFiles()
@@ -266,11 +270,16 @@ Namespace Managers
 
                 Dim exeName As String = IO.Path.GetFileNameWithoutExtension(appPath)
                 Dim runningProcesses() As Process = Process.GetProcessesByName(exeName)
-                
-                If runningProcesses.Length > 0 Then
-                    LogManager.Info("Target app (" & exeName & ") is already running. Skipping launch.")
-                    Return
-                End If
+                Try
+                    If runningProcesses.Length > 0 Then
+                        LogManager.Info("Target app (" & exeName & ") is already running. Skipping launch.")
+                        Return
+                    End If
+                Finally
+                    For Each p As Process In runningProcesses
+                        Try : p.Dispose() : Catch : End Try
+                    Next
+                End Try
 
                 LogManager.Info("Target app not running. Launching: " & appPath)
                 Process.Start(appPath)

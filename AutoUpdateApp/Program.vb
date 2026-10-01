@@ -324,16 +324,7 @@ Module Program
             End Try
 
             If Not found Then
-                Dim targetExe As String = "C:\RSX-5000\bin\RSX 5000 IC Syste Management.exe"
-                If IO.File.Exists(targetExe) Then
-                    Dim psi As New ProcessStartInfo(targetExe)
-                    psi.WorkingDirectory = IO.Path.GetDirectoryName(targetExe)
-                    psi.UseShellExecute = True
-                    Using p As Process = Process.Start(psi)
-                    End Using
-                Else
-                    Managers.LogManager.Warn("Target exe not found: " & targetExe)
-                End If
+                Managers.InstallerManager.LaunchTargetApp()
             End If
         Catch ex As Exception
             Managers.LogManager.Warn("Error checking/launching target app: " & ex.Message)
