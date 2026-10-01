@@ -10,6 +10,9 @@ UpdateFlagPath = updateflag.txt
 
 InstallerPathHE = 
 InstallerPathLLE = 
+; Rohm Factory — separate installer paths per type
+InstallerPathRohmHE = 
+InstallerPathRohmLLE = 
 InstallerArgs = /silent /norestart
 LocalInstallerPath = 
 UninstallProductName = RSX5000
@@ -17,6 +20,9 @@ UninstallProductName = RSX5000
 RegistryKeyPath = HKEY_LOCAL_MACHINE\SOFTWARE\Spandnix\RSX5000
 RegistryValueName = Version
 RegistryPathValueName = Path
+; Sub-version registry value name (e.g. SubVersion or BuildNumber)
+; Leave empty to hide sub-version display in UI
+SubVersionRegistryValueName = 
 
 FolderName = Logs
 LogPath = 
@@ -43,3 +49,5 @@ KillProcessList = RSX5000
 AutoWatchFolderPath = 
 AutoStopLogFolderPath = 
 AutoWaitMinutes = 30
+; How often (seconds) Auto mode checks the condition files (default: 2)
+AutoCheckIntervalSeconds = 2
