@@ -15,28 +15,19 @@ Namespace Managers
         Public Shared Function GetInstallerPath(testerType As String) As String
             If String.IsNullOrEmpty(testerType) Then Return String.Empty
 
-            Dim cleanType As String = testerType.ToUpperInvariant().Replace(" ", "").Replace("_", "").Replace("-", "")
-
-            If cleanType.Contains("ROHM") Then
-                If cleanType.Contains("LLE") Then
-                    Dim path As String = Config.AppSettings.InstallerPathRohmLLE
-                    If Not String.IsNullOrEmpty(path) Then Return path
-                    Return Config.AppSettings.InstallerPathLLE
-                ElseIf cleanType.Contains("HE") Then
-                    Dim path As String = Config.AppSettings.InstallerPathRohmHE
-                    If Not String.IsNullOrEmpty(path) Then Return path
-                    Return Config.AppSettings.InstallerPathHE
-                Else
-                    ' RohmFactory without HE or LLE specified: try RohmHE then RohmLLE then HE
-                    Dim path As String = Config.AppSettings.InstallerPathRohmHE
-                    If Not String.IsNullOrEmpty(path) Then Return path
-                    Return Config.AppSettings.InstallerPathHE
-                End If
-            End If
+            Dim cleanType As String = testerType.ToUpperInvariant().Trim()
 
             If cleanType.Contains("LLE") Then
+                Dim rohmPath As String = Config.AppSettings.InstallerPathRohmLLE
+                If Not String.IsNullOrEmpty(rohmPath) Then
+                    Return rohmPath
+                End If
                 Return Config.AppSettings.InstallerPathLLE
             ElseIf cleanType.Contains("HE") Then
+                Dim rohmPath As String = Config.AppSettings.InstallerPathRohmHE
+                If Not String.IsNullOrEmpty(rohmPath) Then
+                    Return rohmPath
+                End If
                 Return Config.AppSettings.InstallerPathHE
             End If
 
