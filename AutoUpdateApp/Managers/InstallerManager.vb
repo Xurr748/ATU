@@ -17,44 +17,10 @@ Namespace Managers
 
             Dim cleanType As String = testerType.ToUpperInvariant().Trim()
 
-            ' If tester type explicitly indicates Rohm, check Rohm path first
-            If cleanType.Contains("ROHM") Then
-                If cleanType.Contains("LLE") Then
-                    Dim rohmPath As String = Config.AppSettings.InstallerPathRohmLLE
-                    If Not String.IsNullOrEmpty(rohmPath) AndAlso Directory.Exists(rohmPath) Then Return rohmPath
-                ElseIf cleanType.Contains("HE") Then
-                    Dim rohmPath As String = Config.AppSettings.InstallerPathRohmHE
-                    If Not String.IsNullOrEmpty(rohmPath) AndAlso Directory.Exists(rohmPath) Then Return rohmPath
-                End If
-            End If
-
             If cleanType.Contains("LLE") Then
-                Dim stdPath As String = Config.AppSettings.InstallerPathLLE
-                If Not String.IsNullOrEmpty(stdPath) AndAlso Directory.Exists(stdPath) Then
-                    Return stdPath
-                End If
-
-                Dim rohmPath As String = Config.AppSettings.InstallerPathRohmLLE
-                If Not String.IsNullOrEmpty(rohmPath) AndAlso Directory.Exists(rohmPath) Then
-                    Return rohmPath
-                End If
-
-                If Not String.IsNullOrEmpty(stdPath) Then Return stdPath
-                Return rohmPath
-
+                Return Config.AppSettings.InstallerPathLLE
             ElseIf cleanType.Contains("HE") Then
-                Dim stdPath As String = Config.AppSettings.InstallerPathHE
-                If Not String.IsNullOrEmpty(stdPath) AndAlso Directory.Exists(stdPath) Then
-                    Return stdPath
-                End If
-
-                Dim rohmPath As String = Config.AppSettings.InstallerPathRohmHE
-                If Not String.IsNullOrEmpty(rohmPath) AndAlso Directory.Exists(rohmPath) Then
-                    Return rohmPath
-                End If
-
-                If Not String.IsNullOrEmpty(stdPath) Then Return stdPath
-                Return rohmPath
+                Return Config.AppSettings.InstallerPathHE
             End If
 
             LogManager.Warn("Unknown tester type: " & testerType)
@@ -238,6 +204,7 @@ Namespace Managers
             LogManager.Info(If(result, "Install complete: " & testerType, "Install failed: " & testerType))
 
             If result Then
+                CopyRohmConfigFiles(testerType)
                 CopyConfigFiles()
                 LaunchTargetAppWithAutoConfirm()
             End If
@@ -1131,6 +1098,75 @@ Namespace Managers
             shortcutType.InvokeMember("Save", System.Reflection.BindingFlags.InvokeMethod, Nothing, shortcut, Nothing)
         End Sub
 
+
+        Public Shared Sub CopyRohmConfigFiles(Optional testerType As String = "")
+            Try
+                If String.IsNullOrEmpty(testerType) Then
+                    Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
+                    Dim tester As Models.TesterInfo = Managers.ConfigManager.GetTesterByName(computerName)
+                    If tester IsNot Nothing Then
+                        testerType = tester.TesterType
+                    End If
+                End If
+
+                Dim cleanType As String = If(testerType, "").ToUpperInvariant().Trim()
+                Dim sourceFolder As String = ""
+
+                If cleanType.Contains("LLE") Then
+                    sourceFolder = Config.AppSettings.RohmLLE
+                ElseIf cleanType.Contains("HE") Then
+                    sourceFolder = Config.AppSettings.RohmHE
+                Else
+                    If Not String.IsNullOrEmpty(Config.AppSettings.RohmHE) Then
+                        sourceFolder = Config.AppSettings.RohmHE
+                    ElseIf Not String.IsNullOrEmpty(Config.AppSettings.RohmLLE) Then
+                        sourceFolder = Config.AppSettings.RohmLLE
+                    End If
+                End If
+
+                ' If no Rohm source is configured, this machine is not Rohm — do nothing
+                If String.IsNullOrEmpty(sourceFolder) Then
+                    Return
+                End If
+
+                If Not Directory.Exists(sourceFolder) AndAlso Not File.Exists(sourceFolder) Then
+                    LogManager.Warn("Rohm source path not found: " & sourceFolder)
+                    Return
+                End If
+
+                Dim destination As String = Config.AppSettings.RohmDestination
+                If String.IsNullOrEmpty(destination) Then
+                    destination = "C:\RSX-5000\RohmFactory\ROPDATA"
+                End If
+
+                If Not Directory.Exists(destination) Then
+                    Directory.CreateDirectory(destination)
+                    LogManager.Info("Created Rohm destination directory: " & destination)
+                End If
+
+                LogManager.Info(String.Format("Copying Rohm config files: {0} -> {1}", sourceFolder, destination))
+
+                If File.Exists(sourceFolder) Then
+                    Dim fileName As String = Path.GetFileName(sourceFolder)
+                    Dim destFile As String = Path.Combine(destination, fileName)
+                    File.Copy(sourceFolder, destFile, True)
+                ElseIf Directory.Exists(sourceFolder) Then
+                    Dim allFiles = Directory.GetFiles(sourceFolder)
+                    For Each f As String In allFiles
+                        Dim fileName As String = Path.GetFileName(f)
+                        Dim destFile As String = Path.Combine(destination, fileName)
+                        File.Copy(f, destFile, True)
+                    Next
+                End If
+
+                LogManager.Info("Rohm config files copied successfully.")
+
+                PatchIniTesterName(destination)
+
+            Catch ex As Exception
+                LogManager.[Error]("Error in CopyRohmConfigFiles: " & ex.Message, ex)
+            End Try
+        End Sub
 
         Public Shared Sub CopyConfigFiles()
             Try

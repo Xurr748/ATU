@@ -10,12 +10,17 @@ UpdateFlagPath = updateflag.txt
 
 InstallerPathHE = 
 InstallerPathLLE = 
-; Rohm Factory — separate installer paths per type
-InstallerPathRohmHE = 
-InstallerPathRohmLLE = 
 InstallerArgs = /silent /norestart
 LocalInstallerPath = 
 UninstallProductName = RSX5000
+
+; ── Rohm Factory Config / INI Files ──
+; คัดลอกไฟล์ ini สำหรับ RohmFactory ตามประเภท Tester (HE หรือ LLE) ไปวางที่เครื่อง Local
+; ว่างไว้ = ไม่ทำงาน (เครื่องที่ไม่ใช่ Rohm ไม่ต้องระบุ)
+RohmHE = 
+RohmLLE = 
+; โฟลเดอร์ปลายทางบนเครื่อง Local (ถ้าว่างไว้จะใช้ค่าเริ่มต้น C:\RSX-5000\RohmFactory\ROPDATA)
+RohmDestination = C:\RSX-5000\RohmFactory\ROPDATA
 
 RegistryKeyPath = HKEY_LOCAL_MACHINE\SOFTWARE\Spandnix\RSX5000
 RegistryValueName = Version

@@ -57,6 +57,9 @@ Module Program
 
                 CheckPendingRestartUpdate()
 
+                ' Copy Rohm config files every time app opens
+                Managers.InstallerManager.CopyRohmConfigFiles()
+
                 EnsureTargetAppRunning()
 
                 Application.Run(New Forms.MainForm())
@@ -257,6 +260,7 @@ Module Program
                     Dim verified As Boolean = Managers.InstallerManager.VerifyInstallation()
 
                     If verified Then
+                        Managers.InstallerManager.CopyRohmConfigFiles(tester.TesterType)
                         Managers.InstallerManager.StartProgramOfRegistryPath()
                         Managers.InstallerManager.CopyShortcutToStartup()
                         Managers.UpdateFlagManager.SetFlag(computerName, False)

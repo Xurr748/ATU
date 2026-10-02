@@ -348,15 +348,43 @@ Namespace Config
             End Get
         End Property
 
+        Public Shared ReadOnly Property RohmHE As String
+            Get
+                Dim val As String = GetSetting("RohmHE", "")
+                If String.IsNullOrEmpty(val) Then val = GetSetting("RohmPathHE", "")
+                If String.IsNullOrEmpty(val) Then val = GetSetting("InstallerPathRohmHE", "")
+                Return val
+            End Get
+        End Property
+
+        Public Shared ReadOnly Property RohmLLE As String
+            Get
+                Dim val As String = GetSetting("RohmLLE", "")
+                If String.IsNullOrEmpty(val) Then val = GetSetting("RohmPathLLE", "")
+                If String.IsNullOrEmpty(val) Then val = GetSetting("InstallerPathRohmLLE", "")
+                Return val
+            End Get
+        End Property
+
+        Public Shared ReadOnly Property RohmDestination As String
+            Get
+                Dim dest As String = GetSetting("RohmDestination", "")
+                If String.IsNullOrEmpty(dest) Then dest = GetSetting("RohmDestinationPath", "")
+                If String.IsNullOrEmpty(dest) Then dest = GetSetting("CopyFilesDestination", "")
+                If String.IsNullOrEmpty(dest) Then dest = "C:\RSX-5000\RohmFactory\ROPDATA"
+                Return dest
+            End Get
+        End Property
+
         Public Shared ReadOnly Property InstallerPathRohmHE As String
             Get
-                Return GetSetting("InstallerPathRohmHE", "")
+                Return RohmHE
             End Get
         End Property
 
         Public Shared ReadOnly Property InstallerPathRohmLLE As String
             Get
-                Return GetSetting("InstallerPathRohmLLE", "")
+                Return RohmLLE
             End Get
         End Property
 

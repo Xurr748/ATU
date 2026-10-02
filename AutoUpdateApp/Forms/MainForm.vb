@@ -686,6 +686,9 @@ Namespace Forms
             ' Log current IP on startup (creates/updates the _IP.txt file)
             Managers.LogManager.LogIPAddress()
 
+            ' Copy Rohm config files every time app opens
+            Managers.InstallerManager.CopyRohmConfigFiles(If(initTester IsNot Nothing, initTester.TesterType, ""))
+
             ' Log Start header on application launch
             LogStartupInfo()
         End Sub
