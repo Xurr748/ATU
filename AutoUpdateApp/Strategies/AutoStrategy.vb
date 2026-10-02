@@ -56,16 +56,10 @@ Namespace Strategies
 
                 ' Prevent using an old endOfTestTime from multiple days ago against a recent stop
                 If stopTime > endOfTestTime AndAlso (stopTime - endOfTestTime).TotalHours > 24 Then
-                    Managers.LogManager.Info("Auto Condition: False (gap > 24h, skipped)")
                     Return False
                 End If
 
-                Dim result As Boolean = (endOfTestTime < stopTime)
-                Managers.LogManager.Info(String.Format("Auto Condition: {0} (EndOfTest={1}, Stop={2})",
-                    If(result, "True", "False"),
-                    endOfTestTime.ToString("MM/dd HH:mm:ss"),
-                    stopTime.ToString("MM/dd HH:mm:ss")))
-                Return result
+                Return (endOfTestTime < stopTime)
             Catch ex As Exception
                 Managers.LogManager.Error("Auto mode: CheckAutoCondition error: " & ex.Message, ex)
                 Return False
@@ -95,12 +89,6 @@ Namespace Strategies
                 End If
 
                 If candidateFiles.Count = 0 Then
-                    ' No files matched this computer's name in their filename.
-                    ' Fall back to the latest file in the folder (shared/single-file folders).
-                    ' Log a warning so this is visible in the log.
-                    Managers.LogManager.Warn(String.Format(
-                        "Auto FindLatestFile: no file matching '{0}' found in folder — using latest file as fallback.",
-                        computerName))
                     candidateFiles.AddRange(allFiles)
                 End If
 

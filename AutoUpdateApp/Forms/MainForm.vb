@@ -83,6 +83,9 @@ Namespace Forms
         ' Auto mode timer display label (shown on main form)
         Private _lblAutoTimer As Label
 
+        ' Track previous Auto condition state to log only on state change
+        Private _autoLastCondition As Boolean? = Nothing
+
         Private _tempComName As String = ""
         Private _tempType As String = ""
         Private _tempMode As String = ""
@@ -851,6 +854,7 @@ Namespace Forms
                 Managers.LogManager.Info(String.Format("Reset count to {0} min", _autoWaitMinutes))
                 _autoConditionStartTime = Nothing
                 _autoLastLogMinute = 0
+                _autoLastCondition = Nothing
                 ' Clear reference immediately so AutoModeTimer does not see a half-closed form
                 ' and accidentally skip the guard check (prevents instant re-trigger).
                 _restartCountdownForm = Nothing
@@ -952,6 +956,7 @@ Namespace Forms
                     If currentMode = "AUTO" Then
                         _autoConditionStartTime = Nothing
                         _autoLastLogMinute = 0
+                        _autoLastCondition = Nothing
                         _autoWaitMinutes = Config.AppSettings.AutoWaitMinutes
                         If _autoWaitMinutes <= 0 Then _autoWaitMinutes = 30
                         If _restartNoticeForm IsNot Nothing AndAlso Not _restartNoticeForm.IsDisposed Then
@@ -961,6 +966,7 @@ Namespace Forms
                     Else
                         _autoConditionStartTime = Nothing
                         _autoLastLogMinute = 0
+                        _autoLastCondition = Nothing
                     End If
                     _lastKnownMode = currentMode
                 End If
@@ -978,6 +984,7 @@ Namespace Forms
                     If _autoConditionStartTime.HasValue Then
                         _autoConditionStartTime = Nothing
                         _autoLastLogMinute = 0
+                        _autoLastCondition = Nothing
                     End If
                     Return
                 End If
@@ -1022,6 +1029,12 @@ Namespace Forms
 
                 ' Safety guard — ensure wait time is always positive
                 If _autoWaitMinutes <= 0 Then _autoWaitMinutes = 30
+
+                ' Log condition only on change (not every 2 seconds)
+                If Not _autoLastCondition.HasValue OrElse _autoLastCondition.Value <> isConditionTrue Then
+                    _autoLastCondition = isConditionTrue
+                    Managers.LogManager.Info(String.Format("Auto Condition: {0}", If(isConditionTrue, "True", "False")))
+                End If
 
                 If isConditionTrue Then
                     If Not _autoConditionStartTime.HasValue Then
