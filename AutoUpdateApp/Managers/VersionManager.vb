@@ -18,16 +18,26 @@ Namespace Managers
                 Return String.Empty
             End If
 
-            Return NormalizeVersion(version)
+            Dim normVer As String = NormalizeVersion(version)
+            Dim subVer As String = ReadRegistrySubVersion()
+
+            ' If SubVersion is present and not already part of the version string, append it (e.g. 5.84.44 + A = 5.84.44A)
+            If Not String.IsNullOrEmpty(subVer) AndAlso Not normVer.EndsWith(subVer, StringComparison.OrdinalIgnoreCase) Then
+                Return NormalizeVersion(normVer & subVer)
+            End If
+
+            Return normVer
         End Function
 
         ''' <summary>
-        ''' Reads the sub-version from registry using SubVersionRegistryValueName config key.
+        ''' Reads the sub-version from registry using SubVersionRegistryValueName config key (defaults to "SubVersion").
         ''' Returns empty string if the key is not configured or the value does not exist.
         ''' </summary>
         Public Shared Function ReadRegistrySubVersion() As String
             Dim valueName As String = Config.AppSettings.SubVersionRegistryValueName
-            If String.IsNullOrEmpty(valueName) Then Return String.Empty
+            If String.IsNullOrEmpty(valueName) Then
+                valueName = "SubVersion"
+            End If
 
             Dim keyPath As String = Config.AppSettings.RegistryKeyPath
             Dim subVer As String = Utilities.RegistryHelper.ReadValue(keyPath, valueName)

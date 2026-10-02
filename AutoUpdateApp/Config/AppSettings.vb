@@ -397,10 +397,10 @@ Namespace Config
             End Get
         End Property
 
-        ''' <summary>Registry value name for sub-version (e.g. "SubVersion" or "BuildNumber"). Leave empty to hide sub-version.</summary>
+        ''' <summary>Registry value name for sub-version (defaults to "SubVersion").</summary>
         Public Shared ReadOnly Property SubVersionRegistryValueName As String
             Get
-                Return GetSetting("SubVersionRegistryValueName", "")
+                Return GetSetting("SubVersionRegistryValueName", "SubVersion")
             End Get
         End Property
 

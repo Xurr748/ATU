@@ -485,18 +485,7 @@ Namespace Forms
 
                 Dim currentVer As String = Managers.VersionManager.ReadRegistryVersion()
                 Dim serverVer As String = Managers.VersionManager.ReadLatestVersion()
-                Dim subVer As String = Managers.VersionManager.ReadRegistrySubVersion()
-
-                Dim displayCurrent As String
-                If String.IsNullOrEmpty(currentVer) Then
-                    displayCurrent = L("VersionNotFound")
-                ElseIf Not String.IsNullOrEmpty(subVer) Then
-                    displayCurrent = currentVer & " + Sub " & subVer
-                Else
-                    displayCurrent = currentVer
-                End If
-
-                _lblCurrentValue.Text = displayCurrent
+                _lblCurrentValue.Text = If(String.IsNullOrEmpty(currentVer), L("VersionNotFound"), currentVer)
                 _lblServerValue.Text = If(String.IsNullOrEmpty(serverVer), L("VersionReadError"), serverVer)
 
                 Dim hasPendingUpdate As Boolean = Managers.UpdateFlagManager.GetFlag(computerName).GetValueOrDefault(False)
