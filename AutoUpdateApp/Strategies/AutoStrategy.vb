@@ -95,9 +95,13 @@ Namespace Strategies
                 End If
 
                 If candidateFiles.Count = 0 Then
-                    ' No files found matching this computer's name — do NOT fall back to
-                    ' other machines' files, as that would trigger restarts based on wrong data.
-                    Return Nothing
+                    ' No files matched this computer's name in their filename.
+                    ' Fall back to the latest file in the folder (shared/single-file folders).
+                    ' Log a warning so this is visible in the log.
+                    Managers.LogManager.Warn(String.Format(
+                        "Auto FindLatestFile: no file matching '{0}' found in folder — using latest file as fallback.",
+                        computerName))
+                    candidateFiles.AddRange(allFiles)
                 End If
 
                 Dim latestFile As String = Nothing
