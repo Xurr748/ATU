@@ -48,13 +48,14 @@ Namespace Managers
         End Function
 
         ''' <summary>
-        ''' Normalises a raw version string: takes the first non-empty line, then removes
-        ''' all remaining internal whitespace so "5.83.42 A" and "5.83.42A" compare equal.
-        ''' Multi-line files (e.g. version.txt with notes on line 2) are handled safely.
+        ''' Normalises a raw version string: takes the first non-empty line, normalises Unicode
+        ''' (converts full-width characters like 'Ａ' or '５' to standard ASCII 'A' or '5'),
+        ''' and strips all whitespace, BOM, null bytes, zero-width spaces, and control characters.
         ''' </summary>
-        Private Shared Function NormalizeVersion(raw As String) As String
-            If raw Is Nothing Then Return String.Empty
-            ' Take only the first non-blank line so extra lines / comments are ignored
+        Public Shared Function NormalizeVersion(raw As String) As String
+            If String.IsNullOrEmpty(raw) Then Return String.Empty
+
+            ' 1. Take only the first non-blank line so extra lines / comments are ignored
             Dim firstLine As String = String.Empty
             For Each line As String In raw.Split(New Char() {ControlChars.Cr, ControlChars.Lf}, StringSplitOptions.RemoveEmptyEntries)
                 Dim t As String = line.Trim()
@@ -63,11 +64,16 @@ Namespace Managers
                     Exit For
                 End If
             Next
-            If firstLine.Length = 0 Then Return String.Empty
-            ' Strip any remaining internal whitespace (e.g. "5.83.42 A" → "5.83.42A")
-            Dim sb As New System.Text.StringBuilder(firstLine.Length)
-            For Each c As Char In firstLine
-                If Not Char.IsWhiteSpace(c) Then
+            If String.IsNullOrEmpty(firstLine) Then Return String.Empty
+
+            ' 2. Unicode normalization FormKC: converts full-width characters (e.g. Japanese full-width 'Ａ' -> 'A', '５' -> '5')
+            Dim normalized As String = firstLine.Normalize(System.Text.NormalizationForm.FormKC)
+
+            ' 3. Extract only valid version characters: letters, digits, '.', '-', '_', '+'
+            ' This automatically discards BOM (\uFEFF), null bytes (\0), zero-width spaces (\u200B), whitespace, control chars
+            Dim sb As New System.Text.StringBuilder(normalized.Length)
+            For Each c As Char In normalized
+                If Char.IsLetterOrDigit(c) OrElse c = "."c OrElse c = "-"c OrElse c = "_"c OrElse c = "+"c Then
                     sb.Append(c)
                 End If
             Next
