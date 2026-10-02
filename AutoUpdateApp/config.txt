@@ -46,6 +46,12 @@ TargetAppExePath =
 BatFilePath = 
 KillProcessList = RSX5000
 
+; Post-install file copy (e.g. RohmFactory config/ini files)
+; Source files or folders on server (separate multiple paths with |)
+CopyFilesSource = 
+; Destination folder on local machine (e.g. C:\RSX-5000\RohmFactory\ROPDATA)
+CopyFilesDestination = 
+
 AutoWatchFolderPath = 
 AutoStopLogFolderPath = 
 AutoWaitMinutes = 30

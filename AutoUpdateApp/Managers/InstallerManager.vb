@@ -17,18 +17,44 @@ Namespace Managers
 
             Dim cleanType As String = testerType.ToUpperInvariant().Trim()
 
+            ' If tester type explicitly indicates Rohm, check Rohm path first
+            If cleanType.Contains("ROHM") Then
+                If cleanType.Contains("LLE") Then
+                    Dim rohmPath As String = Config.AppSettings.InstallerPathRohmLLE
+                    If Not String.IsNullOrEmpty(rohmPath) AndAlso Directory.Exists(rohmPath) Then Return rohmPath
+                ElseIf cleanType.Contains("HE") Then
+                    Dim rohmPath As String = Config.AppSettings.InstallerPathRohmHE
+                    If Not String.IsNullOrEmpty(rohmPath) AndAlso Directory.Exists(rohmPath) Then Return rohmPath
+                End If
+            End If
+
             If cleanType.Contains("LLE") Then
+                Dim stdPath As String = Config.AppSettings.InstallerPathLLE
+                If Not String.IsNullOrEmpty(stdPath) AndAlso Directory.Exists(stdPath) Then
+                    Return stdPath
+                End If
+
                 Dim rohmPath As String = Config.AppSettings.InstallerPathRohmLLE
-                If Not String.IsNullOrEmpty(rohmPath) Then
+                If Not String.IsNullOrEmpty(rohmPath) AndAlso Directory.Exists(rohmPath) Then
                     Return rohmPath
                 End If
-                Return Config.AppSettings.InstallerPathLLE
+
+                If Not String.IsNullOrEmpty(stdPath) Then Return stdPath
+                Return rohmPath
+
             ElseIf cleanType.Contains("HE") Then
+                Dim stdPath As String = Config.AppSettings.InstallerPathHE
+                If Not String.IsNullOrEmpty(stdPath) AndAlso Directory.Exists(stdPath) Then
+                    Return stdPath
+                End If
+
                 Dim rohmPath As String = Config.AppSettings.InstallerPathRohmHE
-                If Not String.IsNullOrEmpty(rohmPath) Then
+                If Not String.IsNullOrEmpty(rohmPath) AndAlso Directory.Exists(rohmPath) Then
                     Return rohmPath
                 End If
-                Return Config.AppSettings.InstallerPathHE
+
+                If Not String.IsNullOrEmpty(stdPath) Then Return stdPath
+                Return rohmPath
             End If
 
             LogManager.Warn("Unknown tester type: " & testerType)
