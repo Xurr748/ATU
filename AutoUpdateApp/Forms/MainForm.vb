@@ -685,6 +685,32 @@ Namespace Forms
 
             ' Log current IP on startup (creates/updates the _IP.txt file)
             Managers.LogManager.LogIPAddress()
+
+            ' Log Start header on application launch
+            LogStartupInfo()
+        End Sub
+
+        Private Sub LogStartupInfo()
+            Try
+                Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
+                Dim tester As Models.TesterInfo = Managers.ConfigManager.GetTesterByName(computerName)
+                Dim currentVersion As String = Managers.VersionManager.ReadRegistryVersion()
+                Dim latestVersion As String = Managers.VersionManager.ReadLatestVersion()
+
+                Managers.LogManager.Info("Start")
+                If tester IsNot Nothing Then
+                    Managers.LogManager.Info(String.Format("Comname {0} Type {1} Mode {2} Schedule {3}", _
+                        computerName, tester.TesterType, tester.Mode, tester.ScheduledTime.ToString()))
+                Else
+                    Managers.LogManager.Info(String.Format("Comname {0} Type Unknown Mode Unknown Schedule None", computerName))
+                End If
+                Managers.LogManager.Info(String.Format("Current Version {0} Server Version {1}", _
+                    If(String.IsNullOrEmpty(currentVersion), "N/A", currentVersion), _
+                    If(String.IsNullOrEmpty(latestVersion), "N/A", latestVersion)))
+                Managers.LogManager.Info("End")
+            Catch ex As Exception
+                Managers.LogManager.Error("Error logging startup info", ex)
+            End Try
         End Sub
 
         Private _lastScheduledRunDate As DateTime = DateTime.MinValue
@@ -841,6 +867,7 @@ Namespace Forms
                 Managers.UpdateFlagManager.SetFlag(computerName, False)
                 Managers.LogManager.Info("Auto count cancel by user")
                 Managers.LogManager.Info(String.Format("Reset count to {0} min", _autoWaitMinutes))
+                Managers.LogManager.Info("End")
                 _autoConditionStartTime = Nothing
                 _autoLastLogMinute = 0
                 _autoLastCondition = Nothing
@@ -958,6 +985,7 @@ Namespace Forms
                         _autoLastCondition = Nothing
                     End If
                     _lastKnownMode = currentMode
+                    LogStartupInfo()
                 End If
             Catch ex As Exception
             End Try
@@ -1055,12 +1083,14 @@ Namespace Forms
 
                             If needsUpdate Then
                                 Managers.LogManager.Info("Auto Count complete. Proceeding to restart")
+                                Managers.LogManager.Info("End")
                                 Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
                                 Managers.UpdateFlagManager.SetFlag(computerName, True)
                                 UpdateAutoTimerLabel()
                                 ShowRestartCountdownForm()
                             Else
                                 Managers.LogManager.Info("Auto Count complete. No update needed. Resetting.")
+                                Managers.LogManager.Info("End")
                                 UpdateAutoTimerLabel()
                             End If
                         Else
@@ -1071,6 +1101,7 @@ Namespace Forms
                     If _autoConditionStartTime.HasValue Then
                         Managers.LogManager.Info("Auto count cancel required not met")
                         Managers.LogManager.Info(String.Format("Reset count to {0} min", _autoWaitMinutes))
+                        Managers.LogManager.Info("End")
                         _autoConditionStartTime = Nothing
                         _autoLastLogMinute = 0
                     End If
