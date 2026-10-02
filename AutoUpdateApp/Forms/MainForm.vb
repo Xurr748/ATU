@@ -1025,8 +1025,10 @@ Namespace Forms
 
                 If isConditionTrue Then
                     If Not _autoConditionStartTime.HasValue Then
+                        ' Condition just became true — start countdown
                         _autoConditionStartTime = DateTime.Now
                         _autoLastLogMinute = 0
+                        UpdateAutoTimerLabel()
                     Else
                         Dim elapsedMin As Integer = CInt(Math.Floor((DateTime.Now - _autoConditionStartTime.Value).TotalMinutes))
 
@@ -1039,14 +1041,26 @@ Namespace Forms
                         End While
 
                         If elapsedMin >= _autoWaitMinutes Then
-                            Managers.LogManager.Info("Auto Count complete. Proceeding to restart")
+                            ' Countdown complete — verify update is still needed before restarting
+                            Dim currentVer As String = Managers.VersionManager.ReadRegistryVersion()
+                            Dim serverVer As String = Managers.VersionManager.ReadLatestVersion()
+                            Dim needsUpdate As Boolean = (Not String.IsNullOrEmpty(serverVer)) AndAlso
+                                                         (String.IsNullOrEmpty(currentVer) OrElse
+                                                          Not String.Equals(currentVer, serverVer, StringComparison.OrdinalIgnoreCase))
+
                             _autoConditionStartTime = Nothing
                             _autoLastLogMinute = 0
 
-                            Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
-                            Managers.UpdateFlagManager.SetFlag(computerName, True)
-                            UpdateAutoTimerLabel()
-                            ShowRestartCountdownForm()
+                            If needsUpdate Then
+                                Managers.LogManager.Info("Auto Count complete. Proceeding to restart")
+                                Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
+                                Managers.UpdateFlagManager.SetFlag(computerName, True)
+                                UpdateAutoTimerLabel()
+                                ShowRestartCountdownForm()
+                            Else
+                                Managers.LogManager.Info("Auto Count complete. No update needed. Resetting.")
+                                UpdateAutoTimerLabel()
+                            End If
                         Else
                             UpdateAutoTimerLabel()
                         End If

@@ -30,20 +30,6 @@ Namespace Strategies
                     Return False
                 End If
 
-                Dim currentVer As String = Managers.VersionManager.ReadRegistryVersion()
-                Dim serverVer As String = Managers.VersionManager.ReadLatestVersion()
-
-                If String.IsNullOrEmpty(serverVer) Then Return False
-
-                Dim needsUpdate As Boolean = False
-                If String.IsNullOrEmpty(currentVer) Then
-                    needsUpdate = True
-                ElseIf Not String.Equals(currentVer, serverVer, StringComparison.OrdinalIgnoreCase) Then
-                    needsUpdate = True
-                End If
-
-                If Not needsUpdate Then Return False
-
                 Dim watchFolder As String = Config.AppSettings.AutoWatchFolderPath
                 Dim stopLogFolder As String = Config.AppSettings.AutoStopLogFolderPath
 
