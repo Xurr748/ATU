@@ -20,8 +20,9 @@ Namespace Managers
 
             Dim intervalMs As Integer = Config.AppSettings.PollingIntervalMinutes * 60 * 1000
 
-            If intervalMs <= 0 Then
-                intervalMs = 3600000
+            ' Check schedule at least every 30 seconds so scheduled updates trigger on time without waiting up to 60 minutes
+            If intervalMs <= 0 OrElse intervalMs > 30000 Then
+                intervalMs = 30000
             End If
 
             _timer = New Timer()

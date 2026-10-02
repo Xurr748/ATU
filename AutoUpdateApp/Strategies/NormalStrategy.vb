@@ -67,7 +67,12 @@ Namespace Strategies
 
         Private Function ShowPrompt(context As Models.UpdateContext) As Forms.UpdatePromptResult
             Using dlg As New Forms.UpdatePromptForm(context.CurrentVersion, context.LatestVersion)
-                dlg.ShowDialog()
+                dlg.TopMost = True
+                If _invokeControl IsNot Nothing AndAlso _invokeControl.Visible Then
+                    dlg.ShowDialog(_invokeControl)
+                Else
+                    dlg.ShowDialog()
+                End If
                 Return dlg.UserChoice
             End Using
         End Function

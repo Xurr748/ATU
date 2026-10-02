@@ -27,6 +27,12 @@ Namespace Forms
             WireEvents()
         End Sub
 
+        Protected Overrides Sub OnShown(e As EventArgs)
+            MyBase.OnShown(e)
+            Me.BringToFront()
+            Me.Activate()
+        End Sub
+
         Private Sub ApplyLanguage(currentVersion As String, latestVersion As String)
             Dim L As Func(Of String, String) = AddressOf Config.LanguageManager.GetText
             Me.Text = L("PromptTitle")

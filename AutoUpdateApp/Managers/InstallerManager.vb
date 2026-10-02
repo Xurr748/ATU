@@ -13,19 +13,35 @@ Namespace Managers
         End Sub
 
         Public Shared Function GetInstallerPath(testerType As String) As String
-            Select Case testerType.ToUpperInvariant()
-                Case "HE"
-                    Return Config.AppSettings.InstallerPathHE
-                Case "LLE"
+            If String.IsNullOrEmpty(testerType) Then Return String.Empty
+
+            Dim cleanType As String = testerType.ToUpperInvariant().Replace(" ", "").Replace("_", "").Replace("-", "")
+
+            If cleanType.Contains("ROHM") Then
+                If cleanType.Contains("LLE") Then
+                    Dim path As String = Config.AppSettings.InstallerPathRohmLLE
+                    If Not String.IsNullOrEmpty(path) Then Return path
                     Return Config.AppSettings.InstallerPathLLE
-                Case "ROHMHE"
-                    Return Config.AppSettings.InstallerPathRohmHE
-                Case "ROHMLLE"
-                    Return Config.AppSettings.InstallerPathRohmLLE
-                Case Else
-                    LogManager.Warn("Unknown tester type: " & testerType)
-                    Return String.Empty
-            End Select
+                ElseIf cleanType.Contains("HE") Then
+                    Dim path As String = Config.AppSettings.InstallerPathRohmHE
+                    If Not String.IsNullOrEmpty(path) Then Return path
+                    Return Config.AppSettings.InstallerPathHE
+                Else
+                    ' RohmFactory without HE or LLE specified: try RohmHE then RohmLLE then HE
+                    Dim path As String = Config.AppSettings.InstallerPathRohmHE
+                    If Not String.IsNullOrEmpty(path) Then Return path
+                    Return Config.AppSettings.InstallerPathHE
+                End If
+            End If
+
+            If cleanType.Contains("LLE") Then
+                Return Config.AppSettings.InstallerPathLLE
+            ElseIf cleanType.Contains("HE") Then
+                Return Config.AppSettings.InstallerPathHE
+            End If
+
+            LogManager.Warn("Unknown tester type: " & testerType)
+            Return String.Empty
         End Function
 
         Public Shared Function RunInstaller(testerType As String, Optional progressCallback As Action(Of Integer, String) = Nothing) As Boolean

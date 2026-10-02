@@ -727,7 +727,7 @@ Namespace Forms
                     If Not isAuto Then
                         Dim now As DateTime = DateTime.Now
                         Dim scheduled As TimeSpan = tester.ScheduledTime
-                        If now.Hour = scheduled.Hours AndAlso now.Minute = scheduled.Minutes Then
+                        If now.TimeOfDay >= scheduled Then
                             If _lastScheduledRunDate.Date <> now.Date Then
                                 If _updateWorker IsNot Nothing AndAlso Not _updateWorker.IsBusy Then
                                     _lastScheduledRunDate = now

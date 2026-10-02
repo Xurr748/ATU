@@ -24,7 +24,7 @@ Namespace Workers
         Private ReadOnly _worker As BackgroundWorker
         Private ReadOnly _invokeControl As Control
         Private _disposed As Boolean
-        Private _lastRunDate As DateTime = DateTime.MinValue
+        Private _lastScheduledCheckDate As DateTime = DateTime.MinValue
 
         Public Event UpdateCompleted As EventHandler(Of UpdateCompletedEventArgs)
 
@@ -83,7 +83,7 @@ Namespace Workers
                 Dim isAuto As Boolean = String.Equals(tester.Mode, "AUTO", StringComparison.OrdinalIgnoreCase)
 
                 If Not _isManual AndAlso Not isAuto Then
-                    If _lastRunDate.Date = DateTime.Now.Date Then
+                    If _lastScheduledCheckDate.Date = DateTime.Now.Date Then
                         e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.NoAction, "Already checked today")
                         Return
                     End If
@@ -112,7 +112,7 @@ Namespace Workers
                         If context.HasPendingRestartFlag Then
                             Managers.UpdateFlagManager.SetFlag(computerName, False)
                         End If
-                        _lastRunDate = DateTime.Now
+                        If Not _isManual Then _lastScheduledCheckDate = DateTime.Now
                         Managers.LogManager.Info("Already up to date")
                         Managers.LogManager.Info("End")
                         e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.NoAction, "Already up to date")
@@ -120,7 +120,7 @@ Namespace Workers
                     End If
 
                     If context.HasPendingRestartFlag Then
-                        _lastRunDate = DateTime.Now
+                        If Not _isManual Then _lastScheduledCheckDate = DateTime.Now
                         Managers.LogManager.Info("Pending restart update flag is already set. Waiting for restart.")
                         Managers.LogManager.Info("End")
                         e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.UpdateScheduledForRestart, _
@@ -128,7 +128,7 @@ Namespace Workers
                         Return
                     End If
 
-                    _lastRunDate = DateTime.Now
+                    If Not _isManual Then _lastScheduledCheckDate = DateTime.Now
                     Managers.LogManager.Info("Auto mode: Monitoring condition")
                     Managers.LogManager.Info("End")
                     e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.NoAction, "Auto mode monitoring active")
@@ -136,7 +136,7 @@ Namespace Workers
                 End If
 
                 If context.HasPendingRestartFlag AndAlso context.NeedsUpdate Then
-                    _lastRunDate = DateTime.Now
+                    If Not _isManual Then _lastScheduledCheckDate = DateTime.Now
                     Managers.LogManager.Info("Pending restart update flag is already set. Waiting for restart.")
                     Managers.LogManager.Info("End")
                     e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.UpdateScheduledForRestart, _
@@ -149,7 +149,7 @@ Namespace Workers
                         Managers.UpdateFlagManager.SetFlag(computerName, False)
                     End If
 
-                    _lastRunDate = DateTime.Now
+                    If Not _isManual Then _lastScheduledCheckDate = DateTime.Now
                     Managers.LogManager.Info("Already up to date")
                     Managers.LogManager.Info("End")
                     e.Result = New UpdateCompletedEventArgs(Strategies.UpdateResult.NoAction, "Already up to date")
@@ -169,7 +169,7 @@ Namespace Workers
                 Dim result As Strategies.UpdateResult = strategy.Execute(context)
 
                 If result <> Strategies.UpdateResult.[Error] Then
-                    _lastRunDate = DateTime.Now
+                    If Not _isManual Then _lastScheduledCheckDate = DateTime.Now
                 End If
 
                 Managers.LogManager.Info("End")
