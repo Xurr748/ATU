@@ -80,7 +80,8 @@ Namespace Workers
                 Dim currentVersion As String = Managers.VersionManager.ReadRegistryVersion()
                 Dim latestVersion As String = Managers.VersionManager.ReadLatestVersion()
 
-                Dim isAuto As Boolean = String.Equals(tester.Mode, "AUTO", StringComparison.OrdinalIgnoreCase)
+                Dim isAuto As Boolean = String.Equals(tester.Mode, "AUTO", StringComparison.OrdinalIgnoreCase) OrElse
+                                       String.Equals(tester.Mode, "AUTOSHUTDOWN", StringComparison.OrdinalIgnoreCase)
 
                 If Not _isManual AndAlso Not isAuto Then
                     If _lastScheduledCheckDate.Date = DateTime.Now.Date Then

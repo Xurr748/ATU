@@ -76,15 +76,22 @@ Namespace Forms
         Private _isAutoChecking As Boolean = False
         Private _lastKnownMode As String = ""
         Private _restartCountdownForm As RestartCountdownForm = Nothing
+        Private _autoLastCondition As Boolean? = Nothing
+
+        ' AutoShutdown Mode Countdown & Monitoring (Separated from Auto Mode)
+        Private _autoShutdownWaitMinutes As Integer = 30
+        Private _autoShutdownConditionStartTime As DateTime? = Nothing
+        Private _autoShutdownLastLogMinute As Integer = 0
+        Private _autoShutdownLastCondition As Boolean? = Nothing
+        Private WithEvents _autoShutdownModeTimer As Timer
+        Private _isAutoShutdownChecking As Boolean = False
+        Private _shutdownCountdownForm As ShutdownCountdownForm = Nothing
 
         ' Target app launch — fire once when versions match, reset when mismatch occurs
         Private _targetAppLaunchAttempted As Boolean = False
 
-        ' Auto mode timer display label (shown on main form)
+        ' Auto / AutoShutdown mode timer display label (shown on main form)
         Private _lblAutoTimer As Label
-
-        ' Track previous Auto condition state to log only on state change
-        Private _autoLastCondition As Boolean? = Nothing
 
         Private _tempComName As String = ""
         Private _tempType As String = ""
@@ -669,8 +676,18 @@ Namespace Forms
             AddHandler _autoModeTimer.Tick, AddressOf AutoModeTimer_Tick
             _autoModeTimer.Start()
 
+            _autoShutdownWaitMinutes = Config.AppSettings.AutoWaitMinutes
+            If _autoShutdownWaitMinutes <= 0 Then _autoShutdownWaitMinutes = 30
+
+            _autoShutdownModeTimer = New System.Windows.Forms.Timer()
+            _autoShutdownModeTimer.Interval = autoIntervalSec * 1000
+            AddHandler _autoShutdownModeTimer.Tick, AddressOf AutoShutdownModeTimer_Tick
+            _autoShutdownModeTimer.Start()
+
             Dim startupTester As Models.TesterInfo = Managers.ConfigManager.GetTesterByName(Utilities.EnvironmentHelper.ComputerName)
-            Dim startupIsAuto As Boolean = (startupTester IsNot Nothing AndAlso String.Equals(startupTester.Mode, "AUTO", StringComparison.OrdinalIgnoreCase))
+            Dim startupIsAuto As Boolean = (startupTester IsNot Nothing AndAlso
+                (String.Equals(startupTester.Mode, "AUTO", StringComparison.OrdinalIgnoreCase) OrElse
+                 String.Equals(startupTester.Mode, "AUTOSHUTDOWN", StringComparison.OrdinalIgnoreCase)))
             If Not startupIsAuto Then
                 CheckAndTrackUpdateFlag()
             End If
@@ -723,10 +740,11 @@ Namespace Forms
                 Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
                 Dim tester As Models.TesterInfo = Managers.ConfigManager.GetTesterByName(computerName)
                 If tester IsNot Nothing Then
-                    Dim isAuto As Boolean = String.Equals(tester.Mode, "AUTO", StringComparison.OrdinalIgnoreCase)
+                    Dim isAuto As Boolean = String.Equals(tester.Mode, "AUTO", StringComparison.OrdinalIgnoreCase) OrElse
+                                           String.Equals(tester.Mode, "AUTOSHUTDOWN", StringComparison.OrdinalIgnoreCase)
 
-                    ' AUTO mode: condition polling is handled independently by _autoModeTimer every 2s.
-                    ' UpdateWorker is NOT triggered by the scheduler in AUTO mode.
+                    ' AUTO/AUTOSHUTDOWN mode: condition polling is handled independently by _autoModeTimer every 2s.
+                    ' UpdateWorker is NOT triggered by the scheduler in these modes.
                     If Not isAuto Then
                         Dim now As DateTime = DateTime.Now
                         Dim scheduled As TimeSpan = tester.ScheduledTime
@@ -777,7 +795,9 @@ Namespace Forms
 
             Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
             Dim tester As Models.TesterInfo = Managers.ConfigManager.GetTesterByName(computerName)
-            Dim isAuto As Boolean = (tester IsNot Nothing AndAlso String.Equals(tester.Mode, "AUTO", StringComparison.OrdinalIgnoreCase))
+            Dim isAuto As Boolean = (tester IsNot Nothing AndAlso
+                (String.Equals(tester.Mode, "AUTO", StringComparison.OrdinalIgnoreCase) OrElse
+                 String.Equals(tester.Mode, "AUTOSHUTDOWN", StringComparison.OrdinalIgnoreCase)))
 
             If e.Result = Strategies.UpdateResult.RestartRequired Then
                 If Not isAuto Then
@@ -830,7 +850,8 @@ Namespace Forms
                 ' In AUTO mode, NEVER show RestartNoticeForm! (Requirement 2)
                 Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
                 Dim tester As Models.TesterInfo = Managers.ConfigManager.GetTesterByName(computerName)
-                If tester IsNot Nothing AndAlso String.Equals(tester.Mode, "AUTO", StringComparison.OrdinalIgnoreCase) Then
+                If tester IsNot Nothing AndAlso (String.Equals(tester.Mode, "AUTO", StringComparison.OrdinalIgnoreCase) OrElse
+                                                String.Equals(tester.Mode, "AUTOSHUTDOWN", StringComparison.OrdinalIgnoreCase)) Then
                     Return
                 End If
 
@@ -918,7 +939,8 @@ Namespace Forms
             Try
                 Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
                 Dim tester As Models.TesterInfo = Managers.ConfigManager.GetTesterByName(computerName)
-                If tester IsNot Nothing AndAlso String.Equals(tester.Mode, "AUTO", StringComparison.OrdinalIgnoreCase) Then
+                If tester IsNot Nothing AndAlso (String.Equals(tester.Mode, "AUTO", StringComparison.OrdinalIgnoreCase) OrElse
+                                                String.Equals(tester.Mode, "AUTOSHUTDOWN", StringComparison.OrdinalIgnoreCase)) Then
                     Return
                 End If
 
@@ -957,13 +979,17 @@ Namespace Forms
                 Dim configWaitMin As Integer = Config.AppSettings.AutoWaitMinutes
                 If configWaitMin > 0 Then
                     _autoWaitMinutes = configWaitMin
+                    _autoShutdownWaitMinutes = configWaitMin
                 End If
 
                 Dim intervalSec As Integer = Config.AppSettings.AutoCheckIntervalSeconds
-                If intervalSec > 0 AndAlso _autoModeTimer IsNot Nothing Then
+                If intervalSec > 0 Then
                     Dim targetMs As Integer = intervalSec * 1000
-                    If _autoModeTimer.Interval <> targetMs Then
+                    If _autoModeTimer IsNot Nothing AndAlso _autoModeTimer.Interval <> targetMs Then
                         _autoModeTimer.Interval = targetMs
+                    End If
+                    If _autoShutdownModeTimer IsNot Nothing AndAlso _autoShutdownModeTimer.Interval <> targetMs Then
+                        _autoShutdownModeTimer.Interval = targetMs
                     End If
                 End If
 
@@ -982,10 +1008,23 @@ Namespace Forms
                             _restartNoticeForm.Close()
                             _restartNoticeForm = Nothing
                         End If
+                    ElseIf currentMode = "AUTOSHUTDOWN" Then
+                        _autoShutdownConditionStartTime = Nothing
+                        _autoShutdownLastLogMinute = 0
+                        _autoShutdownLastCondition = Nothing
+                        _autoShutdownWaitMinutes = Config.AppSettings.AutoWaitMinutes
+                        If _autoShutdownWaitMinutes <= 0 Then _autoShutdownWaitMinutes = 30
+                        If _restartNoticeForm IsNot Nothing AndAlso Not _restartNoticeForm.IsDisposed Then
+                            _restartNoticeForm.Close()
+                            _restartNoticeForm = Nothing
+                        End If
                     Else
                         _autoConditionStartTime = Nothing
                         _autoLastLogMinute = 0
                         _autoLastCondition = Nothing
+                        _autoShutdownConditionStartTime = Nothing
+                        _autoShutdownLastLogMinute = 0
+                        _autoShutdownLastCondition = Nothing
                     End If
                     _lastKnownMode = currentMode
                     LogStartupInfo()
@@ -1115,46 +1154,235 @@ Namespace Forms
             End Try
         End Sub
 
-        ''' <summary>Updates the auto-mode timer bar on the main form. Must be called on the UI thread.</summary>
+        ''' <summary>Updates the auto/autoshutdown mode timer bar on the main form. Must be called on the UI thread.</summary>
         Private Sub UpdateAutoTimerLabel()
             If _lblAutoTimer Is Nothing OrElse _lblAutoTimer.IsDisposed Then Return
 
             Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
             Dim tester As Models.TesterInfo = Managers.ConfigManager.GetTesterByName(computerName)
-            Dim isAuto As Boolean = (tester IsNot Nothing AndAlso String.Equals(tester.Mode, "AUTO", StringComparison.OrdinalIgnoreCase))
+            If tester Is Nothing Then
+                _lblAutoTimer.Visible = False
+                Return
+            End If
 
-            If Not isAuto Then
+            Dim isAuto As Boolean = String.Equals(tester.Mode, "AUTO", StringComparison.OrdinalIgnoreCase)
+            Dim isAutoShutdown As Boolean = String.Equals(tester.Mode, "AUTOSHUTDOWN", StringComparison.OrdinalIgnoreCase)
+
+            If Not isAuto AndAlso Not isAutoShutdown Then
                 _lblAutoTimer.Visible = False
                 Return
             End If
 
             _lblAutoTimer.Visible = True
 
-            ' RestartCountdownForm is visible — show "Restarting..."
-            If _restartCountdownForm IsNot Nothing AndAlso Not _restartCountdownForm.IsDisposed Then
-                _lblAutoTimer.Text = "⏱  Auto: Restarting..."
-                _lblAutoTimer.ForeColor = Color.FromArgb(192, 57, 43)
-                _lblAutoTimer.BackColor = Color.FromArgb(255, 235, 235)
-                Return
-            End If
+            If isAuto Then
+                ' RestartCountdownForm is visible — show "Restarting..."
+                If _restartCountdownForm IsNot Nothing AndAlso Not _restartCountdownForm.IsDisposed Then
+                    _lblAutoTimer.Text = "⏱  Auto: Restarting..."
+                    _lblAutoTimer.ForeColor = Color.FromArgb(192, 57, 43)
+                    _lblAutoTimer.BackColor = Color.FromArgb(255, 235, 235)
+                    Return
+                End If
 
-            ' Counting — show elapsed / total
-            If _autoConditionStartTime.HasValue Then
-                Dim elapsed As TimeSpan = DateTime.Now - _autoConditionStartTime.Value
-                Dim total As TimeSpan = TimeSpan.FromMinutes(_autoWaitMinutes)
-                Dim elapsedStr As String = String.Format("{0:mm\:ss}", elapsed)
-                Dim totalStr As String = String.Format("{0:mm\:ss}", total)
-                Dim pct As Integer = Math.Min(100, CInt((elapsed.TotalSeconds / total.TotalSeconds) * 100))
-                _lblAutoTimer.Text = String.Format("⏱  Auto Count: {0} / {1}  ({2}%)", elapsedStr, totalStr, pct)
-                _lblAutoTimer.ForeColor = Color.FromArgb(41, 128, 185)
-                _lblAutoTimer.BackColor = Color.FromArgb(235, 245, 255)
-                Return
-            End If
+                ' Counting — show elapsed / total
+                If _autoConditionStartTime.HasValue Then
+                    Dim elapsed As TimeSpan = DateTime.Now - _autoConditionStartTime.Value
+                    Dim total As TimeSpan = TimeSpan.FromMinutes(_autoWaitMinutes)
+                    Dim elapsedStr As String = String.Format("{0:mm\:ss}", elapsed)
+                    Dim totalStr As String = String.Format("{0:mm\:ss}", total)
+                    Dim pct As Integer = Math.Min(100, CInt((elapsed.TotalSeconds / total.TotalSeconds) * 100))
+                    _lblAutoTimer.Text = String.Format("⏱  Auto Count: {0} / {1}  ({2}%)", elapsedStr, totalStr, pct)
+                    _lblAutoTimer.ForeColor = Color.FromArgb(41, 128, 185)
+                    _lblAutoTimer.BackColor = Color.FromArgb(235, 245, 255)
+                    Return
+                End If
 
-            ' Idle — waiting for condition
-            _lblAutoTimer.Text = "⏱  Auto: Waiting for condition..."
-            _lblAutoTimer.ForeColor = Color.FromArgb(100, 100, 110)
-            _lblAutoTimer.BackColor = Color.FromArgb(245, 245, 250)
+                ' Idle — waiting for condition
+                _lblAutoTimer.Text = "⏱  Auto: Waiting for condition..."
+                _lblAutoTimer.ForeColor = Color.FromArgb(100, 100, 110)
+                _lblAutoTimer.BackColor = Color.FromArgb(245, 245, 250)
+            ElseIf isAutoShutdown Then
+                ' ShutdownCountdownForm is visible — show "Shutting down..."
+                If _shutdownCountdownForm IsNot Nothing AndAlso Not _shutdownCountdownForm.IsDisposed Then
+                    _lblAutoTimer.Text = "⏱  AutoShutdown: Shutting down..."
+                    _lblAutoTimer.ForeColor = Color.FromArgb(192, 57, 43)
+                    _lblAutoTimer.BackColor = Color.FromArgb(255, 235, 235)
+                    Return
+                End If
+
+                ' Counting — show elapsed / total
+                If _autoShutdownConditionStartTime.HasValue Then
+                    Dim elapsed As TimeSpan = DateTime.Now - _autoShutdownConditionStartTime.Value
+                    Dim total As TimeSpan = TimeSpan.FromMinutes(_autoShutdownWaitMinutes)
+                    Dim elapsedStr As String = String.Format("{0:mm\:ss}", elapsed)
+                    Dim totalStr As String = String.Format("{0:mm\:ss}", total)
+                    Dim pct As Integer = Math.Min(100, CInt((elapsed.TotalSeconds / total.TotalSeconds) * 100))
+                    _lblAutoTimer.Text = String.Format("⏱  AutoShutdown Count: {0} / {1}  ({2}%)", elapsedStr, totalStr, pct)
+                    _lblAutoTimer.ForeColor = Color.FromArgb(211, 84, 0)
+                    _lblAutoTimer.BackColor = Color.FromArgb(254, 245, 231)
+                    Return
+                End If
+
+                ' Idle — waiting for condition
+                _lblAutoTimer.Text = "⏱  AutoShutdown: Waiting for condition..."
+                _lblAutoTimer.ForeColor = Color.FromArgb(100, 100, 110)
+                _lblAutoTimer.BackColor = Color.FromArgb(245, 245, 250)
+            End If
+        End Sub
+
+        ' =========================================================================
+        ' AutoShutdown Mode Implementation (Completely isolated from Auto Mode)
+        ' =========================================================================
+
+        Private Sub AutoShutdownModeTimer_Tick(ByVal sender As Object, ByVal e As EventArgs)
+            Try
+                If _isAutoShutdownChecking Then Return
+
+                Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
+                Dim tester As Models.TesterInfo = Managers.ConfigManager.GetTesterByName(computerName)
+                If tester Is Nothing OrElse Not String.Equals(tester.Mode, "AUTOSHUTDOWN", StringComparison.OrdinalIgnoreCase) Then
+                    If _autoShutdownConditionStartTime.HasValue Then
+                        _autoShutdownConditionStartTime = Nothing
+                        _autoShutdownLastLogMinute = 0
+                        _autoShutdownLastCondition = Nothing
+                    End If
+                    Return
+                End If
+
+                If _shutdownCountdownForm IsNot Nothing AndAlso Not _shutdownCountdownForm.IsDisposed Then
+                    Return
+                End If
+
+                _isAutoShutdownChecking = True
+
+                System.Threading.ThreadPool.QueueUserWorkItem(Sub()
+                    Try
+                        Dim isConditionTrue As Boolean = Strategies.AutoShutdownStrategy.CheckAutoShutdownCondition(computerName)
+
+                        If Not Me.IsDisposed AndAlso Me.IsHandleCreated Then
+                            Me.BeginInvoke(New Action(Sub()
+                                Try
+                                    HandleAutoShutdownConditionResult(isConditionTrue)
+                                Finally
+                                    _isAutoShutdownChecking = False
+                                End Try
+                            End Sub))
+                        Else
+                            _isAutoShutdownChecking = False
+                        End If
+                    Catch ex As Exception
+                        Managers.LogManager.Error("AutoShutdownModeTimer check error", ex)
+                        _isAutoShutdownChecking = False
+                    End Try
+                End Sub)
+
+            Catch ex As Exception
+                _isAutoShutdownChecking = False
+            End Try
+        End Sub
+
+        Private Sub HandleAutoShutdownConditionResult(isConditionTrue As Boolean)
+            Try
+                If _shutdownCountdownForm IsNot Nothing AndAlso Not _shutdownCountdownForm.IsDisposed Then
+                    Return
+                End If
+
+                ' Safety guard — ensure wait time is always positive
+                If _autoShutdownWaitMinutes <= 0 Then _autoShutdownWaitMinutes = 30
+
+                ' Log condition only on change
+                If Not _autoShutdownLastCondition.HasValue OrElse _autoShutdownLastCondition.Value <> isConditionTrue Then
+                    _autoShutdownLastCondition = isConditionTrue
+                    Managers.LogManager.Info(String.Format("AutoShutdown Condition: {0}", If(isConditionTrue, "True", "False")))
+                End If
+
+                If isConditionTrue Then
+                    If Not _autoShutdownConditionStartTime.HasValue Then
+                        _autoShutdownConditionStartTime = DateTime.Now
+                        _autoShutdownLastLogMinute = 0
+                        UpdateAutoTimerLabel()
+                    Else
+                        Dim elapsedMin As Integer = CInt(Math.Floor((DateTime.Now - _autoShutdownConditionStartTime.Value).TotalMinutes))
+
+                        ' Log every 10 minutes dynamically up to _autoShutdownWaitMinutes
+                        Dim nextLogStep As Integer = (_autoShutdownLastLogMinute \ 10 + 1) * 10
+                        While nextLogStep <= elapsedMin AndAlso nextLogStep <= _autoShutdownWaitMinutes
+                            Managers.LogManager.Info(String.Format("AutoShutdown Count {0} min", nextLogStep))
+                            _autoShutdownLastLogMinute = nextLogStep
+                            nextLogStep += 10
+                        End While
+
+                        If elapsedMin >= _autoShutdownWaitMinutes Then
+                            ' Countdown complete — verify update is still needed before shutting down
+                            Dim currentVer As String = Managers.VersionManager.ReadRegistryVersion()
+                            Dim serverVer As String = Managers.VersionManager.ReadLatestVersion()
+                            Dim needsUpdate As Boolean = (Not String.IsNullOrEmpty(serverVer)) AndAlso
+                                                         (String.IsNullOrEmpty(currentVer) OrElse
+                                                          Not String.Equals(currentVer, serverVer, StringComparison.OrdinalIgnoreCase))
+
+                            _autoShutdownConditionStartTime = Nothing
+                            _autoShutdownLastLogMinute = 0
+
+                            If needsUpdate Then
+                                Managers.LogManager.Info("AutoShutdown Count complete. Proceeding to shutdown")
+                                Managers.LogManager.Info("End")
+                                Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
+                                Managers.UpdateFlagManager.SetFlag(computerName, True)
+                                UpdateAutoTimerLabel()
+                                ShowShutdownCountdownForm()
+                            Else
+                                Managers.LogManager.Info("AutoShutdown Count complete. No update needed. Resetting.")
+                                Managers.LogManager.Info("End")
+                                UpdateAutoTimerLabel()
+                            End If
+                        Else
+                            UpdateAutoTimerLabel()
+                        End If
+                    End If
+                Else
+                    If _autoShutdownConditionStartTime.HasValue Then
+                        Managers.LogManager.Info("AutoShutdown count cancel required not met")
+                        Managers.LogManager.Info(String.Format("Reset count to {0} min", _autoShutdownWaitMinutes))
+                        Managers.LogManager.Info("End")
+                        _autoShutdownConditionStartTime = Nothing
+                        _autoShutdownLastLogMinute = 0
+                    End If
+                    UpdateAutoTimerLabel()
+                End If
+            Catch ex As Exception
+                Managers.LogManager.Error("HandleAutoShutdownConditionResult error", ex)
+            End Try
+        End Sub
+
+        Public Sub ShowShutdownCountdownForm()
+            Try
+                If _shutdownCountdownForm IsNot Nothing AndAlso Not _shutdownCountdownForm.IsDisposed Then
+                    _shutdownCountdownForm.BringToFront()
+                    Return
+                End If
+
+                _shutdownCountdownForm = New ShutdownCountdownForm(Me)
+                _shutdownCountdownForm.Show()
+            Catch ex As Exception
+                Managers.LogManager.[Error]("Failed to show ShutdownCountdownForm: " & ex.Message)
+            End Try
+        End Sub
+
+        Public Sub OnAutoShutdownCancelled()
+            Try
+                Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
+                Managers.UpdateFlagManager.SetFlag(computerName, False)
+                Managers.LogManager.Info("AutoShutdown count cancel by user")
+                Managers.LogManager.Info(String.Format("Reset count to {0} min", _autoShutdownWaitMinutes))
+                Managers.LogManager.Info("End")
+                _autoShutdownConditionStartTime = Nothing
+                _autoShutdownLastLogMinute = 0
+                _autoShutdownLastCondition = Nothing
+                _shutdownCountdownForm = Nothing
+                UpdateAutoTimerLabel()
+            Catch ex As Exception
+                Managers.LogManager.Error("Error in OnAutoShutdownCancelled", ex)
+            End Try
         End Sub
 
         Private Sub NotifyIcon_DoubleClick(ByVal sender As Object, ByVal e As EventArgs) Handles _notifyIcon.DoubleClick
@@ -1619,6 +1847,12 @@ Namespace Forms
                 _autoModeTimer = Nothing
             End If
 
+            If _autoShutdownModeTimer IsNot Nothing Then
+                _autoShutdownModeTimer.Stop()
+                _autoShutdownModeTimer.Dispose()
+                _autoShutdownModeTimer = Nothing
+            End If
+
             If _refreshTimer IsNot Nothing Then
                 _refreshTimer.Stop()
                 _refreshTimer.Dispose()
@@ -1683,6 +1917,11 @@ Namespace Forms
                     RemoveHandler _autoModeTimer.Tick, AddressOf AutoModeTimer_Tick
                     _autoModeTimer.Dispose()
                     _autoModeTimer = Nothing
+                End If
+                If _autoShutdownModeTimer IsNot Nothing Then
+                    RemoveHandler _autoShutdownModeTimer.Tick, AddressOf AutoShutdownModeTimer_Tick
+                    _autoShutdownModeTimer.Dispose()
+                    _autoShutdownModeTimer = Nothing
                 End If
                 If _restartCheckTimer IsNot Nothing Then
                     RemoveHandler _restartCheckTimer.Tick, AddressOf RestartCheckTimer_Tick

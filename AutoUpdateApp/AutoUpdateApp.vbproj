@@ -82,6 +82,7 @@
     <Compile Include="Strategies\EvaStrategy.vb" />
     <Compile Include="Strategies\NormalStrategy.vb" />
     <Compile Include="Strategies\AutoStrategy.vb" />
+    <Compile Include="Strategies\AutoShutdownStrategy.vb" />
     <Compile Include="Strategies\StrategyFactory.vb" />
     <!-- Workers -->
     <Compile Include="Workers\UpdateWorker.vb" />
@@ -112,6 +113,12 @@
     </Compile>
     <Compile Include="Forms\RestartCountdownForm.Designer.vb">
       <DependentUpon>RestartCountdownForm.vb</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\ShutdownCountdownForm.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\ShutdownCountdownForm.Designer.vb">
+      <DependentUpon>ShutdownCountdownForm.vb</DependentUpon>
     </Compile>
   </ItemGroup>
   <ItemGroup>
