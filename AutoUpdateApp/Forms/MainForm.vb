@@ -1370,12 +1370,18 @@ Namespace Forms
                             _autoShutdownLastLogMinute = 0
 
                             If needsUpdate Then
-                                Managers.LogManager.Info("AutoShutdown Count complete. Starting mailbox phase")
-                                Managers.LogManager.Info("End")
                                 Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
                                 Managers.UpdateFlagManager.SetFlag(computerName, True)
                                 UpdateAutoTimerLabel()
-                                StartAutoShutdownMailbox()
+                                If _autoShutdownMailboxDone Then
+                                    Managers.LogManager.Info("AutoShutdown Count complete. Mailbox already completed previously. Proceeding to shutdown countdown.")
+                                    Managers.LogManager.Info("End")
+                                    ShowShutdownCountdownForm()
+                                Else
+                                    Managers.LogManager.Info("AutoShutdown Count complete. Starting mailbox phase")
+                                    Managers.LogManager.Info("End")
+                                    StartAutoShutdownMailbox()
+                                End If
                             Else
                                 Managers.LogManager.Info("AutoShutdown Count complete. No update needed. Resetting.")
                                 Managers.LogManager.Info("End")
@@ -1426,6 +1432,7 @@ Namespace Forms
                 _autoShutdownLastCondition = Nothing
                 _autoShutdownMailboxWaiting = False
                 _autoShutdownMailboxStartTime = DateTime.MinValue
+                _autoShutdownMailboxDone = True
                 _shutdownCountdownForm = Nothing
                 UpdateAutoTimerLabel()
             Catch ex As Exception
