@@ -92,6 +92,7 @@ Namespace Forms
         Private _autoShutdownMailboxWaiting As Boolean = False
         Private _autoShutdownMailboxStartTime As DateTime = DateTime.MinValue
         Private _autoShutdownMailboxWaitMinutes As Integer = 3
+        Private _autoShutdownMailboxDone As Boolean = False
 
         ' Target app launch — fire once when versions match, reset when mismatch occurs
         Private _targetAppLaunchAttempted As Boolean = False
@@ -1049,6 +1050,7 @@ Namespace Forms
                         _autoShutdownLastCondition = Nothing
                         _autoShutdownMailboxWaiting = False
                         _autoShutdownMailboxStartTime = DateTime.MinValue
+                        _autoShutdownMailboxDone = False
                     End If
                     _lastKnownMode = currentMode
                     LogStartupInfo()
@@ -1434,9 +1436,17 @@ Namespace Forms
         ''' <summary>
         ''' Creates the mailbox text file (default: eco_off.txt) in the folder configured by AutoShutdownMailbox,
         ''' then waits AutoShutdownMailboxWaitMinutes (default: 3) before showing the shutdown countdown form.
+        ''' Runs only once; does not recount on subsequent triggers.
         ''' </summary>
         Private Sub StartAutoShutdownMailbox()
             Try
+                ' If mailbox phase was already completed previously, do not count again (run once only)
+                If _autoShutdownMailboxDone Then
+                    Managers.LogManager.Info("AutoShutdown mailbox already completed. Skipping mailbox phase.")
+                    ShowShutdownCountdownForm()
+                    Return
+                End If
+
                 Dim mailboxFolder As String = Config.AppSettings.AutoShutdownMailboxPath
                 Dim fileName As String = Config.AppSettings.AutoShutdownMailboxFileName
                 If String.IsNullOrWhiteSpace(fileName) Then fileName = "eco_off"
@@ -1450,6 +1460,15 @@ Namespace Forms
                             Directory.CreateDirectory(mailboxFolder)
                         End If
                         Dim fullFilePath As String = Path.Combine(mailboxFolder, fileName)
+
+                        ' If mailbox file already exists, it was already created - skip recounting
+                        If File.Exists(fullFilePath) Then
+                            _autoShutdownMailboxDone = True
+                            Managers.LogManager.Info(String.Format("AutoShutdown mailbox file already exists ({0}). Skipping mailbox count.", fullFilePath))
+                            ShowShutdownCountdownForm()
+                            Return
+                        End If
+
                         Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
                         Dim content As String = String.Format("ComputerName={0}{1}Time={2:yyyy-MM-dd HH:mm:ss}{1}", computerName, Environment.NewLine, DateTime.Now)
                         File.WriteAllText(fullFilePath, content)
@@ -1459,18 +1478,26 @@ Namespace Forms
                     End Try
                 Else
                     Managers.LogManager.Info("AutoShutdown mailbox path is not configured. Skipping file creation.")
+                    _autoShutdownMailboxDone = True
+                    ShowShutdownCountdownForm()
+                    Return
                 End If
 
                 _autoShutdownMailboxWaitMinutes = Config.AppSettings.AutoShutdownMailboxWaitMinutes
-                If _autoShutdownMailboxWaitMinutes <= 0 Then _autoShutdownMailboxWaitMinutes = 3
+                If _autoShutdownMailboxWaitMinutes <= 0 Then
+                    _autoShutdownMailboxDone = True
+                    ShowShutdownCountdownForm()
+                    Return
+                End If
 
                 _autoShutdownMailboxWaiting = True
                 _autoShutdownMailboxStartTime = DateTime.Now
-                Managers.LogManager.Info(String.Format("AutoShutdown mailbox waiting {0} min before countdown...", _autoShutdownMailboxWaitMinutes))
+                Managers.LogManager.Info(String.Format("AutoShutdown mailbox waiting {0} min before countdown (once only)...", _autoShutdownMailboxWaitMinutes))
                 UpdateAutoTimerLabel()
 
             Catch ex As Exception
                 Managers.LogManager.Error("Error in StartAutoShutdownMailbox", ex)
+                _autoShutdownMailboxDone = True
                 ShowShutdownCountdownForm()
             End Try
         End Sub
@@ -1489,6 +1516,7 @@ Namespace Forms
 
                 If _shutdownCountdownForm IsNot Nothing AndAlso Not _shutdownCountdownForm.IsDisposed Then
                     _autoShutdownMailboxWaiting = False
+                    _autoShutdownMailboxDone = True
                     Return
                 End If
 
@@ -1496,6 +1524,7 @@ Namespace Forms
                 If elapsed.TotalMinutes >= _autoShutdownMailboxWaitMinutes Then
                     _autoShutdownMailboxWaiting = False
                     _autoShutdownMailboxStartTime = DateTime.MinValue
+                    _autoShutdownMailboxDone = True
                     Managers.LogManager.Info("AutoShutdown mailbox wait completed. Proceeding to countdown.")
                     Managers.LogManager.Info("End")
                     UpdateAutoTimerLabel()
