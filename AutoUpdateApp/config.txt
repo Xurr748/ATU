@@ -62,3 +62,12 @@ AutoStopLogFolderPath =
 AutoWaitMinutes = 30
 ; How often (seconds) Auto mode checks the condition files (default: 2)
 AutoCheckIntervalSeconds = 2
+
+; ── AutoShutdown Mailbox ──
+; โฟลเดอร์สำหรับสร้างไฟล์ส่งสัญญาณ eco_off ก่อนปิดเครื่อง (AutoShutdown mode)
+; ถ้าว่างไว้ = ข้ามขั้นตอนนี้ไปเลย
+AutoShutdownMailbox = 
+; ชื่อไฟล์ (ไม่ต้องใส่ .txt) ที่จะสร้างใน AutoShutdownMailbox (default: eco_off)
+AutoShutdownMailboxFileName = eco_off
+; นาทีที่รอหลังสร้างไฟล์แล้วค่อยขึ้น ShutdownCountdown (default: 3)
+AutoShutdownMailboxWaitMinutes = 3

@@ -633,6 +633,32 @@ Namespace Config
             End Get
         End Property
 
+        ''' <summary>Folder path where the eco_off signal file is written before AutoShutdown (AutoShutdownMailbox).</summary>
+        Public Shared ReadOnly Property AutoShutdownMailboxPath As String
+            Get
+                Return GetSetting("AutoShutdownMailbox", "")
+            End Get
+        End Property
+
+        ''' <summary>Name (no extension) of the signal file written to AutoShutdownMailbox. Default: eco_off.</summary>
+        Public Shared ReadOnly Property AutoShutdownMailboxFileName As String
+            Get
+                Dim val As String = GetSetting("AutoShutdownMailboxFileName", "")
+                If String.IsNullOrWhiteSpace(val) Then Return "eco_off"
+                Return val.Trim()
+            End Get
+        End Property
+
+        ''' <summary>Minutes to wait after writing the mailbox file before showing ShutdownCountdown. Default: 3.</summary>
+        Public Shared ReadOnly Property AutoShutdownMailboxWaitMinutes As Integer
+            Get
+                Dim val As String = GetSetting("AutoShutdownMailboxWaitMinutes", "3")
+                Dim result As Integer
+                If Integer.TryParse(val, result) AndAlso result > 0 Then Return result
+                Return 3
+            End Get
+        End Property
+
     End Class
 
 End Namespace

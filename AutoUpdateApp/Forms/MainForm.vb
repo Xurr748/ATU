@@ -87,6 +87,12 @@ Namespace Forms
         Private _isAutoShutdownChecking As Boolean = False
         Private _shutdownCountdownForm As ShutdownCountdownForm = Nothing
 
+        ' AutoShutdown Mailbox — create eco_off file and wait N minutes before showing ShutdownCountdown
+        Private WithEvents _autoShutdownMailboxTimer As Timer
+        Private _autoShutdownMailboxWaiting As Boolean = False
+        Private _autoShutdownMailboxStartTime As DateTime = DateTime.MinValue
+        Private _autoShutdownMailboxWaitMinutes As Integer = 3
+
         ' Target app launch — fire once when versions match, reset when mismatch occurs
         Private _targetAppLaunchAttempted As Boolean = False
 
@@ -684,6 +690,15 @@ Namespace Forms
             AddHandler _autoShutdownModeTimer.Tick, AddressOf AutoShutdownModeTimer_Tick
             _autoShutdownModeTimer.Start()
 
+            ' Mailbox wait timer — fires every 30 seconds to check if the mailbox wait has elapsed
+            _autoShutdownMailboxWaitMinutes = Config.AppSettings.AutoShutdownMailboxWaitMinutes
+            If _autoShutdownMailboxWaitMinutes <= 0 Then _autoShutdownMailboxWaitMinutes = 3
+
+            _autoShutdownMailboxTimer = New System.Windows.Forms.Timer()
+            _autoShutdownMailboxTimer.Interval = 30000  ' check every 30 seconds
+            AddHandler _autoShutdownMailboxTimer.Tick, AddressOf AutoShutdownMailboxTimer_Tick
+            _autoShutdownMailboxTimer.Start()
+
             Dim startupTester As Models.TesterInfo = Managers.ConfigManager.GetTesterByName(Utilities.EnvironmentHelper.ComputerName)
             Dim startupIsAuto As Boolean = (startupTester IsNot Nothing AndAlso
                 (String.Equals(startupTester.Mode, "AUTO", StringComparison.OrdinalIgnoreCase) OrElse
@@ -982,6 +997,11 @@ Namespace Forms
                     _autoShutdownWaitMinutes = configWaitMin
                 End If
 
+                Dim mailboxWaitMin As Integer = Config.AppSettings.AutoShutdownMailboxWaitMinutes
+                If mailboxWaitMin > 0 Then
+                    _autoShutdownMailboxWaitMinutes = mailboxWaitMin
+                End If
+
                 Dim intervalSec As Integer = Config.AppSettings.AutoCheckIntervalSeconds
                 If intervalSec > 0 Then
                     Dim targetMs As Integer = intervalSec * 1000
@@ -1012,6 +1032,8 @@ Namespace Forms
                         _autoShutdownConditionStartTime = Nothing
                         _autoShutdownLastLogMinute = 0
                         _autoShutdownLastCondition = Nothing
+                        _autoShutdownMailboxWaiting = False
+                        _autoShutdownMailboxStartTime = DateTime.MinValue
                         _autoShutdownWaitMinutes = Config.AppSettings.AutoWaitMinutes
                         If _autoShutdownWaitMinutes <= 0 Then _autoShutdownWaitMinutes = 30
                         If _restartNoticeForm IsNot Nothing AndAlso Not _restartNoticeForm.IsDisposed Then
@@ -1025,6 +1047,8 @@ Namespace Forms
                         _autoShutdownConditionStartTime = Nothing
                         _autoShutdownLastLogMinute = 0
                         _autoShutdownLastCondition = Nothing
+                        _autoShutdownMailboxWaiting = False
+                        _autoShutdownMailboxStartTime = DateTime.MinValue
                     End If
                     _lastKnownMode = currentMode
                     LogStartupInfo()
@@ -1210,6 +1234,19 @@ Namespace Forms
                     Return
                 End If
 
+                ' Mailbox waiting — show elapsed / total wait before countdown
+                If _autoShutdownMailboxWaiting Then
+                    Dim elapsed As TimeSpan = DateTime.Now - _autoShutdownMailboxStartTime
+                    Dim total As TimeSpan = TimeSpan.FromMinutes(_autoShutdownMailboxWaitMinutes)
+                    Dim elapsedStr As String = String.Format("{0:mm\:ss}", elapsed)
+                    Dim totalStr As String = String.Format("{0:mm\:ss}", total)
+                    Dim pct As Integer = Math.Min(100, CInt((elapsed.TotalSeconds / Math.Max(1.0, total.TotalSeconds)) * 100))
+                    _lblAutoTimer.Text = String.Format("⏱  AutoShutdown Mailbox: {0} / {1}  ({2}%)", elapsedStr, totalStr, pct)
+                    _lblAutoTimer.ForeColor = Color.FromArgb(142, 68, 173)
+                    _lblAutoTimer.BackColor = Color.FromArgb(244, 236, 247)
+                    Return
+                End If
+
                 ' Counting — show elapsed / total
                 If _autoShutdownConditionStartTime.HasValue Then
                     Dim elapsed As TimeSpan = DateTime.Now - _autoShutdownConditionStartTime.Value
@@ -1253,6 +1290,10 @@ Namespace Forms
                     Return
                 End If
 
+                If _autoShutdownMailboxWaiting Then
+                    Return
+                End If
+
                 _isAutoShutdownChecking = True
 
                 System.Threading.ThreadPool.QueueUserWorkItem(Sub()
@@ -1286,6 +1327,9 @@ Namespace Forms
                 If _shutdownCountdownForm IsNot Nothing AndAlso Not _shutdownCountdownForm.IsDisposed Then
                     Return
                 End If
+
+                ' While waiting for mailbox phase to elapse, do not re-evaluate
+                If _autoShutdownMailboxWaiting Then Return
 
                 ' Safety guard — ensure wait time is always positive
                 If _autoShutdownWaitMinutes <= 0 Then _autoShutdownWaitMinutes = 30
@@ -1324,12 +1368,12 @@ Namespace Forms
                             _autoShutdownLastLogMinute = 0
 
                             If needsUpdate Then
-                                Managers.LogManager.Info("AutoShutdown Count complete. Proceeding to shutdown")
+                                Managers.LogManager.Info("AutoShutdown Count complete. Starting mailbox phase")
                                 Managers.LogManager.Info("End")
                                 Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
                                 Managers.UpdateFlagManager.SetFlag(computerName, True)
                                 UpdateAutoTimerLabel()
-                                ShowShutdownCountdownForm()
+                                StartAutoShutdownMailbox()
                             Else
                                 Managers.LogManager.Info("AutoShutdown Count complete. No update needed. Resetting.")
                                 Managers.LogManager.Info("End")
@@ -1378,10 +1422,89 @@ Namespace Forms
                 _autoShutdownConditionStartTime = Nothing
                 _autoShutdownLastLogMinute = 0
                 _autoShutdownLastCondition = Nothing
+                _autoShutdownMailboxWaiting = False
+                _autoShutdownMailboxStartTime = DateTime.MinValue
                 _shutdownCountdownForm = Nothing
                 UpdateAutoTimerLabel()
             Catch ex As Exception
                 Managers.LogManager.Error("Error in OnAutoShutdownCancelled", ex)
+            End Try
+        End Sub
+
+        ''' <summary>
+        ''' Creates the mailbox text file (default: eco_off.txt) in the folder configured by AutoShutdownMailbox,
+        ''' then waits AutoShutdownMailboxWaitMinutes (default: 3) before showing the shutdown countdown form.
+        ''' </summary>
+        Private Sub StartAutoShutdownMailbox()
+            Try
+                Dim mailboxFolder As String = Config.AppSettings.AutoShutdownMailboxPath
+                Dim fileName As String = Config.AppSettings.AutoShutdownMailboxFileName
+                If String.IsNullOrWhiteSpace(fileName) Then fileName = "eco_off"
+                If Not fileName.EndsWith(".txt", StringComparison.OrdinalIgnoreCase) Then
+                    fileName &= ".txt"
+                End If
+
+                If Not String.IsNullOrWhiteSpace(mailboxFolder) Then
+                    Try
+                        If Not Directory.Exists(mailboxFolder) Then
+                            Directory.CreateDirectory(mailboxFolder)
+                        End If
+                        Dim fullFilePath As String = Path.Combine(mailboxFolder, fileName)
+                        Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
+                        Dim content As String = String.Format("ComputerName={0}{1}Time={2:yyyy-MM-dd HH:mm:ss}{1}", computerName, Environment.NewLine, DateTime.Now)
+                        File.WriteAllText(fullFilePath, content)
+                        Managers.LogManager.Info(String.Format("AutoShutdown created mailbox file: {0}", fullFilePath))
+                    Catch ex As Exception
+                        Managers.LogManager.Error("AutoShutdown failed to create mailbox file: " & ex.Message, ex)
+                    End Try
+                Else
+                    Managers.LogManager.Info("AutoShutdown mailbox path is not configured. Skipping file creation.")
+                End If
+
+                _autoShutdownMailboxWaitMinutes = Config.AppSettings.AutoShutdownMailboxWaitMinutes
+                If _autoShutdownMailboxWaitMinutes <= 0 Then _autoShutdownMailboxWaitMinutes = 3
+
+                _autoShutdownMailboxWaiting = True
+                _autoShutdownMailboxStartTime = DateTime.Now
+                Managers.LogManager.Info(String.Format("AutoShutdown mailbox waiting {0} min before countdown...", _autoShutdownMailboxWaitMinutes))
+                UpdateAutoTimerLabel()
+
+            Catch ex As Exception
+                Managers.LogManager.Error("Error in StartAutoShutdownMailbox", ex)
+                ShowShutdownCountdownForm()
+            End Try
+        End Sub
+
+        Private Sub AutoShutdownMailboxTimer_Tick(ByVal sender As Object, ByVal e As EventArgs)
+            Try
+                If Not _autoShutdownMailboxWaiting Then Return
+
+                Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
+                Dim tester As Models.TesterInfo = Managers.ConfigManager.GetTesterByName(computerName)
+                If tester Is Nothing OrElse Not String.Equals(tester.Mode, "AUTOSHUTDOWN", StringComparison.OrdinalIgnoreCase) Then
+                    _autoShutdownMailboxWaiting = False
+                    _autoShutdownMailboxStartTime = DateTime.MinValue
+                    Return
+                End If
+
+                If _shutdownCountdownForm IsNot Nothing AndAlso Not _shutdownCountdownForm.IsDisposed Then
+                    _autoShutdownMailboxWaiting = False
+                    Return
+                End If
+
+                Dim elapsed As TimeSpan = DateTime.Now - _autoShutdownMailboxStartTime
+                If elapsed.TotalMinutes >= _autoShutdownMailboxWaitMinutes Then
+                    _autoShutdownMailboxWaiting = False
+                    _autoShutdownMailboxStartTime = DateTime.MinValue
+                    Managers.LogManager.Info("AutoShutdown mailbox wait completed. Proceeding to countdown.")
+                    Managers.LogManager.Info("End")
+                    UpdateAutoTimerLabel()
+                    ShowShutdownCountdownForm()
+                Else
+                    UpdateAutoTimerLabel()
+                End If
+            Catch ex As Exception
+                Managers.LogManager.Error("AutoShutdownMailboxTimer error", ex)
             End Try
         End Sub
 
@@ -1853,6 +1976,12 @@ Namespace Forms
                 _autoShutdownModeTimer = Nothing
             End If
 
+            If _autoShutdownMailboxTimer IsNot Nothing Then
+                _autoShutdownMailboxTimer.Stop()
+                _autoShutdownMailboxTimer.Dispose()
+                _autoShutdownMailboxTimer = Nothing
+            End If
+
             If _refreshTimer IsNot Nothing Then
                 _refreshTimer.Stop()
                 _refreshTimer.Dispose()
@@ -1922,6 +2051,11 @@ Namespace Forms
                     RemoveHandler _autoShutdownModeTimer.Tick, AddressOf AutoShutdownModeTimer_Tick
                     _autoShutdownModeTimer.Dispose()
                     _autoShutdownModeTimer = Nothing
+                End If
+                If _autoShutdownMailboxTimer IsNot Nothing Then
+                    RemoveHandler _autoShutdownMailboxTimer.Tick, AddressOf AutoShutdownMailboxTimer_Tick
+                    _autoShutdownMailboxTimer.Dispose()
+                    _autoShutdownMailboxTimer = Nothing
                 End If
                 If _restartCheckTimer IsNot Nothing Then
                     RemoveHandler _restartCheckTimer.Tick, AddressOf RestartCheckTimer_Tick
