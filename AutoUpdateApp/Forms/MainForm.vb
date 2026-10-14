@@ -77,6 +77,7 @@ Namespace Forms
         Private _lastKnownMode As String = ""
         Private _restartCountdownForm As RestartCountdownForm = Nothing
         Private _autoLastCondition As Boolean? = Nothing
+        Private _autoIsUpToDate As Boolean = False
 
         ' AutoShutdown Mode Countdown & Monitoring (Separated from Auto Mode)
         Private _autoShutdownWaitMinutes As Integer = 30
@@ -86,6 +87,7 @@ Namespace Forms
         Private WithEvents _autoShutdownModeTimer As Timer
         Private _isAutoShutdownChecking As Boolean = False
         Private _shutdownCountdownForm As ShutdownCountdownForm = Nothing
+        Private _autoShutdownIsUpToDate As Boolean = False
 
         ' AutoShutdown Mailbox — create eco_off file and wait N minutes before showing ShutdownCountdown
         Private WithEvents _autoShutdownMailboxTimer As Timer
@@ -1023,6 +1025,7 @@ Namespace Forms
                         _autoConditionStartTime = Nothing
                         _autoLastLogMinute = 0
                         _autoLastCondition = Nothing
+                        _autoIsUpToDate = False
                         _autoWaitMinutes = Config.AppSettings.AutoWaitMinutes
                         If _autoWaitMinutes <= 0 Then _autoWaitMinutes = 30
                         If _restartNoticeForm IsNot Nothing AndAlso Not _restartNoticeForm.IsDisposed Then
@@ -1033,6 +1036,7 @@ Namespace Forms
                         _autoShutdownConditionStartTime = Nothing
                         _autoShutdownLastLogMinute = 0
                         _autoShutdownLastCondition = Nothing
+                        _autoShutdownIsUpToDate = False
                         _autoShutdownMailboxWaiting = False
                         _autoShutdownMailboxStartTime = DateTime.MinValue
                         _autoShutdownWaitMinutes = Config.AppSettings.AutoWaitMinutes
@@ -1045,9 +1049,11 @@ Namespace Forms
                         _autoConditionStartTime = Nothing
                         _autoLastLogMinute = 0
                         _autoLastCondition = Nothing
+                        _autoIsUpToDate = False
                         _autoShutdownConditionStartTime = Nothing
                         _autoShutdownLastLogMinute = 0
                         _autoShutdownLastCondition = Nothing
+                        _autoShutdownIsUpToDate = False
                         _autoShutdownMailboxWaiting = False
                         _autoShutdownMailboxStartTime = DateTime.MinValue
                         _autoShutdownMailboxDone = False
@@ -1071,6 +1077,7 @@ Namespace Forms
                         _autoLastLogMinute = 0
                         _autoLastCondition = Nothing
                     End If
+                    _autoIsUpToDate = False
                     Return
                 End If
 
@@ -1082,12 +1089,21 @@ Namespace Forms
 
                 System.Threading.ThreadPool.QueueUserWorkItem(Sub()
                     Try
-                        Dim isConditionTrue As Boolean = Strategies.AutoStrategy.CheckAutoCondition(computerName)
+                        Dim currentVer As String = Managers.VersionManager.ReadRegistryVersion()
+                        Dim serverVer As String = Managers.VersionManager.ReadLatestVersion()
+                        Dim needsUpdate As Boolean = (Not String.IsNullOrEmpty(serverVer)) AndAlso
+                                                     (String.IsNullOrEmpty(currentVer) OrElse
+                                                      Not String.Equals(currentVer, serverVer, StringComparison.OrdinalIgnoreCase))
+
+                        Dim isConditionTrue As Boolean = False
+                        If needsUpdate Then
+                            isConditionTrue = Strategies.AutoStrategy.CheckAutoCondition(computerName)
+                        End If
 
                         If Not Me.IsDisposed AndAlso Me.IsHandleCreated Then
                             Me.BeginInvoke(New Action(Sub()
                                 Try
-                                    HandleAutoConditionResult(isConditionTrue)
+                                    HandleAutoConditionResult(isConditionTrue, needsUpdate)
                                 Finally
                                     _isAutoChecking = False
                                 End Try
@@ -1106,7 +1122,7 @@ Namespace Forms
             End Try
         End Sub
 
-        Private Sub HandleAutoConditionResult(isConditionTrue As Boolean)
+        Private Sub HandleAutoConditionResult(isConditionTrue As Boolean, needsUpdate As Boolean)
             Try
                 If _restartCountdownForm IsNot Nothing AndAlso Not _restartCountdownForm.IsDisposed Then
                     Return
@@ -1114,6 +1130,22 @@ Namespace Forms
 
                 ' Safety guard — ensure wait time is always positive
                 If _autoWaitMinutes <= 0 Then _autoWaitMinutes = 30
+
+                ' If version is up to date, cancel any active countdown and set up-to-date state
+                If Not needsUpdate Then
+                    If _autoConditionStartTime.HasValue Then
+                        Managers.LogManager.Info("Auto count stopped: Version is up to date")
+                        Managers.LogManager.Info("End")
+                        _autoConditionStartTime = Nothing
+                        _autoLastLogMinute = 0
+                        _autoLastCondition = Nothing
+                    End If
+                    _autoIsUpToDate = True
+                    UpdateAutoTimerLabel()
+                    Return
+                End If
+
+                _autoIsUpToDate = False
 
                 ' Log condition only on change (not every 2 seconds)
                 If Not _autoLastCondition.HasValue OrElse _autoLastCondition.Value <> isConditionTrue Then
@@ -1139,28 +1171,15 @@ Namespace Forms
                         End While
 
                         If elapsedMin >= _autoWaitMinutes Then
-                            ' Countdown complete — verify update is still needed before restarting
-                            Dim currentVer As String = Managers.VersionManager.ReadRegistryVersion()
-                            Dim serverVer As String = Managers.VersionManager.ReadLatestVersion()
-                            Dim needsUpdate As Boolean = (Not String.IsNullOrEmpty(serverVer)) AndAlso
-                                                         (String.IsNullOrEmpty(currentVer) OrElse
-                                                          Not String.Equals(currentVer, serverVer, StringComparison.OrdinalIgnoreCase))
-
                             _autoConditionStartTime = Nothing
                             _autoLastLogMinute = 0
 
-                            If needsUpdate Then
-                                Managers.LogManager.Info("Auto Count complete. Proceeding to restart")
-                                Managers.LogManager.Info("End")
-                                Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
-                                Managers.UpdateFlagManager.SetFlag(computerName, True)
-                                UpdateAutoTimerLabel()
-                                ShowRestartCountdownForm()
-                            Else
-                                Managers.LogManager.Info("Auto Count complete. No update needed. Resetting.")
-                                Managers.LogManager.Info("End")
-                                UpdateAutoTimerLabel()
-                            End If
+                            Managers.LogManager.Info("Auto Count complete. Proceeding to restart")
+                            Managers.LogManager.Info("End")
+                            Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
+                            Managers.UpdateFlagManager.SetFlag(computerName, True)
+                            UpdateAutoTimerLabel()
+                            ShowRestartCountdownForm()
                         Else
                             UpdateAutoTimerLabel()
                         End If
@@ -1210,6 +1229,14 @@ Namespace Forms
                     Return
                 End If
 
+                ' Version is already up to date — show Up to date
+                If _autoIsUpToDate Then
+                    _lblAutoTimer.Text = "⏱  Auto: Version is up to date"
+                    _lblAutoTimer.ForeColor = Color.FromArgb(39, 174, 96)
+                    _lblAutoTimer.BackColor = Color.FromArgb(235, 247, 240)
+                    Return
+                End If
+
                 ' Counting — show elapsed / total
                 If _autoConditionStartTime.HasValue Then
                     Dim elapsed As TimeSpan = DateTime.Now - _autoConditionStartTime.Value
@@ -1233,6 +1260,14 @@ Namespace Forms
                     _lblAutoTimer.Text = "⏱  AutoShutdown: Shutting down..."
                     _lblAutoTimer.ForeColor = Color.FromArgb(192, 57, 43)
                     _lblAutoTimer.BackColor = Color.FromArgb(255, 235, 235)
+                    Return
+                End If
+
+                ' Version is already up to date — show Up to date
+                If _autoShutdownIsUpToDate Then
+                    _lblAutoTimer.Text = "⏱  AutoShutdown: Version is up to date"
+                    _lblAutoTimer.ForeColor = Color.FromArgb(39, 174, 96)
+                    _lblAutoTimer.BackColor = Color.FromArgb(235, 247, 240)
                     Return
                 End If
 
@@ -1285,6 +1320,7 @@ Namespace Forms
                         _autoShutdownLastLogMinute = 0
                         _autoShutdownLastCondition = Nothing
                     End If
+                    _autoShutdownIsUpToDate = False
                     Return
                 End If
 
@@ -1300,12 +1336,21 @@ Namespace Forms
 
                 System.Threading.ThreadPool.QueueUserWorkItem(Sub()
                     Try
-                        Dim isConditionTrue As Boolean = Strategies.AutoShutdownStrategy.CheckAutoShutdownCondition(computerName)
+                        Dim currentVer As String = Managers.VersionManager.ReadRegistryVersion()
+                        Dim serverVer As String = Managers.VersionManager.ReadLatestVersion()
+                        Dim needsUpdate As Boolean = (Not String.IsNullOrEmpty(serverVer)) AndAlso
+                                                     (String.IsNullOrEmpty(currentVer) OrElse
+                                                      Not String.Equals(currentVer, serverVer, StringComparison.OrdinalIgnoreCase))
+
+                        Dim isConditionTrue As Boolean = False
+                        If needsUpdate Then
+                            isConditionTrue = Strategies.AutoShutdownStrategy.CheckAutoShutdownCondition(computerName)
+                        End If
 
                         If Not Me.IsDisposed AndAlso Me.IsHandleCreated Then
                             Me.BeginInvoke(New Action(Sub()
                                 Try
-                                    HandleAutoShutdownConditionResult(isConditionTrue)
+                                    HandleAutoShutdownConditionResult(isConditionTrue, needsUpdate)
                                 Finally
                                     _isAutoShutdownChecking = False
                                 End Try
@@ -1324,7 +1369,7 @@ Namespace Forms
             End Try
         End Sub
 
-        Private Sub HandleAutoShutdownConditionResult(isConditionTrue As Boolean)
+        Private Sub HandleAutoShutdownConditionResult(isConditionTrue As Boolean, needsUpdate As Boolean)
             Try
                 If _shutdownCountdownForm IsNot Nothing AndAlso Not _shutdownCountdownForm.IsDisposed Then
                     Return
@@ -1335,6 +1380,22 @@ Namespace Forms
 
                 ' Safety guard — ensure wait time is always positive
                 If _autoShutdownWaitMinutes <= 0 Then _autoShutdownWaitMinutes = 30
+
+                ' If version is up to date, cancel any active countdown and set up-to-date state
+                If Not needsUpdate Then
+                    If _autoShutdownConditionStartTime.HasValue Then
+                        Managers.LogManager.Info("AutoShutdown count stopped: Version is up to date")
+                        Managers.LogManager.Info("End")
+                        _autoShutdownConditionStartTime = Nothing
+                        _autoShutdownLastLogMinute = 0
+                        _autoShutdownLastCondition = Nothing
+                    End If
+                    _autoShutdownIsUpToDate = True
+                    UpdateAutoTimerLabel()
+                    Return
+                End If
+
+                _autoShutdownIsUpToDate = False
 
                 ' Log condition only on change
                 If Not _autoShutdownLastCondition.HasValue OrElse _autoShutdownLastCondition.Value <> isConditionTrue Then
@@ -1359,33 +1420,20 @@ Namespace Forms
                         End While
 
                         If elapsedMin >= _autoShutdownWaitMinutes Then
-                            ' Countdown complete — verify update is still needed before shutting down
-                            Dim currentVer As String = Managers.VersionManager.ReadRegistryVersion()
-                            Dim serverVer As String = Managers.VersionManager.ReadLatestVersion()
-                            Dim needsUpdate As Boolean = (Not String.IsNullOrEmpty(serverVer)) AndAlso
-                                                         (String.IsNullOrEmpty(currentVer) OrElse
-                                                          Not String.Equals(currentVer, serverVer, StringComparison.OrdinalIgnoreCase))
-
                             _autoShutdownConditionStartTime = Nothing
                             _autoShutdownLastLogMinute = 0
 
-                            If needsUpdate Then
-                                Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
-                                Managers.UpdateFlagManager.SetFlag(computerName, True)
-                                UpdateAutoTimerLabel()
-                                If _autoShutdownMailboxDone Then
-                                    Managers.LogManager.Info("AutoShutdown Count complete. Mailbox already completed previously. Proceeding to shutdown countdown.")
-                                    Managers.LogManager.Info("End")
-                                    ShowShutdownCountdownForm()
-                                Else
-                                    Managers.LogManager.Info("AutoShutdown Count complete. Starting mailbox phase")
-                                    Managers.LogManager.Info("End")
-                                    StartAutoShutdownMailbox()
-                                End If
-                            Else
-                                Managers.LogManager.Info("AutoShutdown Count complete. No update needed. Resetting.")
+                            Dim computerName As String = Utilities.EnvironmentHelper.ComputerName
+                            Managers.UpdateFlagManager.SetFlag(computerName, True)
+                            UpdateAutoTimerLabel()
+                            If _autoShutdownMailboxDone Then
+                                Managers.LogManager.Info("AutoShutdown Count complete. Mailbox already completed previously. Proceeding to shutdown countdown.")
                                 Managers.LogManager.Info("End")
-                                UpdateAutoTimerLabel()
+                                ShowShutdownCountdownForm()
+                            Else
+                                Managers.LogManager.Info("AutoShutdown Count complete. Starting mailbox phase")
+                                Managers.LogManager.Info("End")
+                                StartAutoShutdownMailbox()
                             End If
                         Else
                             UpdateAutoTimerLabel()
